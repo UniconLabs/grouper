@@ -26,6 +26,10 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+import com.unboundid.ldap.listener.InMemoryDirectoryServer;
+import com.unboundid.ldap.listener.InMemoryDirectoryServerConfig;
+import com.unboundid.ldap.sdk.Attribute;
+import com.unboundid.ldap.sdk.LDAPException;
 import org.apache.ddlutils.model.Database;
 import org.apache.ddlutils.model.Table;
 
@@ -54,6 +58,7 @@ import edu.internet2.middleware.grouper.ldap.LdapModificationType;
 import edu.internet2.middleware.grouperClient.jdbc.GcDbAccess;
 import edu.internet2.middleware.subject.Subject;
 import junit.textui.TestRunner;
+import org.junit.Assert;
 
 
 /**
@@ -624,6 +629,68 @@ public class LoaderLdapElUtilsTest extends GrouperTest {
     }
     
     SqlProvisionerTest.dropTableSyncTable(tableName);
+  }
+
+  public void testDnToAttribute() throws LDAPException {
+    InMemoryDirectoryServerConfig config = new InMemoryDirectoryServerConfig("dc=example,dc=edu");
+    config.addAdditionalBindCredentials("cn=admin", "password");
+
+    InMemoryDirectoryServer ds = new InMemoryDirectoryServer(config);
+
+    // let's add the basedn
+    ds.add(
+            "dc=example,dc=edu",
+            new Attribute("objectClass", "domain"),
+            new Attribute("dc", "example")
+    );
+
+    // let's add the ou
+    ds.add(
+            "ou=People,dc=example,dc=edu",
+            new Attribute("objectClass", "organizationalUnit"),
+            new Attribute("ou", "People")
+    );
+
+    // let's add bob!
+    ds.add(
+            "uid=banderson,ou=People,dc=example,dc=edu",
+            new Attribute("objectClass", "person", "inetOrgPerson", "organizationalPerson"),
+            new Attribute("uid", "banderson"),
+            new Attribute("cn", "Bob Anderson"),
+            new Attribute("sn", "Anderson"),
+            new Attribute("givenName", "Bob")
+    );
+
+    ds.startListening();
+
+    Map<String, String> grouperLoaderOverrides = GrouperLoaderConfig.retrieveConfig().propertiesOverrideMap();
+    grouperLoaderOverrides.put("ldap.dummyLdap.url", "ldap://localhost:" + ds.getListenPort());
+    grouperLoaderOverrides.put("ldap.dummyLdap.user", "cn=admin");
+    grouperLoaderOverrides.put("ldap.dummyLdap.pass", "password");
+
+    // attribute that exists
+    Object[] attribute = LoaderLdapElUtils.dnToAttribute("uid=banderson,ou=People,dc=example,dc=edu", "uid", "dummyLdap");
+    Assert.assertEquals(1L, attribute.length);
+    Assert.assertEquals("banderson", attribute[0]);
+
+    // attribute that doesn't exist
+    // TODO: figure out spec
+    Object[] attribute4 = LoaderLdapElUtils.dnToAttribute("uid=banderson,ou=People,dc=example,dc=edu", "mail", "dummyLdap");
+    Assert.assertEquals(0, attribute4.length);
+
+    // single attribute that exists
+    Object attribute2 = LoaderLdapElUtils.dnToSingleAttribute("uid=banderson,ou=People,dc=example,dc=edu", "uid", "dummyLdap");
+    Assert.assertEquals("banderson", attribute2);
+
+    // single attribute that doesn't exist
+    Object attribute3 = LoaderLdapElUtils.dnToSingleAttribute("uid=banderson,ou=People,dc=example,dc=edu", "mail", "dummyLdap");
+    Assert.assertNull(attribute3);
+
+    // attribute with multiple values
+    Object[] attribute5 = LoaderLdapElUtils.dnToAttribute("uid=banderson,ou=People,dc=example,dc=edu", "objectClass", "dummyLdap");
+    Assert.assertArrayEquals(new String[]{"top", "person", "inetOrgPerson", "organizationalPerson"}, attribute5);
+
+    ds.shutDown(true);
   }
 
 }

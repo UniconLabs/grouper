@@ -22,6 +22,8 @@ package edu.internet2.middleware.grouper.app.loader.ldap;
 import java.text.Normalizer;
 import java.util.List;
 
+import edu.internet2.middleware.grouper.ldap.LdapEntry;
+import edu.internet2.middleware.grouper.ldap.LdapSearchScope;
 import org.apache.commons.lang.StringUtils;
 import org.apache.commons.logging.Log;
 
@@ -471,5 +473,24 @@ public class LoaderLdapElUtils {
       }
     }
   }
-  
+
+  //TODO: define spec
+  /**
+   * retrieve an attribute for a DN
+   * @param dn to retrieve
+   * @return array of attribute values
+   */
+  public static Object[] dnToAttribute(String dn, String attribute, String serverId) {
+    List<LdapEntry> ldapEntries = LdapSessionUtils.ldapSession().list(serverId, dn, LdapSearchScope.OBJECT_SCOPE, "objectClass=*", new String[]{attribute}, 100L);
+    return ldapEntries.get(0).getAttribute(attribute).getValues().toArray(new Object[0]);
+  }
+
+  public static Object dnToSingleAttribute(String dn, String attribute, String serverId) {
+    Object[] attributeVal = dnToAttribute(dn, attribute, serverId);
+    if (attributeVal.length == 0) {
+      return null;
+    } else {
+      return dnToAttribute(dn, attribute, serverId)[0];
+    }
+  }
 }
