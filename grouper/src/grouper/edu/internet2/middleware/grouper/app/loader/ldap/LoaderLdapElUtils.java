@@ -475,6 +475,7 @@ public class LoaderLdapElUtils {
   }
 
   //TODO: define spec
+  // TODO: add caching support?
   /**
    * retrieve an attribute for a DN
    * @param dn to retrieve
