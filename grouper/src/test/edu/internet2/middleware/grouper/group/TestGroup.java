@@ -41,6 +41,7 @@ import org.apache.commons.logging.Log;
 import edu.internet2.middleware.grouper.Field;
 import edu.internet2.middleware.grouper.FieldFinder;
 import edu.internet2.middleware.grouper.Group;
+import edu.internet2.middleware.grouper.GroupCopy;
 import edu.internet2.middleware.grouper.GroupFinder;
 import edu.internet2.middleware.grouper.GroupSave;
 import edu.internet2.middleware.grouper.GroupType;
@@ -87,6 +88,10 @@ import edu.internet2.middleware.grouper.hibernate.GrouperTransaction;
 import edu.internet2.middleware.grouper.hibernate.GrouperTransactionHandler;
 import edu.internet2.middleware.grouper.hibernate.GrouperTransactionType;
 import edu.internet2.middleware.grouper.hibernate.HibernateSession;
+import edu.internet2.middleware.grouper.hooks.examples.AttributeDefNameUniqueNameCaseInsensitiveHook;
+import edu.internet2.middleware.grouper.hooks.examples.GroupUniqueNameCaseInsensitiveHook;
+import edu.internet2.middleware.grouper.hooks.logic.GrouperHookType;
+import edu.internet2.middleware.grouper.hooks.logic.GrouperHooksUtils;
 import edu.internet2.middleware.grouper.internal.dao.GrouperDAOException;
 import edu.internet2.middleware.grouper.internal.dao.QueryOptions;
 import edu.internet2.middleware.grouper.internal.dao.hib3.Hib3DAO;
@@ -118,11 +123,18 @@ public class TestGroup extends GrouperTest {
    * @param args
    */
   public static void main(String[] args) {
-    TestRunner.run(new TestGroup("testDefaultInvalidChars"));
+    TestRunner.run(new TestGroup("testGroupCopyCollision"));
     //TestRunner.run(new TestGroup("testReadonlyViewonlyAdmin"));
     //TestRunner.run(TestGroup.class);
   }
 
+  public void testGroupCopyCollision() {
+    
+    Stem stem = new StemSave().assignName("test").save();
+    Group group = new GroupSave().assignName("test:group").assignAlternateName("test:group2").save();
+    new GroupCopy(group, stem).setDisplayExtension("group2").setExtension("group2").save();
+  }
+  
   public void testDefaultInvalidChars() {
     new StemSave().assignName("test").save();
     
@@ -257,6 +269,9 @@ public class TestGroup extends GrouperTest {
   }
   
   public void testNoSameCaseByDefault() {
+    GrouperHooksUtils.addHookManual(GrouperHookType.GROUP.getPropertyFileKey(), GroupUniqueNameCaseInsensitiveHook.class);
+    GrouperHooksUtils.addHookManual(GrouperHookType.ATTRIBUTE_DEF_NAME.getPropertyFileKey(), AttributeDefNameUniqueNameCaseInsensitiveHook.class);
+    
     new StemSave().assignName("test").save();
     
     try {

@@ -79,7 +79,7 @@
                   
                   <td style="white-space: nowrap;">
                       <c:choose>
-		                <c:when test="${grouperSyncMember.inTargetInsertOrExistsDb}">
+		                <c:when test="${grouperSyncMember.inTargetInsertOrExists}">
 		                  ${textContainer.text['privsioningConfigDetailsInTargetInsertsOrExistsTrueLabel']}
 		                </c:when>
 		                <c:otherwise>
@@ -146,7 +146,7 @@
                   </td>
                   
                   <td style="white-space: nowrap;">
-                    ${grouperSyncMember.errorMessage}
+                    ${grouper:escapeHtml(grouperSyncMember.errorMessage)}
                   </td>
                   
                   <td style="white-space: nowrap;">

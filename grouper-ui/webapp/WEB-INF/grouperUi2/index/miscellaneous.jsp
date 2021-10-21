@@ -42,8 +42,13 @@
                 	<div class="row-fluid">
                 	<h4 style="color: #1c6070; margin-top: 25px; ">${textContainer.text['miscellaneousPageAdministrationHeader'] }</h4>
                 	
+                	 <c:if test="${grouperRequestContainer.authenticationContainer.canViewAuthentication}">
+                      <br /><a href="#" onclick="return guiV2link('operation=UiV2AuthenticationConfig.index');" style="white-space: nowrap;">
+                        ${textContainer.text['adminAuthenticationLink'] }</a>
+                    </c:if>
+                	
                 	 <c:if test="${grouperRequestContainer.configurationContainer.configureShow}">
-                      <br /><a href="#" onclick="return guiV2link('operation=UiV2Configure.index');" style="white-space: nowrap;">
+                      <br /><br /><a href="#" onclick="return guiV2link('operation=UiV2Configure.index');" style="white-space: nowrap;">
                       	${textContainer.text['adminConfigureLink'] }</a>
                     </c:if>
                     
@@ -76,6 +81,11 @@
                     <c:if test="${grouperRequestContainer.provisionerConfigurationContainer.canViewProvisionerConfiguration}">
                       <br /><br /><a href="#" onclick="return guiV2link('operation=UiV2ProvisionerConfiguration.viewProvisionerConfigurations');" style="white-space: nowrap;">
                       	${textContainer.text['adminProvisionerConfigurationsLink'] }</a>
+                    </c:if>
+                    
+                    <c:if test="${grouperRequestContainer.sqlSyncConfigurationContainer.canViewSqlSyncConfigs}">
+                      <br /><br /><a href="#" onclick="return guiV2link('operation=UiV2SqlSyncConfiguration.viewSqlSyncConfigurations');" style="white-space: nowrap;"
+                        >${textContainer.text['sqlSyncMainLink'] }</a>
                     </c:if>
                     
                     <c:if test="${grouperRequestContainer.subjectSourceContainer.canViewSubjectSources}">

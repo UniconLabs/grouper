@@ -28,7 +28,7 @@
  
    <a data-toggle="dropdown" href="#" aria-label="${textContainer.text['ariaLabelGuiMoreSubjectActions']}" id="more-action-button" class="btn btn-medium btn-block dropdown-toggle" 
    	aria-haspopup="true" aria-expanded="false" role="menu" onclick="$('#subject-more-options').is(':visible') === true ? $(this).attr('aria-expanded','false') : $(this).attr('aria-expanded',function(index, currentValue) { $('#subject-more-options li').first().focus();return true;});">
-   		${textContainer.text['groupViewMoreActionsButton'] } <span class="caret"></span></a>
+   		${textContainer.text['subjectViewMoreActionsButton'] } <span class="caret"></span></a>
 
    <ul class="dropdown-menu dropdown-menu-right" id="subject-more-options">
      
@@ -91,6 +91,12 @@
 	   <li><a href="javascript:void(0)" onclick="return guiV2link('operation=UiV2Provisioning.viewProvisioningOnSubject&subjectId=${grouperRequestContainer.subjectContainer.guiSubject.subject.id}'); return false;"
            >${textContainer.text['subjectViewProvisioningButton'] }</a></li>
      </c:if>
+     
+     <c:if test="${grouperRequestContainer.subjectContainer.guiSubject.subject.sourceId == 'grouperEntities' && grouperRequestContainer.subjectContainer.canViewWsJwtKey }">
+        <li class="divider"></li>
+        <li><a href="#" onclick="return guiV2link('operation=UiV2LocalEntity.viewLocalEntityWSJwtKeys&subjectId=${grouperRequestContainer.subjectContainer.guiSubject.subject.id}&sourceId=${grouperRequestContainer.subjectContainer.guiSubject.subject.sourceId}'); return false;"
+          >${textContainer.text['localEntityWsJwtKeyLocalEntityButton'] }</a></li>
+      </c:if>
 
    </ul>
  </div>

@@ -159,6 +159,7 @@ import edu.internet2.middleware.grouper.subj.GrouperSubject;
 import edu.internet2.middleware.grouper.tableIndex.TableIndex;
 import edu.internet2.middleware.grouper.tableIndex.TableIndexType;
 import edu.internet2.middleware.grouper.util.GrouperUtil;
+import edu.internet2.middleware.grouper.util.PerformanceLogger;
 import edu.internet2.middleware.grouper.validator.AddAlternateStemNameValidator;
 import edu.internet2.middleware.grouper.validator.AddAttributeDefNameValidator;
 import edu.internet2.middleware.grouper.validator.AddAttributeDefValidator;
@@ -2431,6 +2432,7 @@ public class Stem extends GrouperAPI implements GrouperHasContext, Owner,
                 
                 if (addDefaultGroupPrivileges) {
                   _grantDefaultPrivsUponCreate(_g);
+                  PerformanceLogger.performanceTimingGate(GroupSave.PERFORMANCE_LOG_LABEL, "defaultPrivs");
                 }
                 
                 // take care of attributes now that default privs have been added
@@ -2444,11 +2446,14 @@ public class Stem extends GrouperAPI implements GrouperHasContext, Owner,
                     _g.setAttribute(key, attributes.get(key), checkSecurity);
                   }
                 }
+                PerformanceLogger.performanceTimingGate(GroupSave.PERFORMANCE_LOG_LABEL, "attributes");
                 
                 //fire a rule
                 RulesGroupBean rulesGroupBean = new RulesGroupBean(_g);
                 //fire rules directly connected to this membership remove
                 RuleEngine.fireRule(RuleCheckType.groupCreate, rulesGroupBean);
+
+                PerformanceLogger.performanceTimingGate(GroupSave.PERFORMANCE_LOG_LABEL, "groupCreateRule");
 
               }
               
@@ -2470,6 +2475,8 @@ public class Stem extends GrouperAPI implements GrouperHasContext, Owner,
                   
                 }
                 auditEntry.saveOrUpdate(true);
+                PerformanceLogger.performanceTimingGate(GroupSave.PERFORMANCE_LOG_LABEL, "audit");
+
               }
               
               sw.stop();
@@ -2480,6 +2487,9 @@ public class Stem extends GrouperAPI implements GrouperHasContext, Owner,
               throw new GroupAddException( E.CANNOT_CREATE_GROUP + errorMessageSuffix + eDAO.getMessage(), eDAO );
             } catch (SourceUnavailableException eSU)  {
               throw new GroupAddException(E.CANNOT_CREATE_GROUP + errorMessageSuffix + eSU.getMessage(), eSU);
+            } catch (RuntimeException re) {
+              GrouperUtil.injectInException(re, errorMessageSuffix);
+              throw re;
             }
           }
         });
@@ -2883,16 +2893,16 @@ public class Stem extends GrouperAPI implements GrouperHasContext, Owner,
                     EventLog.info(session, M.STEM_ADD + Quote.single( _ns.getName() ), sw);
 
                     return _ns;
-                  } catch (StemAddException e) {
-                    String error = "Problem creating child stem: " + GrouperUtil.toStringSafe(Stem.this)
-                      + ", extn: " + extn + ", dExtn: " + dExtn + ", uuid: " + uuid + ", " + e.getMessage();
-                    GrouperUtil.injectInException(e, error);
-                    throw e;
                   } catch (GrouperDAOException e) {
                     String error = "Problem creating child stem: " + GrouperUtil.toStringSafe(Stem.this)
                       + ", extn: " + extn + ", dExtn: " + dExtn + ", uuid: " + uuid + ", " + e.getMessage();
                     GrouperUtil.injectInException(e, error);
                     throw new StemAddException(E.CANNOT_CREATE_STEM + e.getMessage(), e);
+                  } catch (RuntimeException re) {
+                    String error = "Problem creating child stem: " + GrouperUtil.toStringSafe(Stem.this)
+                      + ", extn: " + extn + ", dExtn: " + dExtn + ", uuid: " + uuid + ", " + re.getMessage();
+                    GrouperUtil.injectInException(re, error);
+                    throw re;
                   }
                 }
           });

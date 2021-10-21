@@ -2,15 +2,8 @@ package edu.internet2.middleware.grouper.app.provisioning.targetDao;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Map;
 
 import edu.internet2.middleware.grouper.app.provisioning.GrouperProvisioner;
-import edu.internet2.middleware.grouper.app.provisioning.GrouperProvisioningLists;
-import edu.internet2.middleware.grouper.app.provisioning.ProvisioningEntity;
-import edu.internet2.middleware.grouper.app.provisioning.ProvisioningGroup;
-import edu.internet2.middleware.grouper.app.provisioning.ProvisioningMembership;
-import edu.internet2.middleware.grouper.util.GrouperUtil;
-import edu.internet2.middleware.grouperClient.collections.MultiKey;
 
 
 /**
@@ -27,13 +20,16 @@ public abstract class GrouperProvisionerTargetDaoBase {
   
   /**
    * start logging the source low level actions
+   * @return true if the logging was started (i.e. can be stopped), or false if already started (in which case 
+   * somewhere up the stack with stop it so dont stop it)
    */
-  public void loggingStart() {
-    
+  public boolean loggingStart() {
+    return false;
   }
 
   /**
    * stop logging and get the output
+   * only call this if you successfully started the logging
    */
   public String loggingStop() {
     return null;

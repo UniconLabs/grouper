@@ -67,7 +67,7 @@
                             <td>
                             <c:if test="${grouperRequestContainer.provisioningContainer.gcGrouperSyncGroup != null}">
                             <c:choose>
-			                  <c:when test="${grouperRequestContainer.provisioningContainer.gcGrouperSyncGroup.inTargetInsertOrExistsDb}">
+			                  <c:when test="${grouperRequestContainer.provisioningContainer.gcGrouperSyncGroup.inTargetInsertOrExists}">
 			                    ${textContainer.text['privsioningConfigDetailsInTargetInsertsOrExistsTrueLabel']}
 			                  </c:when>
 			                  <c:otherwise>
@@ -208,8 +208,7 @@
                           
                           <tr>
                             <td style="vertical-align: top; white-space: nowrap;"><strong>${textContainer.text['privsioningConfigDetailsErrorMessage'] }</strong></td>
-                            <td>
-                            ${grouperRequestContainer.provisioningContainer.gcGrouperSyncGroup.errorMessage}
+                            <td><grouper:abbreviateTextarea text="${grouper:zipUnBase64UnGzip(grouperRequestContainer.provisioningContainer.gcGrouperSyncGroup.errorMessage)}"/>
                             <br />
                             <span class="description">${textContainer.text['privsioningConfigDetailsErrorMessageDescription']}</span>
                             </td>

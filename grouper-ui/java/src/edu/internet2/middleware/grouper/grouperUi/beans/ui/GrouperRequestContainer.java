@@ -698,6 +698,24 @@ public class GrouperRequestContainer {
   }
   
   /**
+   * container for sql sync configs
+   */
+  private SqlSyncConfigurationContainer sqlSyncConfigurationContainer;
+  
+  /**
+   * container for sql sync configs
+   * @return the container
+   */
+  public SqlSyncConfigurationContainer getSqlSyncConfigurationContainer() {
+   
+    if (this.sqlSyncConfigurationContainer == null) {
+      this.sqlSyncConfigurationContainer = new SqlSyncConfigurationContainer();
+    }
+    
+    return this.sqlSyncConfigurationContainer;
+  }
+
+  /**
    * container for gsh templates
    */
   private GshTemplateContainer gshTemplateContainer;
@@ -892,6 +910,60 @@ public class GrouperRequestContainer {
       this.visualizationContainer = new VisualizationContainer();
     }
     return this.visualizationContainer;
+  }
+  
+  /**
+   * container for authentication
+   */
+  private AuthenticationContainer authenticationContainer;
+  
+  /**
+   * container for authentication
+   * @return the container
+   */
+  public AuthenticationContainer getAuthenticationContainer() {
+    
+    if (this.authenticationContainer == null) {
+      this.authenticationContainer = new AuthenticationContainer();
+    }
+    
+    return this.authenticationContainer;
+  }
+  
+  /**
+   * container for oidc config
+   */
+  private OidcConfigContainer oidcConfigContainer;
+  
+  /**
+   * container for oidc config
+   * @return the container
+   */
+  public OidcConfigContainer getOidcConfigContainer() {
+    
+    if (this.oidcConfigContainer == null) {
+      this.oidcConfigContainer = new OidcConfigContainer();
+    }
+    
+    return this.oidcConfigContainer;
+  }
+  
+  /**
+   * container for grouper password
+   */
+  private GrouperPasswordContainer grouperPasswordContainer;
+  
+  /**
+   * container for grouper password
+   * @return the container
+   */
+  public GrouperPasswordContainer getGrouperPasswordContainer() {
+    
+    if (this.grouperPasswordContainer == null) {
+      this.grouperPasswordContainer = new GrouperPasswordContainer();
+    }
+    
+    return this.grouperPasswordContainer;
   }
 
 }
