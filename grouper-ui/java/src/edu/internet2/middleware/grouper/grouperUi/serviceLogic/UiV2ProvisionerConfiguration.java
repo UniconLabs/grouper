@@ -169,6 +169,10 @@ public class UiV2ProvisionerConfiguration {
           grouperProvisioningDiagnosticsContainer.getGrouperProvisioningDiagnosticsSettings().setDiagnosticsGroupName(diagnosticsGroupNameName);
         }
         {
+          String diagnosticsSubjectIdOrIdentifierName = request.getParameter("diagnosticsSubjectIdOrIdentifierName");
+          grouperProvisioningDiagnosticsContainer.getGrouperProvisioningDiagnosticsSettings().setDiagnosticsSubjectIdOrIdentifier(diagnosticsSubjectIdOrIdentifierName);
+        }
+        {
           boolean diagnosticsGroupsInsertName = GrouperUtil.booleanValue(request.getParameter("diagnosticsGroupsInsertName[]"), false);
           if (diagnosticsGroupsInsertName && !provisioner.retrieveGrouperProvisioningBehavior().isInsertGroups()) {
             guiResponseJs.addAction(GuiScreenAction.newMessage(GuiMessageType.error, 
@@ -176,6 +180,33 @@ public class UiV2ProvisionerConfiguration {
             return;
           }
           grouperProvisioningDiagnosticsContainer.getGrouperProvisioningDiagnosticsSettings().setDiagnosticsGroupInsert(diagnosticsGroupsInsertName);
+        }
+        {
+          boolean diagnosticsGroupsDeleteName = GrouperUtil.booleanValue(request.getParameter("diagnosticsGroupsDeleteName[]"), false);
+          if (diagnosticsGroupsDeleteName && !provisioner.retrieveGrouperProvisioningBehavior().isDeleteGroups()) {
+            guiResponseJs.addAction(GuiScreenAction.newMessage(GuiMessageType.error, 
+                TextContainer.retrieveFromRequest().getText().get("grouperProvisioningDiagnosticsGroupDeleteError")));
+            return;
+          }
+          grouperProvisioningDiagnosticsContainer.getGrouperProvisioningDiagnosticsSettings().setDiagnosticsGroupDelete(diagnosticsGroupsDeleteName);
+        }
+        {
+          boolean diagnosticsEntitiesInsertName = GrouperUtil.booleanValue(request.getParameter("diagnosticsEntitiesInsertName[]"), false);
+          if (diagnosticsEntitiesInsertName && !provisioner.retrieveGrouperProvisioningBehavior().isInsertEntities()) {
+            guiResponseJs.addAction(GuiScreenAction.newMessage(GuiMessageType.error, 
+                TextContainer.retrieveFromRequest().getText().get("grouperProvisioningDiagnosticsEntityInsertError")));
+            return;
+          }
+          grouperProvisioningDiagnosticsContainer.getGrouperProvisioningDiagnosticsSettings().setDiagnosticsEntityInsert(diagnosticsEntitiesInsertName);
+        }
+        {
+          boolean diagnosticsEntitiesDeleteName = GrouperUtil.booleanValue(request.getParameter("diagnosticsEntitiesDeleteName[]"), false);
+          if (diagnosticsEntitiesDeleteName && !provisioner.retrieveGrouperProvisioningBehavior().isDeleteEntities()) {
+            guiResponseJs.addAction(GuiScreenAction.newMessage(GuiMessageType.error, 
+                TextContainer.retrieveFromRequest().getText().get("grouperProvisioningDiagnosticsEntityDeleteError")));
+            return;
+          }
+          grouperProvisioningDiagnosticsContainer.getGrouperProvisioningDiagnosticsSettings().setDiagnosticsEntityDelete(diagnosticsEntitiesDeleteName);
         }
       }
       

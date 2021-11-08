@@ -123,16 +123,6 @@ public class GrouperDdl2_5 {
   
       GrouperDdlUtils.ddlutilsColumnComment(ddlVersionBean, 
           GrouperPassword.TABLE_GROUPER_PASSWORD, 
-          GrouperPassword.COLUMN_RECENT_SOURCE_ADDRESSES, 
-          "json with timestamps");
-      
-      GrouperDdlUtils.ddlutilsColumnComment(ddlVersionBean, 
-          GrouperPassword.TABLE_GROUPER_PASSWORD, 
-          GrouperPassword.COLUMN_FAILED_SOURCE_ADDRESSES, 
-          "if restricted by cidr, this was failed IPs (json with timestamp)");
-      
-      GrouperDdlUtils.ddlutilsColumnComment(ddlVersionBean, 
-          GrouperPassword.TABLE_GROUPER_PASSWORD, 
           GrouperPassword.COLUMN_LAST_AUTHENTICATED, 
           "when last authenticated");
       
@@ -143,14 +133,11 @@ public class GrouperDdl2_5 {
       
       GrouperDdlUtils.ddlutilsColumnComment(ddlVersionBean, 
           GrouperPassword.TABLE_GROUPER_PASSWORD, 
-          GrouperPassword.COLUMN_FAILED_LOGINS, 
-          "json of failed attempts");
-  
-      GrouperDdlUtils.ddlutilsColumnComment(ddlVersionBean, 
-          GrouperPassword.TABLE_GROUPER_PASSWORD, 
           GrouperPassword.COLUMN_HIBERNATE_VERSION_NUMBER,
           "hibernate uses this to version rows");
   
+      GrouperDdl2_6_1.addGrouperPasswordComments(database, ddlVersionBean);
+
     }
   
     {
@@ -178,6 +165,7 @@ public class GrouperDdl2_5 {
           GrouperPasswordRecentlyUsed.COLUMN_JWT_IAT, 
             "timestamp of this entry");
   
+      GrouperDdl2_6_1.addGrouperPasswordRecentlyUsedComments(database, ddlVersionBean);
     }
   
   }
@@ -329,20 +317,11 @@ public class GrouperDdl2_5 {
       GrouperDdlUtils.ddlutilsFindOrCreateColumn(grouperPasswordTable, GrouperPassword.COLUMN_ALLOWED_FROM_CIDRS, 
           Types.VARCHAR, "4000", false, false);
       
-      GrouperDdlUtils.ddlutilsFindOrCreateColumn(grouperPasswordTable, GrouperPassword.COLUMN_RECENT_SOURCE_ADDRESSES, 
-          Types.VARCHAR, "4000", false, false);
-      
-      GrouperDdlUtils.ddlutilsFindOrCreateColumn(grouperPasswordTable, GrouperPassword.COLUMN_FAILED_SOURCE_ADDRESSES, 
-          Types.VARCHAR, "4000", false, false);
-      
       GrouperDdlUtils.ddlutilsFindOrCreateColumn(grouperPasswordTable, GrouperPassword.COLUMN_LAST_AUTHENTICATED, 
           Types.BIGINT, "20", false, false);
       
       GrouperDdlUtils.ddlutilsFindOrCreateColumn(grouperPasswordTable, GrouperPassword.COLUMN_LAST_EDITED, 
           Types.BIGINT, "20", false, true);
-      
-      GrouperDdlUtils.ddlutilsFindOrCreateColumn(grouperPasswordTable, GrouperPassword.COLUMN_FAILED_LOGINS, 
-          Types.VARCHAR, "4000", false, false);
       
       GrouperDdlUtils.ddlutilsFindOrCreateColumn(grouperPasswordTable, GrouperPassword.COLUMN_HIBERNATE_VERSION_NUMBER, 
           Types.BIGINT, null, false, false);
@@ -360,10 +339,10 @@ public class GrouperDdl2_5 {
           Types.VARCHAR, "40", false, true);
       
       GrouperDdlUtils.ddlutilsFindOrCreateColumn(grouperPasswordRecentlyUsedTable, GrouperPasswordRecentlyUsed.COLUMN_JWT_JTI, 
-          Types.VARCHAR, "100", false, true);
+          Types.VARCHAR, "100", false, false);
       
       GrouperDdlUtils.ddlutilsFindOrCreateColumn(grouperPasswordRecentlyUsedTable, GrouperPasswordRecentlyUsed.COLUMN_JWT_IAT, 
-          Types.INTEGER, "11", false, true);
+          Types.INTEGER, "11", false, false);
       
     }
     
@@ -1770,7 +1749,7 @@ public class GrouperDdl2_5 {
         GrouperConfigHibernate.TABLE_GROUPER_CONFIG,
         GrouperConfigHibernate.COLUMN_HIBERNATE_VERSION_NUMBER, 
           "hibernate version for optimistic locking");
-    
+        
   }
 
   static void addGrouperExternalSubjectIdentifierIndex(DdlVersionBean ddlVersionBean, Database database) {

@@ -1585,12 +1585,12 @@ CREATE TABLE grouper_password
     the_password VARCHAR(4000),
     application VARCHAR(20) NOT NULL,
     allowed_from_cidrs VARCHAR(4000),
-    recent_source_addresses VARCHAR(4000),
-    failed_source_addresses VARCHAR(4000),
     last_authenticated BIGINT,
     last_edited BIGINT NOT NULL,
-    failed_logins VARCHAR(4000),
     hibernate_version_number BIGINT,
+    expires_millis BIGINT,
+    created_millis BIGINT,
+    member_id_who_set_password VARCHAR(40),
     PRIMARY KEY (id)
 );
 
@@ -1600,8 +1600,12 @@ CREATE TABLE grouper_password_recently_used
 (
     id VARCHAR(40) NOT NULL,
     grouper_password_id VARCHAR(40) NOT NULL,
-    jwt_jti VARCHAR(100) NOT NULL,
-    jwt_iat INTEGER NOT NULL,
+    jwt_jti VARCHAR(100),
+    jwt_iat INTEGER,
+    attempt_millis BIGINT NOT NULL,
+    ip_address VARCHAR(20) NOT NULL,
+    status CHAR(1) NOT NULL,
+    hibernate_version_number BIGINT NOT NULL,
     PRIMARY KEY (id)
 );
 
@@ -1890,6 +1894,33 @@ CREATE TABLE grouper_file
 
 CREATE UNIQUE INDEX grpfile_unique_idx ON grouper_file (file_path);
 
+CREATE TABLE grouper_prov_zoom_user
+(
+    config_id VARCHAR(50) NOT NULL,
+    member_id VARCHAR(40),
+    id VARCHAR(40) NOT NULL,
+    email VARCHAR(200) NOT NULL,
+    first_name VARCHAR(256),
+    last_name VARCHAR(256),
+    type BIGINT,
+    pmi BIGINT,
+    timezone VARCHAR(100),
+    verified BIGINT,
+    created_at BIGINT,
+    last_login_time BIGINT,
+    language VARCHAR(100),
+    status BIGINT,
+    role_id BIGINT,
+    PRIMARY KEY (email)
+);
+
+CREATE INDEX grouper_zoom_user_config_id_idx ON grouper_prov_zoom_user (config_id);
+
+CREATE UNIQUE INDEX grouper_zoom_user_email_idx ON grouper_prov_zoom_user (email, config_id);
+
+CREATE UNIQUE INDEX grouper_zoom_user_id_idx ON grouper_prov_zoom_user (id, config_id);
+
+CREATE INDEX grouper_zoom_user_member_id_idx ON grouper_prov_zoom_user (member_id, config_id);
 
 ALTER TABLE grouper_composites
     ADD CONSTRAINT fk_composites_owner FOREIGN KEY (owner) REFERENCES grouper_groups (id);
@@ -2351,6 +2382,6 @@ CREATE VIEW grouper_recent_mships_load_v (group_name, subject_source_id, subject
 SET DATABASE TRANSACTION CONTROL MVCC;
 
 insert into grouper_ddl (id, object_name, db_version, last_updated, history) values 
-('c08d3e076fdb4c41acdafe5992e5dc4d', 'Grouper', 37, to_char(CURRENT_TIMESTAMP, 'YYYY/MM/DD HH24:mi:DD'), 
-to_char(CURRENT_TIMESTAMP, 'YYYY/MM/DD HH24:mi:DD') || ': upgrade Grouper from V0 to V37, ');
+('c08d3e076fdb4c41acdafe5992e5dc4d', 'Grouper', 39, to_char(CURRENT_TIMESTAMP, 'YYYY/MM/DD HH24:mi:DD'), 
+to_char(CURRENT_TIMESTAMP, 'YYYY/MM/DD HH24:mi:DD') || ': upgrade Grouper from V0 to V39, ');
 commit;

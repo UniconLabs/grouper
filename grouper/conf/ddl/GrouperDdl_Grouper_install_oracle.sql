@@ -1561,7 +1561,7 @@ CREATE TABLE grouper_config
     last_updated NUMBER(38) NOT NULL,
     hibernate_version_number NUMBER(38) NOT NULL,
     config_value_clob CLOB,
-    config_value_bytes INTEGER,
+    config_value_bytes NUMBER(38),
     PRIMARY KEY (id)
 );
 
@@ -1585,12 +1585,12 @@ CREATE TABLE grouper_password
     the_password VARCHAR2(4000),
     application VARCHAR2(20) NOT NULL,
     allowed_from_cidrs VARCHAR2(4000),
-    recent_source_addresses VARCHAR2(4000),
-    failed_source_addresses VARCHAR2(4000),
     last_authenticated NUMBER(38),
     last_edited NUMBER(38) NOT NULL,
-    failed_logins VARCHAR2(4000),
     hibernate_version_number NUMBER(38),
+    expires_millis NUMBER(38),
+    created_millis NUMBER(38),
+    member_id_who_set_password VARCHAR2(40),
     PRIMARY KEY (id)
 );
 
@@ -1600,8 +1600,12 @@ CREATE TABLE grouper_password_recently_used
 (
     id VARCHAR2(40) NOT NULL,
     grouper_password_id VARCHAR2(40) NOT NULL,
-    jwt_jti VARCHAR2(100) NOT NULL,
-    jwt_iat INTEGER NOT NULL,
+    jwt_jti VARCHAR2(100),
+    jwt_iat INTEGER,
+    attempt_millis NUMBER(38) NOT NULL,
+    ip_address VARCHAR2(20) NOT NULL,
+    status CHAR(1) NOT NULL,
+    hibernate_version_number NUMBER(38) NOT NULL,
     PRIMARY KEY (id)
 );
 
@@ -1677,7 +1681,7 @@ CREATE TABLE grouper_sync_group
     error_timestamp DATE,
     last_time_work_was_done DATE,
     error_code VARCHAR2(3),
-    metadata_json VARCHAR(4000),
+    metadata_json VARCHAR2(4000),
     PRIMARY KEY (id)
 );
 
@@ -1794,7 +1798,7 @@ CREATE TABLE grouper_sync_log
     server VARCHAR2(200),
     last_updated DATE NOT NULL,
     description_clob CLOB,
-    description_bytes INTEGER,
+    description_bytes NUMBER(38),
     PRIMARY KEY (id)
 );
 
@@ -1855,7 +1859,7 @@ CREATE TABLE grouper_pit_config
     last_updated NUMBER(38) NOT NULL,
     hibernate_version_number NUMBER(38) NOT NULL,
     config_value_clob CLOB,
-    config_value_bytes INTEGER,
+    config_value_bytes NUMBER(38),
     prev_config_value VARCHAR2(4000),
     prev_config_value_clob CLOB,
     source_id VARCHAR2(40) NOT NULL,
@@ -1889,6 +1893,34 @@ CREATE TABLE grouper_file
 );
 
 CREATE UNIQUE INDEX grpfile_unique_idx ON grouper_file (file_path);
+
+CREATE TABLE grouper_prov_zoom_user
+(
+    config_id VARCHAR2(50) NOT NULL,
+    member_id VARCHAR2(40),
+    id VARCHAR2(40) NOT NULL,
+    email VARCHAR2(200) NOT NULL,
+    first_name VARCHAR2(256),
+    last_name VARCHAR2(256),
+    type NUMBER(38),
+    pmi NUMBER(38),
+    timezone VARCHAR2(100),
+    verified NUMBER(38),
+    created_at NUMBER(38),
+    last_login_time NUMBER(38),
+    language VARCHAR2(100),
+    status NUMBER(38),
+    role_id NUMBER(38),
+    PRIMARY KEY (email)
+);
+
+CREATE INDEX grouper_zoom_us_config_id_idx ON grouper_prov_zoom_user (config_id);
+
+CREATE UNIQUE INDEX grouper_zoom_user_email_idx ON grouper_prov_zoom_user (email, config_id);
+
+CREATE UNIQUE INDEX grouper_zoom_user_id_idx ON grouper_prov_zoom_user (id, config_id);
+
+CREATE INDEX grouper_zoom_us_member_id_idx ON grouper_prov_zoom_user (member_id, config_id);
 
 ALTER TABLE grouper_composites
     ADD CONSTRAINT fk_composites_owner FOREIGN KEY (owner) REFERENCES grouper_groups (id);
@@ -2342,17 +2374,17 @@ COMMENT ON COLUMN grouper_password.application IS 'ws (includes scim) or ui';
 
 COMMENT ON COLUMN grouper_password.allowed_from_cidrs IS 'network cidrs where credential is allowed from';
 
-COMMENT ON COLUMN grouper_password.recent_source_addresses IS 'json with timestamps';
-
-COMMENT ON COLUMN grouper_password.failed_source_addresses IS 'if restricted by cidr, this was failed IPs (json with timestamp)';
-
 COMMENT ON COLUMN grouper_password.last_authenticated IS 'when last authenticated';
 
 COMMENT ON COLUMN grouper_password.last_edited IS 'when last edited';
 
-COMMENT ON COLUMN grouper_password.failed_logins IS 'json of failed attempts';
-
 COMMENT ON COLUMN grouper_password.hibernate_version_number IS 'hibernate uses this to version rows';
+
+COMMENT ON COLUMN grouper_password.expires_millis IS 'millis since 1970 this password is going to expire';
+
+COMMENT ON COLUMN grouper_password.created_millis IS 'millis since 1970 this password was created';
+
+COMMENT ON COLUMN grouper_password.member_id_who_set_password IS 'member id who set this password';
 
 COMMENT ON TABLE grouper_password_recently_used IS 'recently used jwt tokens so they arent re-used';
 
@@ -2363,6 +2395,14 @@ COMMENT ON COLUMN grouper_password_recently_used.grouper_password_id IS 'passwor
 COMMENT ON COLUMN grouper_password_recently_used.jwt_jti IS 'unique identifier of the login';
 
 COMMENT ON COLUMN grouper_password_recently_used.jwt_iat IS 'timestamp of this entry';
+
+COMMENT ON COLUMN grouper_password_recently_used.attempt_millis IS 'millis since 1970 this password was attempted';
+
+COMMENT ON COLUMN grouper_password_recently_used.ip_address IS 'ip address from where the password was attempted';
+
+COMMENT ON COLUMN grouper_password_recently_used.status IS 'status of the attempt. S/F/E etc';
+
+COMMENT ON COLUMN grouper_password_recently_used.hibernate_version_number IS 'hibernate version number';
 
 COMMENT ON TABLE grouper_sync IS 'One record for every provisioner (not different records for full and real time)';
 
@@ -2855,6 +2895,38 @@ COMMENT ON COLUMN grouper_sync_membership_v.m_error_code IS 'm_error_code: Error
 COMMENT ON COLUMN grouper_sync_membership_v.u_error_code IS 'u_error_code: Error code e.g. ERR error, INV invalid based on script, LEN attribute too large, REQ required attribute missing, DNE data in target does not exist';
 
 COMMENT ON COLUMN grouper_sync_membership_v.g_error_code IS 'g_error_code: Error code e.g. ERR error, INV invalid based on script, LEN attribute too large, REQ required attribute missing, DNE data in target does not exist';
+
+COMMENT ON TABLE grouper_prov_zoom_user IS 'table to load zoom users into a sql for reporting and deprovisioning';
+
+COMMENT ON COLUMN grouper_prov_zoom_user.config_id IS 'zoom config id identifies which zoom external system is being loaded';
+
+COMMENT ON COLUMN grouper_prov_zoom_user.member_id IS 'If the zoom user is mapped to a Grouper subject, this is the member uuid of the subject';
+
+COMMENT ON COLUMN grouper_prov_zoom_user.id IS 'Zoom internal ID for this user (used in web services)';
+
+COMMENT ON COLUMN grouper_prov_zoom_user.email IS 'Zoom friendly unique id for the user, also their email address';
+
+COMMENT ON COLUMN grouper_prov_zoom_user.first_name IS 'First name of user';
+
+COMMENT ON COLUMN grouper_prov_zoom_user.last_name IS 'Last name of user';
+
+COMMENT ON COLUMN grouper_prov_zoom_user.type IS 'User type is 1 for basic, 2 for licensed, and 3 for on prem, 99 for none, see Zoom docs';
+
+COMMENT ON COLUMN grouper_prov_zoom_user.pmi IS 'Zoom pmi, see zoom docs';
+
+COMMENT ON COLUMN grouper_prov_zoom_user.timezone IS 'Timezone of users in zoom';
+
+COMMENT ON COLUMN grouper_prov_zoom_user.verified IS 'If the user has been verified by zoom';
+
+COMMENT ON COLUMN grouper_prov_zoom_user.created_at IS 'When the user was created in zoom';
+
+COMMENT ON COLUMN grouper_prov_zoom_user.last_login_time IS 'When the user last logged in to zoom';
+
+COMMENT ON COLUMN grouper_prov_zoom_user.language IS 'Language the user uses in zoom';
+
+COMMENT ON COLUMN grouper_prov_zoom_user.status IS 'Status in zoom see docs';
+
+COMMENT ON COLUMN grouper_prov_zoom_user.role_id IS 'Role ID in zoom see docs';
 
 COMMENT ON TABLE grouper_ddl IS 'holds a record for each database object name, and db version, and java version';
 
@@ -6813,6 +6885,6 @@ COMMENT ON COLUMN grouper_recent_mships_load_v.subject_source_id IS 'subject_sou
 COMMENT ON COLUMN grouper_recent_mships_load_v.subject_id IS 'subject_id: subject id of subject in recent membership';
 
 insert into grouper_ddl (id, object_name, db_version, last_updated, history) values 
-('c08d3e076fdb4c41acdafe5992e5dc4d', 'Grouper', 37, to_char(systimestamp, 'YYYY/MM/DD HH12:MI:SS'), 
-to_char(systimestamp, 'YYYY/MM/DD HH12:MI:SS') || ': upgrade Grouper from V0 to V37, ');
+('c08d3e076fdb4c41acdafe5992e5dc4d', 'Grouper', 39, to_char(systimestamp, 'YYYY/MM/DD HH12:MI:SS'), 
+to_char(systimestamp, 'YYYY/MM/DD HH12:MI:SS') || ': upgrade Grouper from V0 to V39, ');
 commit;

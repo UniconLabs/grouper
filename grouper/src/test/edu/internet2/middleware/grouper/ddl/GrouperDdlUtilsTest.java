@@ -69,7 +69,7 @@ public class GrouperDdlUtilsTest extends GrouperTest {
   public static void main(String[] args) {
     //GrouperTest.setupTests();
     //TestRunner.run(GrouperDdlUtilsTest.class);
-    TestRunner.run(new GrouperDdlUtilsTest("testUpgradeFrom2_5_49To2_5_51ddlUtils"));
+    TestRunner.run(new GrouperDdlUtilsTest("testUpgradeFrom2_5_51To2_6_1ddlUtils"));
     //TestRunner.run(new GrouperDdlUtilsTest("testUpgradeFrom2_5static"));
     //TestRunner.run(new GrouperDdlUtilsTest("testAutoInstall"));
     
@@ -309,8 +309,8 @@ public class GrouperDdlUtilsTest extends GrouperTest {
 
   @Override
   protected void setupInitDb() {
-    GrouperHibernateConfig.retrieveConfig().propertiesOverrideMap().put("registry.auto.ddl.upToVersion", "2.5.*");
-    GrouperHibernateConfig.retrieveConfig().propertiesOverrideMap().put("registry.auto.ddl.upToVersion.elConfig", "2.5.*");
+    GrouperHibernateConfig.retrieveConfig().propertiesOverrideMap().put("registry.auto.ddl.upToVersion", "2.6.*");
+    GrouperHibernateConfig.retrieveConfig().propertiesOverrideMap().put("registry.auto.ddl.upToVersion.elConfig", "2.6.*");
   }
 
   /**
@@ -1389,4 +1389,111 @@ public class GrouperDdlUtilsTest extends GrouperTest {
         grouperDdlEngine.getGrouperDdlCompareResult().getWarningCount() + " warnings", 0,
         grouperDdlEngine.getGrouperDdlCompareResult().getWarningCount());
   }
+  
+  
+  /**
+   * 
+   */
+  public void testUpgradeFrom2_5_51To2_6_1ddlUtils() {
+    
+    //lets make sure everything is there on install
+    assertTrue(GrouperDdlUtils.assertColumnThere(true, "grouper_password", "expires_millis"));
+    assertTrue(GrouperDdlUtils.assertColumnThere(true, "grouper_password", "created_millis"));
+    assertTrue(GrouperDdlUtils.assertColumnThere(true, "grouper_password", "member_id_who_set_password"));
+    
+    assertTrue(GrouperDdlUtils.assertColumnThere(true, "grouper_password_recently_used", "attempt_millis"));
+    assertTrue(GrouperDdlUtils.assertColumnThere(true, "grouper_password_recently_used", "ip_address"));
+    assertTrue(GrouperDdlUtils.assertColumnThere(true, "grouper_password_recently_used", "status"));
+    assertTrue(GrouperDdlUtils.assertColumnThere(true, "grouper_password_recently_used", "hibernate_version_number"));
+    
+    assertTrue(GrouperDdlUtils.assertColumnThere(false, "grouper_password", "recent_source_addresses"));
+    assertTrue(GrouperDdlUtils.assertColumnThere(false, "grouper_password", "failed_source_addresses"));
+    assertTrue(GrouperDdlUtils.assertColumnThere(false, "grouper_password", "failed_logins"));
+
+    assertTrue(GrouperDdlUtils.assertColumnThere(true, "grouper_prov_zoom_user", "email"));
+
+    GrouperDdlEngine grouperDdlEngine = new GrouperDdlEngine();
+    grouperDdlEngine.assignFromUnitTest(true)
+        .assignDropBeforeCreate(false).assignWriteAndRunScript(false)
+        .assignDropOnly(false)
+        .assignMaxVersions(null).assignPromptUser(true).assignDeepCheck(true).runDdl();
+    assertEquals(
+        grouperDdlEngine.getGrouperDdlCompareResult().getErrorCount() + " errors", 0,
+        grouperDdlEngine.getGrouperDdlCompareResult().getErrorCount());
+    assertEquals(
+        grouperDdlEngine.getGrouperDdlCompareResult().getWarningCount() + " warnings", 0,
+        grouperDdlEngine.getGrouperDdlCompareResult().getWarningCount());
+
+    // drop everything
+    new GrouperDdlEngine().assignFromUnitTest(true)
+      .assignDropBeforeCreate(true).assignWriteAndRunScript(true).assignDropOnly(true)
+      .assignMaxVersions(null).assignPromptUser(true).runDdl();
+
+    //edu/internet2/middleware/grouper/ddl/GrouperDdl_2_5_51_hsql.sql
+    // get to 2.5.51
+    File scriptToGetTo2_5_51 = retrieveScriptFile("GrouperDdl_2_5_51_" + GrouperDdlUtils.databaseType() + ".sql");
+    
+    GrouperDdlUtils.sqlRun(scriptToGetTo2_5_51, true, true);
+
+    // stuff gone
+    assertTrue(GrouperDdlUtils.assertColumnThere(false, "grouper_password", "expires_millis"));
+    assertTrue(GrouperDdlUtils.assertColumnThere(false, "grouper_password", "created_millis"));
+    assertTrue(GrouperDdlUtils.assertColumnThere(false, "grouper_password", "member_id_who_set_password"));
+    
+    assertTrue(GrouperDdlUtils.assertColumnThere(false, "grouper_password_recently_used", "attempt_millis"));
+    assertTrue(GrouperDdlUtils.assertColumnThere(false, "grouper_password_recently_used", "ip_address"));
+    assertTrue(GrouperDdlUtils.assertColumnThere(false, "grouper_password_recently_used", "status"));
+    assertTrue(GrouperDdlUtils.assertColumnThere(false, "grouper_password_recently_used", "hibernate_version_number"));
+    
+    assertTrue(GrouperDdlUtils.assertColumnThere(true, "grouper_password", "recent_source_addresses"));
+    assertTrue(GrouperDdlUtils.assertColumnThere(true, "grouper_password", "failed_source_addresses"));
+    assertTrue(GrouperDdlUtils.assertColumnThere(true, "grouper_password", "failed_logins"));
+
+    assertTrue(GrouperDdlUtils.assertColumnThere(false, "grouper_prov_zoom_user", "email"));
+
+    grouperDdlEngine = new GrouperDdlEngine();
+    grouperDdlEngine.assignFromUnitTest(true)
+        .assignDropBeforeCreate(false).assignWriteAndRunScript(false)
+        .assignDropOnly(false)
+        .assignMaxVersions(null).assignPromptUser(true).assignDeepCheck(true).runDdl();
+    assertTrue(grouperDdlEngine.getGrouperDdlCompareResult().getErrorCount() + " errors, "
+        + grouperDdlEngine.getGrouperDdlCompareResult().getWarningCount() + " warnings",
+        0 < grouperDdlEngine.getGrouperDdlCompareResult().getErrorCount()
+            + grouperDdlEngine.getGrouperDdlCompareResult().getWarningCount());
+
+    GrouperDdlEngine.addDllWorkerTableIfNeeded(null);
+    //first make sure the DB ddl is up to date
+    new GrouperDdlEngine().updateDdlIfNeededWithStaticSql(null);
+  
+    //lets make sure everything is there on upgrade
+    assertTrue(GrouperDdlUtils.assertColumnThere(true, "grouper_password", "expires_millis"));
+    assertTrue(GrouperDdlUtils.assertColumnThere(true, "grouper_password", "created_millis"));
+    assertTrue(GrouperDdlUtils.assertColumnThere(true, "grouper_password", "member_id_who_set_password"));
+    
+    assertTrue(GrouperDdlUtils.assertColumnThere(true, "grouper_password_recently_used", "attempt_millis"));
+    assertTrue(GrouperDdlUtils.assertColumnThere(true, "grouper_password_recently_used", "ip_address"));
+    assertTrue(GrouperDdlUtils.assertColumnThere(true, "grouper_password_recently_used", "status"));
+    assertTrue(GrouperDdlUtils.assertColumnThere(true, "grouper_password_recently_used", "hibernate_version_number"));
+    
+    assertTrue(GrouperDdlUtils.assertColumnThere(false, "grouper_password", "recent_source_addresses"));
+    assertTrue(GrouperDdlUtils.assertColumnThere(false, "grouper_password", "failed_source_addresses"));
+    assertTrue(GrouperDdlUtils.assertColumnThere(false, "grouper_password", "failed_logins"));
+
+    assertTrue(GrouperDdlUtils.assertColumnThere(true, "grouper_prov_zoom_user", "email"));
+
+    scriptToGetTo2_5_51.delete();
+    
+    grouperDdlEngine = new GrouperDdlEngine();
+    grouperDdlEngine.assignFromUnitTest(true)
+        .assignDropBeforeCreate(false).assignWriteAndRunScript(false)
+        .assignDropOnly(false)
+        .assignMaxVersions(null).assignPromptUser(true).assignDeepCheck(true).runDdl();
+    assertEquals(
+        grouperDdlEngine.getGrouperDdlCompareResult().getErrorCount() + " errors", 0,
+        grouperDdlEngine.getGrouperDdlCompareResult().getErrorCount());
+    assertEquals(
+        grouperDdlEngine.getGrouperDdlCompareResult().getWarningCount() + " warnings", 0,
+        grouperDdlEngine.getGrouperDdlCompareResult().getWarningCount());
+  }
+  
 }

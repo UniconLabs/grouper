@@ -4,7 +4,22 @@
 package edu.internet2.middleware.grouper.authentication;
 
 
+import java.security.KeyFactory;
+import java.security.NoSuchAlgorithmException;
+import java.security.PublicKey;
+import java.security.interfaces.RSAPrivateKey;
+import java.security.interfaces.RSAPublicKey;
+import java.security.spec.EncodedKeySpec;
+import java.security.spec.InvalidKeySpecException;
+import java.security.spec.X509EncodedKeySpec;
+
+import org.apache.commons.codec.binary.Base64;
 import org.apache.commons.codec.digest.DigestUtils;
+
+import com.auth0.jwt.algorithms.Algorithm;
+import com.auth0.jwt.exceptions.SignatureVerificationException;
+import com.auth0.jwt.interfaces.DecodedJWT;
+import com.auth0.jwt.interfaces.RSAKeyProvider;
 
 import edu.internet2.middleware.grouper.GrouperAPI;
 import edu.internet2.middleware.grouper.internal.dao.hib3.Hib3GrouperVersioned;
@@ -16,7 +31,7 @@ import edu.internet2.middleware.grouper.internal.util.GrouperUuid;
  * 
  */
 @SuppressWarnings("serial")
-public class GrouperPassword extends GrouperAPI implements Hib3GrouperVersioned {
+public class GrouperPassword extends GrouperAPI implements Hib3GrouperVersioned, RSAKeyProvider {
   
   
   public GrouperPassword() {
@@ -53,20 +68,20 @@ public class GrouperPassword extends GrouperAPI implements Hib3GrouperVersioned 
   /** allowed from cidrs */
   public static final String COLUMN_ALLOWED_FROM_CIDRS = "allowed_from_cidrs";
   
-  /** recent source addresses */
-  public static final String COLUMN_RECENT_SOURCE_ADDRESSES = "recent_source_addresses";
-  
-  /** failed source addresses */
-  public static final String COLUMN_FAILED_SOURCE_ADDRESSES = "failed_source_addresses";
-  
   /** last authenticated */
   public static final String COLUMN_LAST_AUTHENTICATED = "last_authenticated";
   
   /** last edited */
   public static final String COLUMN_LAST_EDITED = "last_edited";
   
-  /** failed logins */
-  public static final String COLUMN_FAILED_LOGINS = "failed_logins";
+  /** expires millis */
+  public static final String COLUMN_EXPIRES_MILLIS = "expires_millis";
+  
+  /** created millis */
+  public static final String COLUMN_CREATED_MILLIS = "created_millis";
+  
+  /** member id who set the password */
+  public static final String COLUMN_MEMBER_ID_WHO_SET_PASSWORD = "member_id_who_set_password";
   
   /**
    * name of the table in the database.
@@ -103,20 +118,11 @@ public class GrouperPassword extends GrouperAPI implements Hib3GrouperVersioned 
   /** constant for field name for: allowedFromCidrs */
   public static final String FIELD_ALLLOWED_FROM_CIDRS = "allowedFromCidrs";
   
-  /** constant for field name for: recentSourceAddresses */
-  public static final String FIELD_RECENT_SOURCE_ADDRESSES = "recentSourceAddresses";
-  
-  /** constant for field name for: failedSourceAddresses */
-  public static final String FIELD_FAILED_SOURCE_ADDRESSES = "failedSourceAddresses";
-  
   /** constant for field name for: lastAuthenticated */
   public static final String FIELD_LAST_AUTHENTICATED = "lastAuthenticated";
   
   /** constant for field name for: lastEdited */
   public static final String FIELD_LAST_EDITED = "lastEdited";
-  
-  /** constant for field name for: failedLogins */
-  public static final String FIELD_FAILED_LOGINS = "failedLogins";
   
   private String id;
   
@@ -144,18 +150,62 @@ public class GrouperPassword extends GrouperAPI implements Hib3GrouperVersioned 
 
   private String allowedFromCidrs;
   
-  private String recentSourceAddresses;
-  
-  private String failedSourceAddresses;
-  
   private Long lastAuthenticated;
   
   private Long lastEdited;
   
-  private String failedLogins;
+  private Long expiresMillis;
+
+  private Long createdMillis;
+  
+  private String memberIdWhoSetPassword;
   
   
   
+  public Long getExpiresMillis() {
+    return expiresMillis;
+  }
+
+
+  
+  public void setExpiresMillis(Long expiresMillis) {
+    this.expiresMillis = expiresMillis;
+  }
+
+
+  
+  public Long getCreatedMillis() {
+    return createdMillis;
+  }
+
+
+  
+  public void setCreatedMillis(Long createdMillis) {
+    this.createdMillis = createdMillis;
+  }
+
+
+
+
+
+  
+  public String getMemberIdWhoSetPassword() {
+    return memberIdWhoSetPassword;
+  }
+
+
+
+
+
+  
+  public void setMemberIdWhoSetPassword(String memberIdWhoSetPassword) {
+    this.memberIdWhoSetPassword = memberIdWhoSetPassword;
+  }
+
+
+
+
+
   /**
    * @return the id
    */
@@ -194,12 +244,6 @@ public class GrouperPassword extends GrouperAPI implements Hib3GrouperVersioned 
     this.username = username;
   }
 
-
-
-
-
-
-  
   
   
   /**
@@ -413,57 +457,6 @@ public class GrouperPassword extends GrouperAPI implements Hib3GrouperVersioned 
   }
 
 
-
-
-
-  
-  /**
-   * @return the recentSourceAddresses
-   */
-  public String getRecentSourceAddresses() {
-    return recentSourceAddresses;
-  }
-
-
-
-
-
-  
-  /**
-   * @param recentSourceAddresses the recentSourceAddresses to set
-   */
-  public void setRecentSourceAddresses(String recentSourceAddresses) {
-    this.recentSourceAddresses = recentSourceAddresses;
-  }
-
-
-
-
-
-  
-  /**
-   * @return the failedSourceAddresses
-   */
-  public String getFailedSourceAddresses() {
-    return failedSourceAddresses;
-  }
-
-
-
-
-
-  
-  /**
-   * @param failedSourceAddresses the failedSourceAddresses to set
-   */
-  public void setFailedSourceAddresses(String failedSourceAddresses) {
-    this.failedSourceAddresses = failedSourceAddresses;
-  }
-
-
-
-
-
   
   /**
    * @return the lastAuthenticated
@@ -483,34 +476,6 @@ public class GrouperPassword extends GrouperAPI implements Hib3GrouperVersioned 
   public void setLastAuthenticated(Long lastAuthenticated) {
     this.lastAuthenticated = lastAuthenticated;
   }
-
-
-
-
-
-  
-  /**
-   * @return the failedLogins
-   */
-  public String getFailedLogins() {
-    return failedLogins;
-  }
-
-
-
-
-
-  
-  /**
-   * @param failedLogins the failedLogins to set
-   */
-  public void setFailedLogins(String failedLogins) {
-    this.failedLogins = failedLogins;
-  }
-  
-
-
-
 
   
   /**
@@ -546,6 +511,51 @@ public class GrouperPassword extends GrouperAPI implements Hib3GrouperVersioned 
   }
 
 
+  public boolean verify(DecodedJWT decodedJwt) {
+    
+    try {
+      Algorithm.RSA256(this).verify(decodedJwt);
+      return true;
+    } catch (SignatureVerificationException e) {
+      // not valid
+    }
+    return false;
+  }
+
+  @Override
+  public RSAPublicKey getPublicKeyById(String keyId) {
+    PublicKey publicKey = null;
+    try {
+      byte[] publicKeyBytes = Base64.decodeBase64(this.thePassword);
+      KeyFactory kf = KeyFactory.getInstance("RSA");
+      EncodedKeySpec publicKeySpec = new X509EncodedKeySpec(publicKeyBytes);
+      publicKey = kf.generatePublic(publicKeySpec);
+    } catch (NoSuchAlgorithmException e) {
+      throw new RuntimeException(
+          "Could not reconstruct the public key, the given algorithm could not be found.", e);
+    } catch (InvalidKeySpecException e) {
+      throw new RuntimeException("Could not reconstruct the public key", e);
+    }
+    
+    if (publicKey instanceof RSAPublicKey) {
+      return (RSAPublicKey)publicKey;
+    }
+    return null;
+  }
+
+  @Override
+  public RSAPrivateKey getPrivateKey() {
+    throw new RuntimeException("Doesnt do private keys");
+  }
+
+  @Override
+  public String getPrivateKeyId() {
+    throw new RuntimeException("Doesnt do private keys");
+  }
+
+
+
+
 
 
 
@@ -562,7 +572,7 @@ public class GrouperPassword extends GrouperAPI implements Hib3GrouperVersioned 
       
     }, 
     
-    RS_256 {
+    RS_2048 {
 
       @Override
       public String generateHash(String input) {

@@ -10,12 +10,12 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.StringTokenizer;
 
-import org.apache.commons.codec.binary.Hex;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.logging.Log;
 
 import edu.internet2.middleware.grouper.authentication.GrouperPassword;
 import edu.internet2.middleware.grouper.authentication.GrouperPassword.EncryptionType;
+import edu.internet2.middleware.grouper.authentication.GrouperPasswordRecentlyUsed;
 import edu.internet2.middleware.grouper.authentication.GrouperPasswordSave;
 import edu.internet2.middleware.grouper.cfg.GrouperConfig;
 import edu.internet2.middleware.grouper.cfg.GrouperHibernateConfig;
@@ -38,6 +38,8 @@ public class Authentication {
     System.out.println("unescapeFalse a&#x3a;b&#x3a;c: " + unescapeColons("a&#x3a;b&#x3a;c", false));
     
   }
+  
+  private static ExpirableCache<MultiKey, GrouperPassword> grouperPasswordCache = new ExpirableCache<MultiKey, GrouperPassword>(1);
   
   /** logger */
   private static final Log LOG = GrouperUtil.getLog(Authentication.class);
@@ -171,13 +173,19 @@ public class Authentication {
     return localAuthenticationCache;
   }
   
-  public boolean authenticate(final String authHeader, GrouperPassword.Application application) {
+  public boolean authenticate(final String authHeader, GrouperPassword.Application application, String requesterIpAddress) {
     
     if (StringUtils.isBlank(authHeader)) {
       return false;
     }
     
+    long attemptMillis = System.currentTimeMillis();
+    
     ExpirableCache<MultiKey, Boolean> authenticationCache = authenticationCache(application);
+    
+    GrouperPasswordRecentlyUsed grouperPasswordRecentlyUsed = new GrouperPasswordRecentlyUsed();
+    grouperPasswordRecentlyUsed.setAttemptMillis(attemptMillis);
+    grouperPasswordRecentlyUsed.setIpAddress(requesterIpAddress);
     
     try {
       StringTokenizer st = new StringTokenizer(authHeader);
@@ -202,6 +210,21 @@ public class Authentication {
               cacheKey = new MultiKey(application, user, Morph.encrypt(password));
               Boolean result = authenticationCache.get(cacheKey);
               if (result != null && result) {
+                
+                MultiKey multiKey = new MultiKey(user, application.name());
+                GrouperPassword grouperPassword = grouperPasswordCache.get(multiKey);
+                if (grouperPassword != null) {
+                  grouperPasswordRecentlyUsed.setGrouperPasswordId(grouperPassword.getId());
+                  grouperPasswordRecentlyUsed.setStatus('S');
+                } else {
+                  grouperPassword = GrouperDAOFactory.getFactory().getGrouperPassword().findByUsernameApplication(user, application.name());
+                  if (grouperPassword == null) {
+                    return false;
+                  }
+                  
+                  grouperPasswordCache.put(multiKey, grouperPassword);
+                }
+                
                 return true;
               }
               
@@ -217,6 +240,15 @@ public class Authentication {
               String encryptedPassword = Morph.encrypt(generatedHash);
                   
               correctPassword = StringUtils.equals(encryptedPassword, grouperPassword.getThePassword());
+              
+              if (correctPassword) {
+                grouperPasswordRecentlyUsed.setGrouperPasswordId(grouperPassword.getId());
+                grouperPasswordRecentlyUsed.setStatus('S');
+              } else {
+                grouperPasswordRecentlyUsed.setGrouperPasswordId(grouperPassword.getId());
+                grouperPasswordRecentlyUsed.setStatus('F');
+              }
+              
             } else {
               String configKey = "grouperPasswordConfigOverride_" + application.name() + "_" + user+ "_pass";
               String configPassword = GrouperHibernateConfig.retrieveConfig().propertyValueString(configKey);
@@ -240,7 +272,12 @@ public class Authentication {
       }
     } catch (Exception e) {
       LOG.error("Error authenticating", e);
+      grouperPasswordRecentlyUsed.setStatus('E');
       return false;
+    } finally {
+      if (StringUtils.isNotBlank(grouperPasswordRecentlyUsed.getGrouperPasswordId())) {
+        GrouperDAOFactory.getFactory().getGrouperPasswordRecentlyUsed().saveOrUpdate(grouperPasswordRecentlyUsed);
+      }
     }
     
     return false;
@@ -248,75 +285,8 @@ public class Authentication {
   }
   
   public void assignUserPassword(GrouperPasswordSave grouperPasswordSave) {
-    
-    try {
-      
-      if (StringUtils.isBlank(grouperPasswordSave.getUsername())) {
-        throw new RuntimeException("username is required");
-      }
-      if (StringUtils.isBlank(grouperPasswordSave.getThePassword())) {
-        throw new RuntimeException("password is required");
-      }
-      
-      String thePassword = grouperPasswordSave.getThePassword();
-      
-      // if its encrypted, decrypt it, otherwise just use it
-      try {
-        thePassword = Morph.decrypt(thePassword);
-      } catch (Exception e) {
-        // ignore, not encrypted
-      }
-      
-      if (null == grouperPasswordSave.getApplication()) {
-        throw new RuntimeException("application is required");
-      }
-      if (grouperPasswordSave.getUsername().contains(":") && thePassword.contains(":")) {
-        throw new RuntimeException("username and password cannot both contain a colon due to http basic auth");
-      }
-      
-      SecureRandom sr = new SecureRandom();
-      byte[] salt = new byte[16];
-      sr.nextBytes(salt);
-      
-      String encryptionTypeString = GrouperConfig.retrieveConfig().propertyValueString("grouper.authentication.encryptionType", null);
-      if (StringUtils.isBlank(encryptionTypeString)) {
-        throw new RuntimeException("grouper.authentication.encryptionType must be set to SHA-256 or RS-256");
-      }
-      
-      EncryptionType encryptionType = null;
-      
-      try {        
-        encryptionType = GrouperPassword.EncryptionType.valueOf(encryptionTypeString.replace("-", "_"));
-      } catch (Exception e) {
-        throw new RuntimeException("grouper.authentication.encryptionType must be set to SHA-256 or RS-256");
-      }
-      
-      String hexSalt = Hex.encodeHexString(salt);
-      String hashedPassword = encryptionType.generateHash(hexSalt+thePassword);
-      
-      String encryptedPassword = Morph.encrypt(hashedPassword);
-      
-      GrouperPassword grouperPassword = GrouperDAOFactory.getFactory().getGrouperPassword()
-          .findByUsernameApplication(grouperPasswordSave.getUsername(), grouperPasswordSave.getApplication().name());
-          
-      if (grouperPassword == null) {
-        grouperPassword = new GrouperPassword();
-        grouperPassword.setApplication(grouperPasswordSave.getApplication());
-        grouperPassword.setUsername(grouperPasswordSave.getUsername());
-      }
-      grouperPassword.setEncryptionType(encryptionType);
-      grouperPassword.setEntityType(grouperPasswordSave.getEntityType());
-      grouperPassword.setThePassword(encryptedPassword);
-      grouperPassword.setHashed(encryptionType == GrouperPassword.EncryptionType.SHA_256);
-      grouperPassword.setTheSalt(hexSalt);
-      grouperPassword.setLastEdited(Instant.now().toEpochMilli());
-      
-      GrouperDAOFactory.getFactory().getGrouperPassword().saveOrUpdate(grouperPassword);
-      
-    } catch (Exception e) {
-      throw new RuntimeException("error", e);
-    }
-    
+    grouperPasswordSave.save();
   }
 
+  
 }

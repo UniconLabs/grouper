@@ -59,6 +59,7 @@ import edu.internet2.middleware.grouper.SubjectFinder;
 import edu.internet2.middleware.grouper.audit.GrouperEngineBuiltin;
 import edu.internet2.middleware.grouper.authentication.GrouperOidc;
 import edu.internet2.middleware.grouper.authentication.GrouperPassword;
+import edu.internet2.middleware.grouper.authentication.GrouperPublicPrivateKeyJwt;
 import edu.internet2.middleware.grouper.authentication.GrouperTrustedJwt;
 import edu.internet2.middleware.grouper.cache.GrouperCache;
 import edu.internet2.middleware.grouper.cfg.GrouperHibernateConfig;
@@ -977,13 +978,24 @@ public class GrouperServiceJ2ee implements Filter {
           return;
         }
         
+      } else if (StringUtils.isNotBlank(authHeader) && authHeader.startsWith("Bearer jwtUser_")) {
+        
+        Subject subject = new GrouperPublicPrivateKeyJwt().assignBearerTokenHeader(authHeader).decode(request.getRemoteAddr());
+        
+        if (subject != null) {
+          ((HttpServletRequest) request).setAttribute("REMOTE_USER", subject.getSourceId()+"::::"+subject.getId());
+        } else {
+          ((HttpServletResponse) response).sendError(401, "Unauthorized");          
+          return;
+        }
+        
       } else {
         
         boolean runGrouperWsWithBasicAuth = GrouperHibernateConfig.retrieveConfig().propertyValueBoolean("grouper.is.ws.basicAuthn", false);
         if (runGrouperWsWithBasicAuth) {
           // String authHeader = ((HttpServletRequest) request).getHeader("Authorization");
           
-          boolean isValid = new Authentication().authenticate(authHeader, GrouperPassword.Application.WS);
+          boolean isValid = new Authentication().authenticate(authHeader, GrouperPassword.Application.WS, request.getRemoteAddr());
           
           if (!isValid) {
             ((HttpServletResponse) response).setHeader("WWW-Authenticate", "Basic realm=\"" + "Protected" + "\"");
