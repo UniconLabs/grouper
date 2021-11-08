@@ -1,27 +1,25 @@
 package edu.internet2.middleware.grouper.ws.rest.provider;
 
 public class MembershipCountRestProviderResponse {
-    private int immediate;
-    private int effective;
+    private final Integer immediate;
+    private final Integer effective;
+    private final Integer count;
 
-    public MembershipCountRestProviderResponse(int immediate, int effective) {
+    public MembershipCountRestProviderResponse(Integer immediate, Integer effective, Integer count) {
         this.immediate = immediate;
         this.effective = effective;
+        this.count = count;
     }
 
-    public int getImmediate() {
+    public Integer getImmediate() {
         return immediate;
     }
 
-    public void setImmediate(int immediate) {
-        this.immediate = immediate;
-    }
-
-    public int getEffective() {
+    public Integer getEffective() {
         return effective;
     }
 
-    public void setEffective(int effective) {
-        this.effective = effective;
+    public Integer getCount() {
+        return this.count;
     }
 }

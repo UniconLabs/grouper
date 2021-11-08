@@ -74,13 +74,6 @@
         </dependency>
         <dependency>
             <groupId>${project.groupId}</groupId>
-            <artifactId>ws-test-interface</artifactId>
-            <version>1.0</version>
-            <scope>system</scope>
-            <systemPath>${basedir}/lib/grouperWsTestInterfaces.jar</systemPath>
-        </dependency>
-        <dependency>
-            <groupId>${project.groupId}</groupId>
             <artifactId>grouper</artifactId>
             <version>${project.version}</version>
         </dependency>
@@ -111,13 +104,6 @@
             <version>${project.version}</version>
         </dependency>
         -->
-        <dependency>
-            <groupId>${project.groupId}</groupId>
-            <artifactId>ws-test-interface</artifactId>
-            <version>1.0</version>
-            <scope>system</scope>
-            <systemPath>${basedir}/lib/grouperWsTestInterfaces.jar</systemPath>
-        </dependency>
     </dependencies>
     
     <build>
