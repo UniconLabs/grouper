@@ -1,6 +1,5 @@
 package edu.internet2.middleware.grouper.ws.rest.provider;
 
-import edu.emory.mathcs.backport.java.util.Collections;
 import edu.internet2.middleware.grouper.ws.rest.CustomGrouperRestProvider;
 import edu.internet2.middleware.grouper.ws.rest.CustomGrouperRestRequest;
 import edu.internet2.middleware.grouperClient.jdbc.GcDbAccess;
@@ -9,6 +8,7 @@ import org.apache.commons.lang3.tuple.Pair;
 import java.net.URLDecoder;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -101,7 +101,7 @@ public class MembershipCountRestProvider implements CustomGrouperRestProvider {
                             }
                             query.append(" ?");
                         }
-                        Collections.addAll(bindVars, Arrays.stream(e.getValue()).map(i -> URLDecoder.decode(i)).toArray());
+                        Collections.addAll(bindVars, Arrays.stream(e.getValue()).map(i -> URLDecoder.decode(i)).toArray(String[]::new));
                     }
                 }
         );
