@@ -17,6 +17,17 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 public class MembershipCountRestProvider implements CustomGrouperRestProvider {
+    private enum MembershipCountType {
+        GROUPS, SUBJECTS, RAW;
+
+        public static MembershipCountType fromString(String name){
+            if (name.equalsIgnoreCase("membershipCount")) {
+                return MembershipCountType.RAW;
+            } else {
+                return MembershipCountType.valueOf(name.toUpperCase());
+            }
+        }
+    }
     private static final Map<String, DbColumn> ALLOWED_COLUMNS = new HashMap();
     static {
         ALLOWED_COLUMNS.put("IMMEDIATE_MSHIP_ENABLED", new DbColumn("IMMEDIATE_MSHIP_ENABLED", "gms.IMMEDIATE_MSHIP_ENABLED", String.class));
@@ -26,15 +37,15 @@ public class MembershipCountRestProvider implements CustomGrouperRestProvider {
         ALLOWED_COLUMNS.put("MSHIP_TYPE", new DbColumn("MSHIP_TYPE", "gms.MSHIP_TYPE", String.class));
         ALLOWED_COLUMNS.put("ENABLED_TIME", new DbColumn("ENABLED_TIME", "gms.immediate_mship_enabled_time", BigInteger.class));
         ALLOWED_COLUMNS.put("DISABLED_TIME", new DbColumn("DISABLED_TIME", "gms.immediate_mship_disabled_time", BigInteger.class));
+        ALLOWED_COLUMNS.put("GROUP_NAME", new DbColumn("GROUP_NAME", "gg.name", String.class));
+        ALLOWED_COLUMNS.put("SUBJECT_ID", new DbColumn("SUBJECT_ID", "gm.subject_id", String.class));
     }
 
-    private static final String BASE_QUERY = "select count(distinct gm.SUBJECT_ID)" +
-            "from grouper_memberships_all_v gms," +
+    private static final String BASE_QUERY = " from grouper_memberships_all_v gms," +
             "     grouper_members gm," +
             "     grouper_groups gg," +
             "     grouper_fields gfl" +
-            " where gg.name = ?" +
-            "  and gms.OWNER_GROUP_ID = gg.id" +
+            "  where gms.OWNER_GROUP_ID = gg.id" +
             "  and gms.FIELD_ID = gfl.ID" +
             "  and gms.MEMBER_ID = gm.ID";
 
@@ -45,7 +56,8 @@ public class MembershipCountRestProvider implements CustomGrouperRestProvider {
 
     @Override
     public Object provide(CustomGrouperRestRequest o) {
-        String groupName = URLDecoder.decode(o.getUrlStrings().get(2));
+        MembershipCountType membershipCountType = MembershipCountType.fromString(o.getUrlStrings().get(1));
+        String groupName = (membershipCountType == MembershipCountType.GROUPS || membershipCountType == MembershipCountType.SUBJECTS) ? URLDecoder.decode(o.getUrlStrings().get(2)) : "none";
 
         final Map<String, String[]> defaults = new HashMap<>();
         defaults.put("IMMEDIATE_MSHIP_ENABLED", new String[]{"T"});
@@ -53,7 +65,7 @@ public class MembershipCountRestProvider implements CustomGrouperRestProvider {
         defaults.put("NAME", new String[]{"members"});
         defaults.putAll(o.getParameterMap());
 
-        Pair<String, List<Object>> queryBindVars = buildQuery(groupName,defaults);
+        Pair<String, List<Object>> queryBindVars = buildQuery(membershipCountType,groupName,defaults);
         if (!defaults.containsKey("MSHIP_TYPE")) {
             // no membership type sent, we want to do both types
             int effectiveCount = getCount(queryBindVars.getLeft(), queryBindVars.getRight().toArray());
@@ -67,12 +79,46 @@ public class MembershipCountRestProvider implements CustomGrouperRestProvider {
         }
     }
 
-    protected Pair<String, List<Object>> buildQuery(String groupName, Map<String, String[]> params) {
+    protected Pair<String, List<Object>> buildQuery(MembershipCountType membershipCountType, String groupName, Map<String, String[]> params) {
         StringBuilder query = new StringBuilder();
         List<Object> bindVars = new ArrayList<>();
-        bindVars.add(groupName);
+
+        query.append("select count(distinct(");
+
+        switch (membershipCountType) {
+            case RAW:
+                if (params.containsKey("DISTINCT")) {
+                    query.append(ALLOWED_COLUMNS.get(params.get("DISTINCT")[0]).getColumnName());
+                    params.remove("DISTINCT");
+                }
+                break;
+            case GROUPS:
+                query.append(ALLOWED_COLUMNS.get("SUBJECT_ID").getColumnName());
+                break;
+            case SUBJECTS:
+                query.append(ALLOWED_COLUMNS.get("GROUP_NAME").getColumnName());
+                break;
+        }
+
+        query.append("))");
+        query.append(" ");
 
         query.append(BASE_QUERY);
+
+        if (membershipCountType == MembershipCountType.GROUPS || membershipCountType == MembershipCountType.SUBJECTS) {
+            query.append(" and");
+            query.append(" ");
+            switch (membershipCountType) {
+                case GROUPS:
+                    query.append(ALLOWED_COLUMNS.get("GROUP_NAME").getColumnName());
+                    break;
+                case SUBJECTS:
+                    query.append(ALLOWED_COLUMNS.get("SUBJECT_ID").getColumnName());
+                    break;
+            }
+            query.append(" = ?");
+            bindVars.add(groupName);
+        }
 
         params.entrySet().stream().forEach(e -> {
                     String eKey;
@@ -89,6 +135,12 @@ public class MembershipCountRestProvider implements CustomGrouperRestProvider {
                     } else if(matcher.matches()) {
                         eKey = e.getKey().replaceFirst("[<>]=?", "");
                         operator = matcher.group(2);
+                    } else if(e.getKey().endsWith("!%")) {
+                        eKey = e.getKey().replaceAll("!%", "");
+                        operator = "NOT LIKE";
+                    } else if(e.getKey().endsWith("%")) {
+                        eKey = e.getKey().replaceAll("%", "");
+                        operator = "LIKE";
                     } else {
                         eKey = e.getKey();
                     }
