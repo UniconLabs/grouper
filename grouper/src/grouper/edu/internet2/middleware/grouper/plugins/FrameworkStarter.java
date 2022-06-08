@@ -1,6 +1,7 @@
 package edu.internet2.middleware.grouper.plugins;
 
 import edu.internet2.middleware.grouper.app.externalSystem.GrouperExternalSystem;
+import edu.internet2.middleware.grouper.app.loader.GrouperLoaderConfig;
 import edu.internet2.middleware.grouper.cfg.GrouperConfig;
 import edu.internet2.middleware.grouper.cfg.GrouperHibernateConfig;
 import edu.internet2.middleware.grouperClient.config.ConfigPropertiesCascadeBase;
@@ -91,12 +92,14 @@ public class FrameworkStarter {
             context.registerService(LogFactory.class, LogFactory.getFactory(), new Hashtable<>());
             context.registerService(ConfigPropertiesCascadeBase.class, GrouperConfig.retrieveConfig(), buildSimpleDictionary("type", "grouper"));
             context.registerService(ConfigPropertiesCascadeBase.class, GrouperHibernateConfig.retrieveConfig(), buildSimpleDictionary("type", "hibernate"));
+            context.registerService(ConfigPropertiesCascadeBase.class, GrouperLoaderConfig.retrieveConfig(), buildSimpleDictionary("type", "loader"));
             if (GrouperHibernateConfig.retrieveConfig().propertyValueBoolean("grouper.is.ui", false)) {
                 context.registerService(ConfigPropertiesCascadeBase.class, (ConfigPropertiesCascadeBase) Class.forName("edu.internet2.middleware.grouper.ui.util.GrouperUiConfigInApi").getMethod("retrieveConfig").invoke(null), buildSimpleDictionary("type", "ui"));
             }
             if (GrouperHibernateConfig.retrieveConfig().propertyValueBoolean("grouper.is.ws", false)) {
                 context.registerService(ConfigPropertiesCascadeBase.class, (ConfigPropertiesCascadeBase) Class.forName("edu.internet2.middleware.grouper.ws.GrouperWsConfigInApi").getMethod("retrieveConfig").invoke(null), buildSimpleDictionary("type", "ws"));
             }
+            //TODO: see if we can get rid of this, or if it matters
             if (GrouperHibernateConfig.retrieveConfig().propertyValueBoolean("grouper.is.daemon", false)) {
                 context.registerService(ConfigPropertiesCascadeBase.class, (ConfigPropertiesCascadeBase) Class.forName("edu.internet2.middleware.grouper.app.loader.GrouperLoaderConfig").getMethod("retrieveConfig").invoke(null), buildSimpleDictionary("type", "daemon"));
             }
