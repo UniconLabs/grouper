@@ -3,8 +3,11 @@ package edu.internet2.middleware.grouper.app.provisioning;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
+import java.util.HashSet;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 import org.apache.commons.lang3.StringUtils;
 
@@ -58,6 +61,8 @@ public class GrouperProvisioningTranslator {
   public List<ProvisioningMembership> translateGrouperToTargetMemberships(
       List<ProvisioningMembership> grouperProvisioningMemberships, boolean includeDelete) {
     
+    Collection<Object> changedMemberships = new HashSet<Object>();
+
     int invalidMembershipsDuringTranslation = 0;
     
     // clear out the membership attribute, it might have a default value in there
@@ -79,11 +84,14 @@ public class GrouperProvisioningTranslator {
     }
     
     List<ProvisioningMembership> grouperTargetMemberships = new ArrayList<ProvisioningMembership>();
+    List<ProvisioningMembership> grouperTargetMembershipsTranslated = new ArrayList<ProvisioningMembership>();
+
     List<String> scripts = GrouperUtil.nonNull(GrouperUtil.nonNull(this.getGrouperProvisioner().retrieveGrouperProvisioningConfiguration().getGrouperProvisioningToTargetTranslation()).get("Membership"));
 
     for (ProvisioningMembership grouperProvisioningMembership: GrouperUtil.nonNull(grouperProvisioningMemberships)) {
 
       ProvisioningMembershipWrapper provisioningMembershipWrapper = grouperProvisioningMembership.getProvisioningMembershipWrapper();
+      
       GcGrouperSyncMembership gcGrouperSyncMembership = provisioningMembershipWrapper.getGcGrouperSyncMembership();
 
       ProvisioningGroupWrapper provisioningGroupWrapper = grouperProvisioningMembership.getProvisioningGroup().getProvisioningGroupWrapper();
@@ -91,6 +99,9 @@ public class GrouperProvisioningTranslator {
 
       GcGrouperSyncErrorCode errorCode = provisioningGroupWrapper.getErrorCode();
       String errorMessage = provisioningGroupWrapper.getGcGrouperSyncGroup().getErrorMessage();
+      if (errorCode == null && !StringUtils.isBlank(errorMessage)) {
+        errorCode = GcGrouperSyncErrorCode.ERR;
+      }
           
       ProvisioningEntityWrapper provisioningEntityWrapper = grouperProvisioningMembership.getProvisioningEntity().getProvisioningEntityWrapper();
       ProvisioningEntity grouperTargetEntity = provisioningEntityWrapper.getGrouperTargetEntity();
@@ -98,8 +109,10 @@ public class GrouperProvisioningTranslator {
       if (errorCode == null) {
         errorCode = provisioningEntityWrapper.getErrorCode();
         errorMessage = provisioningEntityWrapper.getGcGrouperSyncMember().getErrorMessage();
+        if (errorCode == null && !StringUtils.isBlank(errorMessage)) {
+          errorCode = GcGrouperSyncErrorCode.ERR;
+        }
       }
-      
       if (errorCode != null) {
         this.getGrouperProvisioner().retrieveGrouperProvisioningValidation().assignMembershipError(provisioningMembershipWrapper, errorCode, errorMessage);
         continue;
@@ -110,6 +123,10 @@ public class GrouperProvisioningTranslator {
       if (this.translateGrouperToTargetAutomatically) {
         grouperTargetMembership = grouperProvisioningMembership.clone();
       }
+      if (provisioningMembershipWrapper.getGrouperTargetMembership() == null) {
+        grouperTargetMembershipsTranslated.add(grouperTargetMembership);
+      }
+      
       
       grouperTargetMembership.setProvisioningMembershipWrapper(provisioningMembershipWrapper);
  
@@ -144,8 +161,8 @@ public class GrouperProvisioningTranslator {
                 grouperProvisioningConfigurationAttribute, provisioningGroupWrapper, provisioningEntityWrapper);
 
             grouperTargetMembership.assignAttributeValue(grouperProvisioningConfigurationAttribute.getName(), result);
-            this.grouperProvisioner.retrieveGrouperProvisioningAttributeManipulation().manipulateValue(grouperTargetMembership, grouperProvisioningConfigurationAttribute, null);
-            this.grouperProvisioner.retrieveGrouperProvisioningAttributeManipulation().convertNullsEmpties(grouperTargetMembership, grouperProvisioningConfigurationAttribute, null);
+            this.grouperProvisioner.retrieveGrouperProvisioningAttributeManipulation().manipulateValue(changedMemberships, grouperTargetMembership, grouperProvisioningConfigurationAttribute, null);
+            this.grouperProvisioner.retrieveGrouperProvisioningAttributeManipulation().convertNullsEmpties(changedMemberships, grouperTargetMembership, grouperProvisioningConfigurationAttribute, null);
 
           }
         }
@@ -305,6 +322,10 @@ public class GrouperProvisioningTranslator {
     if (invalidMembershipsDuringTranslation > 0) {
       GrouperUtil.mapAddValue(this.getGrouperProvisioner().getDebugMap(), "invalidMembershipsDuringTranslation", invalidMembershipsDuringTranslation);
     }
+    if (GrouperUtil.length(grouperTargetMembershipsTranslated) > 0) {
+      this.getGrouperProvisioner().retrieveGrouperProvisioningObjectLog().debug(GrouperProvisioningObjectLogType.translateGrouperMembershipsToTarget, grouperTargetMembershipsTranslated);
+    }
+
 
     return grouperTargetMemberships;
   }
@@ -312,6 +333,7 @@ public class GrouperProvisioningTranslator {
   public List<ProvisioningEntity> translateGrouperToTargetEntities(
       List<ProvisioningEntity> grouperProvisioningEntities, boolean includeDelete, boolean forCreate) {
     
+    Collection<Object> changedEntities = new HashSet<Object>();
     List<ProvisioningEntity> grouperTargetEntities = new ArrayList<ProvisioningEntity>();
 
     List<String> scripts = GrouperUtil.nonNull(GrouperUtil.nonNull(this.getGrouperProvisioner().retrieveGrouperProvisioningConfiguration().getGrouperProvisioningToTargetTranslation()).get("Entity"));
@@ -321,18 +343,26 @@ public class GrouperProvisioningTranslator {
           this.getGrouperProvisioner().retrieveGrouperProvisioningConfiguration().getGrouperProvisioningToTargetTranslation()).get("EntityCreateOnly")));
     }
 
+    List<ProvisioningEntity> grouperTargetEntitiesTranslated = new ArrayList<ProvisioningEntity>();
+
     PROVISIONING_ENTITY_BLOCK: for (ProvisioningEntity grouperProvisioningEntity: GrouperUtil.nonNull(grouperProvisioningEntities)) {
       
       ProvisioningEntity grouperTargetEntity = new ProvisioningEntity();
       if (this.translateGrouperToTargetAutomatically) {
         grouperTargetEntity = grouperProvisioningEntity.clone();
       }
-      grouperTargetEntity.setProvisioningEntityWrapper(grouperProvisioningEntity.getProvisioningEntityWrapper());
+      ProvisioningEntityWrapper provisioningEntityWrapper = grouperProvisioningEntity.getProvisioningEntityWrapper();
+      
+      if (provisioningEntityWrapper.getGrouperTargetEntity() == null) {
+        grouperTargetEntitiesTranslated.add(grouperTargetEntity);
+      }
+
+      grouperTargetEntity.setProvisioningEntityWrapper(provisioningEntityWrapper);
 
       Map<String, Object> elVariableMap = new HashMap<String, Object>();
       elVariableMap.put("grouperProvisioningEntity", grouperProvisioningEntity);
-      elVariableMap.put("provisioningEntityWrapper", grouperProvisioningEntity.getProvisioningEntityWrapper());
-      GcGrouperSyncMember gcGrouperSyncMember = grouperProvisioningEntity.getProvisioningEntityWrapper().getGcGrouperSyncMember();
+      elVariableMap.put("provisioningEntityWrapper", provisioningEntityWrapper);
+      GcGrouperSyncMember gcGrouperSyncMember = provisioningEntityWrapper.getGcGrouperSyncMember();
       elVariableMap.put("gcGrouperSyncMember", gcGrouperSyncMember);
       elVariableMap.put("grouperTargetEntity", grouperTargetEntity);
 
@@ -343,13 +373,13 @@ public class GrouperProvisioningTranslator {
           if (grouperProvisioningConfigurationAttribute.isRequired() == required) {
             
             if (!grouperProvisioningConfigurationAttribute.isUpdate() && StringUtils.isNotBlank(grouperProvisioningConfigurationAttribute.getTranslateFromGrouperProvisioningEntityField())
-                && !GrouperUtil.isBlank(translateFromGrouperProvisioningEntityField(grouperProvisioningEntity.getProvisioningEntityWrapper(), grouperProvisioningConfigurationAttribute.getTranslateFromGrouperProvisioningEntityField()))) {
+                && !GrouperUtil.isBlank(translateFromGrouperProvisioningEntityField(provisioningEntityWrapper, grouperProvisioningConfigurationAttribute.getTranslateFromGrouperProvisioningEntityField()))) {
               
-              Object result = translateFromGrouperProvisioningEntityField(grouperProvisioningEntity.getProvisioningEntityWrapper(), grouperProvisioningConfigurationAttribute.getTranslateFromGrouperProvisioningEntityField());
+              Object result = translateFromGrouperProvisioningEntityField(provisioningEntityWrapper, grouperProvisioningConfigurationAttribute.getTranslateFromGrouperProvisioningEntityField());
               String attributeOrFieldName = grouperProvisioningConfigurationAttribute.getName();
               grouperTargetEntity.assignAttributeValue(attributeOrFieldName, result);
-              this.grouperProvisioner.retrieveGrouperProvisioningAttributeManipulation().manipulateValue(grouperTargetEntity, grouperProvisioningConfigurationAttribute, null);
-              this.grouperProvisioner.retrieveGrouperProvisioningAttributeManipulation().convertNullsEmpties(grouperTargetEntity, grouperProvisioningConfigurationAttribute, null);
+              this.grouperProvisioner.retrieveGrouperProvisioningAttributeManipulation().manipulateValue(changedEntities, grouperTargetEntity, grouperProvisioningConfigurationAttribute, null);
+              this.grouperProvisioner.retrieveGrouperProvisioningAttributeManipulation().convertNullsEmpties(changedEntities, grouperTargetEntity, grouperProvisioningConfigurationAttribute, null);
               continue;
             }
             
@@ -363,21 +393,21 @@ public class GrouperProvisioningTranslator {
 
               Object result = attributeTranslation( 
                   grouperTargetEntity.retrieveAttributeValue(grouperProvisioningConfigurationAttribute.getName()), elVariableMap, forCreate, 
-                  grouperProvisioningConfigurationAttribute, null, grouperProvisioningEntity.getProvisioningEntityWrapper());
+                  grouperProvisioningConfigurationAttribute, null, provisioningEntityWrapper);
               
               if (grouperProvisioningConfigurationAttribute.getSyncMemberCacheAttribute() != null
                   && grouperProvisioningConfigurationAttribute.getSyncMemberCacheAttribute().getSource() == GrouperProvisioningConfigurationAttributeDbCacheSource.grouper) {
                 gcGrouperSyncMember.assignField(grouperProvisioningConfigurationAttribute.getSyncMemberCacheAttribute().getCacheName(), result);
               }
               grouperTargetEntity.assignAttributeValue(grouperProvisioningConfigurationAttribute.getName(), result);
-              this.grouperProvisioner.retrieveGrouperProvisioningAttributeManipulation().manipulateValue(grouperTargetEntity, grouperProvisioningConfigurationAttribute, null);
-              this.grouperProvisioner.retrieveGrouperProvisioningAttributeManipulation().convertNullsEmpties(grouperTargetEntity, grouperProvisioningConfigurationAttribute, null);
+              this.grouperProvisioner.retrieveGrouperProvisioningAttributeManipulation().manipulateValue(changedEntities, grouperTargetEntity, grouperProvisioningConfigurationAttribute, null);
+              this.grouperProvisioner.retrieveGrouperProvisioningAttributeManipulation().convertNullsEmpties(changedEntities, grouperTargetEntity, grouperProvisioningConfigurationAttribute, null);
 
               if (required && GrouperUtil.isBlank(result) && gcGrouperSyncMember.isProvisionable()) {
                 // short circuit this since other fields might need this field and its not there and invalid anyways
                 this.getGrouperProvisioner().retrieveGrouperProvisioningValidation()
                 .assignErrorCodeToEntityWrapper(grouperTargetEntity, grouperProvisioningConfigurationAttribute, 
-                    grouperProvisioningEntity.getProvisioningEntityWrapper());
+                    provisioningEntityWrapper);
                 continue PROVISIONING_ENTITY_BLOCK;
               }
             
@@ -399,14 +429,18 @@ public class GrouperProvisioningTranslator {
       
       grouperTargetEntities.add(grouperTargetEntity);
       
-      grouperProvisioningEntity.getProvisioningEntityWrapper().setGrouperTargetEntity(grouperTargetEntity);
+      provisioningEntityWrapper.setGrouperTargetEntity(grouperTargetEntity);
       if (includeDelete) {
-        grouperProvisioningEntity.getProvisioningEntityWrapper().setDelete(true);
+        provisioningEntityWrapper.setDelete(true);
       } else if (forCreate) {
-        grouperProvisioningEntity.getProvisioningEntityWrapper().setCreate(true);
+        provisioningEntityWrapper.setCreate(true);
       }
 
     }
+    if (GrouperUtil.length(grouperTargetEntitiesTranslated) > 0) {
+      this.getGrouperProvisioner().retrieveGrouperProvisioningObjectLog().debug(GrouperProvisioningObjectLogType.translateGrouperEntitiesToTarget, grouperTargetEntitiesTranslated);
+    }
+
     return grouperTargetEntities;
   }
 
@@ -416,6 +450,8 @@ public class GrouperProvisioningTranslator {
 
   public List<ProvisioningGroup> translateGrouperToTargetGroups(List<ProvisioningGroup> grouperProvisioningGroups, boolean includeDelete, boolean forCreate) {
 
+    Collection<Object> changedEntities = new HashSet<Object>();
+
     List<String> scripts = GrouperUtil.nonNull(GrouperUtil.nonNull(
         this.getGrouperProvisioner().retrieveGrouperProvisioningConfiguration().getGrouperProvisioningToTargetTranslation()).get("Group"));
 
@@ -424,6 +460,7 @@ public class GrouperProvisioningTranslator {
           this.getGrouperProvisioner().retrieveGrouperProvisioningConfiguration().getGrouperProvisioningToTargetTranslation()).get("GroupCreateOnly")));
     }
     List<ProvisioningGroup> grouperTargetGroups = new ArrayList<ProvisioningGroup>();
+    List<ProvisioningGroup> grouperTargetGroupsTranslated = new ArrayList<ProvisioningGroup>();
 
     PROVISIONING_GROUP_BLOCK: for (ProvisioningGroup grouperProvisioningGroup: GrouperUtil.nonNull(grouperProvisioningGroups)) {
       
@@ -433,13 +470,19 @@ public class GrouperProvisioningTranslator {
         grouperTargetGroup = grouperProvisioningGroup.clone();
       }
       
-      grouperTargetGroup.setProvisioningGroupWrapper(grouperProvisioningGroup.getProvisioningGroupWrapper());
+      ProvisioningGroupWrapper provisioningGroupWrapper = grouperProvisioningGroup.getProvisioningGroupWrapper();
+      
+      if (provisioningGroupWrapper.getGrouperTargetGroup() == null) {
+        grouperTargetGroupsTranslated.add(grouperTargetGroup);
+      }
+      
+      grouperTargetGroup.setProvisioningGroupWrapper(provisioningGroupWrapper);
 
       Map<String, Object> elVariableMap = new HashMap<String, Object>();
       elVariableMap.put("grouperProvisioningGroup", grouperProvisioningGroup);
-      elVariableMap.put("provisioningGroupWrapper", grouperProvisioningGroup.getProvisioningGroupWrapper());
+      elVariableMap.put("provisioningGroupWrapper", provisioningGroupWrapper);
       elVariableMap.put("grouperTargetGroup", grouperTargetGroup);
-      GcGrouperSyncGroup gcGrouperSyncGroup = grouperProvisioningGroup.getProvisioningGroupWrapper().getGcGrouperSyncGroup();
+      GcGrouperSyncGroup gcGrouperSyncGroup = provisioningGroupWrapper.getGcGrouperSyncGroup();
       elVariableMap.put("gcGrouperSyncGroup", gcGrouperSyncGroup);
 
       // do the required's first
@@ -449,13 +492,13 @@ public class GrouperProvisioningTranslator {
           if (grouperProvisioningConfigurationAttribute.isRequired() == required) {
             
             if (!grouperProvisioningConfigurationAttribute.isUpdate() && StringUtils.isNotBlank(grouperProvisioningConfigurationAttribute.getTranslateFromGrouperProvisioningGroupField())
-                && !GrouperUtil.isBlank(translateFromGrouperProvisioningGroupField(grouperProvisioningGroup.getProvisioningGroupWrapper(), grouperProvisioningConfigurationAttribute.getTranslateFromGrouperProvisioningGroupField()))) {
+                && !GrouperUtil.isBlank(translateFromGrouperProvisioningGroupField(provisioningGroupWrapper, grouperProvisioningConfigurationAttribute.getTranslateFromGrouperProvisioningGroupField()))) {
               
-              Object result = translateFromGrouperProvisioningGroupField(grouperProvisioningGroup.getProvisioningGroupWrapper(), grouperProvisioningConfigurationAttribute.getTranslateFromGrouperProvisioningGroupField());
+              Object result = translateFromGrouperProvisioningGroupField(provisioningGroupWrapper, grouperProvisioningConfigurationAttribute.getTranslateFromGrouperProvisioningGroupField());
               String attributeOrFieldName = grouperProvisioningConfigurationAttribute.getName();
               grouperTargetGroup.assignAttributeValue(attributeOrFieldName, result);
-              this.grouperProvisioner.retrieveGrouperProvisioningAttributeManipulation().manipulateValue(grouperTargetGroup, grouperProvisioningConfigurationAttribute, null);
-              this.grouperProvisioner.retrieveGrouperProvisioningAttributeManipulation().convertNullsEmpties(grouperTargetGroup, grouperProvisioningConfigurationAttribute, null);
+              this.grouperProvisioner.retrieveGrouperProvisioningAttributeManipulation().manipulateValue(changedEntities, grouperTargetGroup, grouperProvisioningConfigurationAttribute, null);
+              this.grouperProvisioner.retrieveGrouperProvisioningAttributeManipulation().convertNullsEmpties(changedEntities, grouperTargetGroup, grouperProvisioningConfigurationAttribute, null);
               continue;
             }
             
@@ -467,17 +510,16 @@ public class GrouperProvisioningTranslator {
                 || this.grouperProvisioner.retrieveGrouperProvisioningBehavior().isGroupAttributeNameHasCache(grouperProvisioningConfigurationAttribute.getName())) { 
               Object result = attributeTranslation( 
                   grouperTargetGroup.retrieveAttributeValue(grouperProvisioningConfigurationAttribute.getName()), elVariableMap, forCreate, 
-                  grouperProvisioningConfigurationAttribute, grouperProvisioningGroup.getProvisioningGroupWrapper(), null);
+                  grouperProvisioningConfigurationAttribute, provisioningGroupWrapper, null);
 
               if (grouperProvisioningConfigurationAttribute.getSyncGroupCacheAttribute() != null
                   && grouperProvisioningConfigurationAttribute.getSyncGroupCacheAttribute().getSource() == GrouperProvisioningConfigurationAttributeDbCacheSource.grouper) {
                 gcGrouperSyncGroup.assignField(grouperProvisioningConfigurationAttribute.getSyncGroupCacheAttribute().getCacheName(), result);
               }
-              
               String attributeOrFieldName = grouperProvisioningConfigurationAttribute.getName();
               grouperTargetGroup.assignAttributeValue(attributeOrFieldName, result);
-              this.grouperProvisioner.retrieveGrouperProvisioningAttributeManipulation().manipulateValue(grouperTargetGroup, grouperProvisioningConfigurationAttribute, null);
-              this.grouperProvisioner.retrieveGrouperProvisioningAttributeManipulation().convertNullsEmpties(grouperTargetGroup, grouperProvisioningConfigurationAttribute, null);
+              this.grouperProvisioner.retrieveGrouperProvisioningAttributeManipulation().manipulateValue(changedEntities, grouperTargetGroup, grouperProvisioningConfigurationAttribute, null);
+              this.grouperProvisioner.retrieveGrouperProvisioningAttributeManipulation().convertNullsEmpties(changedEntities, grouperTargetGroup, grouperProvisioningConfigurationAttribute, null);
               if (required && GrouperUtil.isBlank(result) && gcGrouperSyncGroup.isProvisionable()) {
                 // short circuit this since other fields might need this field and its not there and invalid anyways
                 this.getGrouperProvisioner().retrieveGrouperProvisioningValidation()
@@ -501,15 +543,19 @@ public class GrouperProvisioningTranslator {
         continue;
       }
 
-      grouperProvisioningGroup.getProvisioningGroupWrapper().setGrouperTargetGroup(grouperTargetGroup);
+      provisioningGroupWrapper.setGrouperTargetGroup(grouperTargetGroup);
       if (includeDelete) {
-        grouperProvisioningGroup.getProvisioningGroupWrapper().setDelete(true);
+        provisioningGroupWrapper.setDelete(true);
       } else if (forCreate) {
-        grouperProvisioningGroup.getProvisioningGroupWrapper().setCreate(true);
+        provisioningGroupWrapper.setCreate(true);
       }
       grouperTargetGroups.add(grouperTargetGroup);
         
     }
+    if (GrouperUtil.length(grouperTargetGroupsTranslated) > 0) {
+      this.getGrouperProvisioner().retrieveGrouperProvisioningObjectLog().debug(GrouperProvisioningObjectLogType.translateGrouperGroupsToTarget, grouperTargetGroupsTranslated);
+    }
+
     return grouperTargetGroups;
   }
 
@@ -705,65 +751,114 @@ public class GrouperProvisioningTranslator {
     
   }
   
-  private boolean hasMatchingIdStrategyForGroups = false;
-  
-  
-  
-  public boolean isHasMatchingIdStrategyForGroups() {
-    return hasMatchingIdStrategyForGroups;
-  }
-
-  private boolean hasMatchingIdStrategyForEntities = false;
-  
-  
-  
-  public boolean isHasMatchingIdStrategyForEntities() {
-    return hasMatchingIdStrategyForEntities;
-  }
-
+  /**
+   * get the matching and search ids for a target group (could be grouperTargetGroup or targetProvisioningGroup)
+   * @param targetGroups
+   */
   public void idTargetGroups(List<ProvisioningGroup> targetGroups) {
 
     if (GrouperUtil.isBlank(targetGroups)) {
       return;
     }
 
-    String groupIdScript = null; // this.getGrouperProvisioner().retrieveGrouperProvisioningConfiguration().getGroupMatchingIdExpression(); 
-
-    String groupIdAttribute = null;
-    if (GrouperUtil.length(this.getGrouperProvisioner().retrieveGrouperProvisioningConfiguration().getGroupMatchingAttributes()) > 0) {
-      groupIdAttribute = this.getGrouperProvisioner().retrieveGrouperProvisioningConfiguration().getGroupMatchingAttributes().get(0).getName();
-    }
-
-    if (StringUtils.isBlank(groupIdScript) && StringUtils.isBlank(groupIdAttribute)) {
-      return;
-    }
-    hasMatchingIdStrategyForGroups = true;
     for (ProvisioningGroup targetGroup: GrouperUtil.nonNull(targetGroups)) {
       
-      Object id = null;
+      Set<ProvisioningUpdatableAttributeAndValue> provisioningUpdatableAttributeAndValues = new LinkedHashSet<ProvisioningUpdatableAttributeAndValue>();
+      targetGroup.setMatchingIdAttributeNameToValues(provisioningUpdatableAttributeAndValues);
+
+      if (this.getGrouperProvisioner().retrieveGrouperProvisioningConfiguration().isGroupMatchingAttributeSameAsSearchAttribute()) {
+        targetGroup.setSearchIdAttributeNameToValues(provisioningUpdatableAttributeAndValues);
+      }
+
+      // first do all current values, then do all past values
+      for (GrouperProvisioningConfigurationAttribute matchingAttribute : this.getGrouperProvisioner().retrieveGrouperProvisioningConfiguration().getGroupMatchingAttributes()) {
+        String matchingAttributeName = matchingAttribute.getName();
         
-      if (!StringUtils.isBlank(groupIdAttribute)) {
-        Object idValue = targetGroup.retrieveAttributeValue(groupIdAttribute);
-        if (idValue instanceof Collection) {
-          throw new RuntimeException("Cant have a multivalued matching id attribute: '" + groupIdAttribute + "', " + targetGroup);
+        // dont worry if dupes... oh well
+        Object targetCurrentValue = massageToString(targetGroup.retrieveAttributeValue(matchingAttributeName), 2);
+
+        if(!GrouperUtil.isBlank(targetCurrentValue)) {
+          
+          ProvisioningUpdatableAttributeAndValue provisioningUpdatableAttributeAndValue = new ProvisioningUpdatableAttributeAndValue(matchingAttributeName, targetCurrentValue);
+          provisioningUpdatableAttributeAndValue.setCurrentValue(true);
+          provisioningUpdatableAttributeAndValues.add(provisioningUpdatableAttributeAndValue);
         }
-        id = idValue;
+      }
+      
+      // dont get old values for target side objects
+      if (!targetGroup.isGrouperTargetObject()) {
+        continue;
+      }
+      
+      //old values
+      for (GrouperProvisioningConfigurationAttribute matchingAttribute : this.getGrouperProvisioner().retrieveGrouperProvisioningConfiguration().getGroupMatchingAttributes()) {
+        String matchingAttributeName = matchingAttribute.getName();
 
-      } else if (!StringUtils.isBlank(groupIdScript)) {
-        Map<String, Object> elVariableMap = new HashMap<String, Object>();
-        elVariableMap.put("targetGroup", targetGroup);
+        Set<Object> cachedValues = GrouperProvisioningConfigurationAttributeDbCache.cachedValuesForGroup(targetGroup, matchingAttributeName);
+
+        for (Object cachedValue : GrouperUtil.nonNull(cachedValues)) {
+          
+          if (!GrouperUtil.isEmpty(cachedValue)) {
+            cachedValue = massageToString(cachedValue, 2);
+            ProvisioningUpdatableAttributeAndValue provisioningUpdatableAttributeAndValue = new ProvisioningUpdatableAttributeAndValue(matchingAttributeName, cachedValue);
+            provisioningUpdatableAttributeAndValue.setCurrentValue(false);
+            
+            // keep the order so see if its there before adding
+            if (!provisioningUpdatableAttributeAndValues.contains(provisioningUpdatableAttributeAndValue)) {
+              provisioningUpdatableAttributeAndValues.add(provisioningUpdatableAttributeAndValue);
+            }
+          }
+        }
+      }
+    }
+    // search attributes
+    if (!this.getGrouperProvisioner().retrieveGrouperProvisioningConfiguration().isGroupMatchingAttributeSameAsSearchAttribute()) {
+      for (ProvisioningGroup targetGroup: GrouperUtil.nonNull(targetGroups)) {
         
-        id = runScript(groupIdScript, elVariableMap);
+        Set<ProvisioningUpdatableAttributeAndValue> provisioningUpdatableAttributeAndValues = new LinkedHashSet<ProvisioningUpdatableAttributeAndValue>();
+        targetGroup.setSearchIdAttributeNameToValues(provisioningUpdatableAttributeAndValues);
 
-      } else {
-        throw new RuntimeException("Must have groupMatchingIdAttribute, or groupMatchingIdExpression");
-      }
-      id = massageToString(id, 2);
-      if (!GrouperUtil.isBlank(id) && targetGroup.getProvisioningGroupWrapper() != null) {
-        targetGroup.getProvisioningGroupWrapper().setMatchingId(id);
-      }
-      targetGroup.setMatchingId(id);
+        // first do all current values, then do all past values
+        for (GrouperProvisioningConfigurationAttribute searchAttribute : this.getGrouperProvisioner().retrieveGrouperProvisioningConfiguration().getGroupSearchAttributes()) {
+          String searchAttributeName = searchAttribute.getName();
+          
+          // dont worry if dupes... oh well
+          Object targetCurrentValue = massageToString(targetGroup.retrieveAttributeValue(searchAttributeName), 2);
 
+          if(!GrouperUtil.isBlank(targetCurrentValue)) {
+            
+            ProvisioningUpdatableAttributeAndValue provisioningUpdatableAttributeAndValue = new ProvisioningUpdatableAttributeAndValue(searchAttributeName, targetCurrentValue);
+            provisioningUpdatableAttributeAndValue.setCurrentValue(true);
+            provisioningUpdatableAttributeAndValues.add(provisioningUpdatableAttributeAndValue);
+          }
+        }
+        
+        // dont get old values for target side objects
+        if (!targetGroup.isGrouperTargetObject()) {
+          continue;
+        }
+        
+        //old values
+        for (GrouperProvisioningConfigurationAttribute searchAttribute : this.getGrouperProvisioner().retrieveGrouperProvisioningConfiguration().getGroupSearchAttributes()) {
+          String searchAttributeName = searchAttribute.getName();
+
+          Set<Object> cachedValues = GrouperProvisioningConfigurationAttributeDbCache.cachedValuesForGroup(targetGroup, searchAttributeName);
+
+          for (Object cachedValue : GrouperUtil.nonNull(cachedValues)) {
+            
+            if (!GrouperUtil.isEmpty(cachedValue)) {
+              cachedValue = massageToString(cachedValue, 2);
+              ProvisioningUpdatableAttributeAndValue provisioningUpdatableAttributeAndValue = new ProvisioningUpdatableAttributeAndValue(searchAttributeName, cachedValue);
+              provisioningUpdatableAttributeAndValue.setCurrentValue(false);
+              // keep the order so see if its there before adding
+              if (!provisioningUpdatableAttributeAndValues.contains(provisioningUpdatableAttributeAndValue)) {
+                provisioningUpdatableAttributeAndValues.add(provisioningUpdatableAttributeAndValue);
+              }
+            }
+          }
+        }
+      }
+      
     }
   }
 
@@ -773,46 +868,107 @@ public class GrouperProvisioningTranslator {
       return;
     }
 
-    String entityIdScript = null; // this.getGrouperProvisioner().retrieveGrouperProvisioningConfiguration().getEntityMatchingIdExpression(); 
-
-    String entityIdAttribute = null;
-    
-    if (GrouperUtil.length(this.getGrouperProvisioner().retrieveGrouperProvisioningConfiguration().getEntityMatchingAttributes()) > 0) {
-      entityIdAttribute = this.getGrouperProvisioner().retrieveGrouperProvisioningConfiguration().getEntityMatchingAttributes().get(0).getName();
-    }
-            
-    if (StringUtils.isBlank(entityIdScript) && StringUtils.isBlank(entityIdAttribute)) {
-      return;
-    }
-    
-    hasMatchingIdStrategyForEntities = true;
-
     for (ProvisioningEntity targetEntity: GrouperUtil.nonNull(targetEntities)) {
       
-      Object id = null;
-      if (!StringUtils.isBlank(entityIdAttribute)) {
-        Object idValue = targetEntity.retrieveAttributeValue(entityIdAttribute);
-        if (idValue instanceof Collection) {
-          throw new RuntimeException("Cant have a multivalued matching id attribute: '" + entityIdAttribute + "', " + targetEntity);
-        }
-        id = idValue;
-      } else if (!StringUtils.isBlank(entityIdScript)) {
-        Map<String, Object> elVariableMap = new HashMap<String, Object>();
-        elVariableMap.put("targetEntity", targetEntity);
+      Set<ProvisioningUpdatableAttributeAndValue> provisioningUpdatableAttributeAndValues = new LinkedHashSet<ProvisioningUpdatableAttributeAndValue>();
+      targetEntity.setMatchingIdAttributeNameToValues(provisioningUpdatableAttributeAndValues);
+
+      if (this.getGrouperProvisioner().retrieveGrouperProvisioningConfiguration().isEntityMatchingAttributeSameAsSearchAttribute()) {
+        targetEntity.setSearchIdAttributeNameToValues(provisioningUpdatableAttributeAndValues);
+      }
+
+      boolean grouperTargetObject = targetEntity.isGrouperTargetObject();
+
+      // first do all current values, then do all past values
+      for (GrouperProvisioningConfigurationAttribute matchingAttribute : this.getGrouperProvisioner().retrieveGrouperProvisioningConfiguration().getEntityMatchingAttributes()) {
+        String matchingAttributeName = matchingAttribute.getName();
         
-        id = runScript(entityIdScript, elVariableMap);
-                
-      } else {
-        throw new RuntimeException("Must have entityMatchingIdAttribute, or entityMatchingIdExpression");
+        // dont worry if dupes... oh well
+        Object targetCurrentValue = massageToString(targetEntity.retrieveAttributeValue(matchingAttributeName), 2);
+
+        if(!GrouperUtil.isBlank(targetCurrentValue)) {
+          
+          ProvisioningUpdatableAttributeAndValue provisioningUpdatableAttributeAndValue = new ProvisioningUpdatableAttributeAndValue(matchingAttributeName, targetCurrentValue);
+          provisioningUpdatableAttributeAndValue.setCurrentValue(true);
+          provisioningUpdatableAttributeAndValues.add(provisioningUpdatableAttributeAndValue);
+        }
       }
-
-      id = massageToString(id, 2);
-      if (!GrouperUtil.isBlank(id) && targetEntity.getProvisioningEntityWrapper() != null) {
-        targetEntity.getProvisioningEntityWrapper().setMatchingId(id);
+      
+      // dont get old values for target side objects
+      if (!grouperTargetObject) {
+        continue;
       }
+      
+      //old values
+      for (GrouperProvisioningConfigurationAttribute matchingAttribute : this.getGrouperProvisioner().retrieveGrouperProvisioningConfiguration().getEntityMatchingAttributes()) {
+        String matchingAttributeName = matchingAttribute.getName();
 
-      targetEntity.setMatchingId(id);
+        Set<Object> cachedValues = GrouperProvisioningConfigurationAttributeDbCache.cachedValuesForEntity(targetEntity, matchingAttributeName);
 
+        for (Object cachedValue : GrouperUtil.nonNull(cachedValues)) {
+          
+          if (!GrouperUtil.isEmpty(cachedValue)) {
+            cachedValue = massageToString(cachedValue, 2);
+            ProvisioningUpdatableAttributeAndValue provisioningUpdatableAttributeAndValue = new ProvisioningUpdatableAttributeAndValue(matchingAttributeName, cachedValue);
+            provisioningUpdatableAttributeAndValue.setCurrentValue(false);
+            
+            // keep the order so see if its there before adding
+            if (!provisioningUpdatableAttributeAndValues.contains(provisioningUpdatableAttributeAndValue)) {
+              provisioningUpdatableAttributeAndValues.add(provisioningUpdatableAttributeAndValue);
+            }
+          }
+        }
+      }
+    }
+    // search attributes
+    if (!this.getGrouperProvisioner().retrieveGrouperProvisioningConfiguration().isEntityMatchingAttributeSameAsSearchAttribute()) {
+      for (ProvisioningEntity targetEntity: GrouperUtil.nonNull(targetEntities)) {
+        
+        Set<ProvisioningUpdatableAttributeAndValue> provisioningUpdatableAttributeAndValues = new LinkedHashSet<ProvisioningUpdatableAttributeAndValue>();
+        targetEntity.setSearchIdAttributeNameToValues(provisioningUpdatableAttributeAndValues);
+
+        // first do all current values, then do all past values
+        for (GrouperProvisioningConfigurationAttribute searchAttribute : this.getGrouperProvisioner().retrieveGrouperProvisioningConfiguration().getEntitySearchAttributes()) {
+          String searchAttributeName = searchAttribute.getName();
+          
+          // dont worry if dupes... oh well
+          Object targetCurrentValue = massageToString(targetEntity.retrieveAttributeValue(searchAttributeName), 2);
+
+          if(!GrouperUtil.isBlank(targetCurrentValue)) {
+            
+            ProvisioningUpdatableAttributeAndValue provisioningUpdatableAttributeAndValue = new ProvisioningUpdatableAttributeAndValue(searchAttributeName, targetCurrentValue);
+            provisioningUpdatableAttributeAndValue.setCurrentValue(true);
+
+            provisioningUpdatableAttributeAndValues.add(provisioningUpdatableAttributeAndValue);
+          }
+        }
+        
+        // dont get old values for target side objects
+        if (!targetEntity.isGrouperTargetObject()) {
+          continue;
+        }
+        
+        //old values
+        for (GrouperProvisioningConfigurationAttribute searchAttribute : this.getGrouperProvisioner().retrieveGrouperProvisioningConfiguration().getEntitySearchAttributes()) {
+          String searchAttributeName = searchAttribute.getName();
+
+          Set<Object> cachedValues = GrouperProvisioningConfigurationAttributeDbCache.cachedValuesForEntity(targetEntity, searchAttributeName);
+
+          for (Object cachedValue : GrouperUtil.nonNull(cachedValues)) {
+            
+            if (!GrouperUtil.isEmpty(cachedValue)) {
+              cachedValue = massageToString(cachedValue, 2);
+              ProvisioningUpdatableAttributeAndValue provisioningUpdatableAttributeAndValue = new ProvisioningUpdatableAttributeAndValue(searchAttributeName, cachedValue);
+              provisioningUpdatableAttributeAndValue.setCurrentValue(false);
+              
+              // keep the order so see if its there before adding
+              if (!provisioningUpdatableAttributeAndValues.contains(provisioningUpdatableAttributeAndValue)) {
+                provisioningUpdatableAttributeAndValues.add(provisioningUpdatableAttributeAndValue);
+              }
+            }
+          }
+        }
+      }
       
     }
   }
@@ -889,11 +1045,12 @@ public class GrouperProvisioningTranslator {
         throw new RuntimeException("Must have membershipMatchingIdAttribute, or membershipMatchingIdExpression");
       }
       id = massageToString(id, 2);
-      if (!GrouperUtil.isBlank(id) && targetMembership.getProvisioningMembershipWrapper() != null) {
-        targetMembership.getProvisioningMembershipWrapper().setMatchingId(id);
-      }
 
-      targetMembership.setMatchingId(id);
+      // just hard code to "id" since memberships just have one matching id
+      ProvisioningUpdatableAttributeAndValue provisioningUpdatableAttributeAndValue = new ProvisioningUpdatableAttributeAndValue("id", id);
+      provisioningUpdatableAttributeAndValue.setCurrentValue(true);
+
+      targetMembership.setMatchingIdAttributeNameToValues(GrouperUtil.toSet(provisioningUpdatableAttributeAndValue));
 
     }
 

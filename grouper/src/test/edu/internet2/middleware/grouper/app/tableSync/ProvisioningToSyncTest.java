@@ -13,8 +13,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-import org.apache.ddlutils.model.Database;
-import org.apache.ddlutils.model.Table;
+import edu.internet2.middleware.grouper.ext.org.apache.ddlutils.model.Database;
+import edu.internet2.middleware.grouper.ext.org.apache.ddlutils.model.Table;
 
 import edu.internet2.middleware.grouper.Group;
 import edu.internet2.middleware.grouper.GroupSave;
@@ -835,7 +835,7 @@ public class ProvisioningToSyncTest extends GrouperTest {
 //      
 //      //something that will never fire
 //      GrouperLoaderConfig.retrieveConfig().propertiesOverrideMap().put("changeLog.consumer." + JOB_NAME + ".quartzCron", 
-//          "0 0 5 * * 2000");
+//          "0 0 0 1 1 ? 2200");
 //      
 //      GrouperLoaderConfig.retrieveConfig().propertiesOverrideMap().put("changeLog.consumer." + JOB_NAME + ".elfilter", 
 //          "(event.eventType == 'MEMBERSHIP_DELETE' || event.eventType == 'MEMBERSHIP_ADD' || event.eventType == 'MEMBERSHIP_UPDATE')  && event.sourceId == 'jdbc' ");
@@ -1748,7 +1748,7 @@ public class ProvisioningToSyncTest extends GrouperTest {
 //    
 //    //something that will never fire
 //    GrouperLoaderConfig.retrieveConfig().propertiesOverrideMap().put("changeLog.consumer." + JOB_NAME + ".quartzCron", 
-//        "0 0 5 * * 2000");
+//        "0 0 0 1 1 ? 2200");
 //    
 //    GrouperLoaderConfig.retrieveConfig().propertiesOverrideMap().put("changeLog.consumer." + JOB_NAME + ".provisionerConfigId", "testTarget");
 //  
@@ -1783,7 +1783,7 @@ public class ProvisioningToSyncTest extends GrouperTest {
     
     //something that will never fire
     GrouperLoaderConfig.retrieveConfig().propertiesOverrideMap().put("changeLog.consumer." + JOB_NAME + ".quartzCron", 
-        "0 0 5 * * 2000");
+        "0 0 0 1 1 ? 2200");
     
   
     // run the loader, initial run tries that event

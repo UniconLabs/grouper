@@ -19,6 +19,8 @@ import edu.internet2.middleware.grouper.app.loader.GrouperLoaderStatus;
 import edu.internet2.middleware.grouper.app.loader.db.Hib3GrouperLoaderLog;
 import edu.internet2.middleware.grouper.app.provisioning.GrouperProvisioner;
 import edu.internet2.middleware.grouper.app.provisioning.GrouperProvisioningAttributeValue;
+import edu.internet2.middleware.grouper.app.provisioning.GrouperProvisioningBaseTest;
+import edu.internet2.middleware.grouper.app.provisioning.GrouperProvisioningOutput;
 import edu.internet2.middleware.grouper.app.provisioning.GrouperProvisioningService;
 import edu.internet2.middleware.grouper.app.provisioning.GrouperProvisioningType;
 import edu.internet2.middleware.grouper.app.provisioning.ProvisioningConsumer;
@@ -46,7 +48,7 @@ import junit.textui.TestRunner;
 /**
  * @author shilen
  */
-public class LdapProvisionerIncrementalTest extends GrouperTest {
+public class LdapProvisionerIncrementalTest extends GrouperProvisioningBaseTest {
 
 
   /**
@@ -54,9 +56,14 @@ public class LdapProvisionerIncrementalTest extends GrouperTest {
    * @param args
    */
   public static void main(String[] args) {
-    TestRunner.run(new LdapProvisionerIncrementalTest("testIncrementalPolicyGroupsUsingFolder"));    
+    TestRunner.run(new LdapProvisionerIncrementalTest("testIncremental2"));    
   }
   
+  @Override
+  public String defaultConfigId() {
+    return "ldapProvTest";
+  }
+
   public LdapProvisionerIncrementalTest() {
     super();
   }
@@ -122,7 +129,7 @@ public class LdapProvisionerIncrementalTest extends GrouperTest {
     
 
     // init stuff
-    runJobs(true, true);
+    incrementalProvision();
     
     Stem stem = new StemSave(this.grouperSession).assignName("test").save();
     Stem stem2 = new StemSave(this.grouperSession).assignName("test2").save();
@@ -157,7 +164,7 @@ public class LdapProvisionerIncrementalTest extends GrouperTest {
     
     assertEquals(0, LdapSessionUtils.ldapSession().list("personLdap", "ou=Groups,dc=example,dc=edu", LdapSearchScope.SUBTREE_SCOPE, "(objectClass=groupOfNames)", new String[] {"objectClass", "cn", "member", "businessCategory"}, null).size());
 
-    runJobs(true, true);
+    incrementalProvision();
     
     List<LdapEntry> ldapEntries = LdapSessionUtils.ldapSession().list("personLdap", "ou=Groups,dc=example,dc=edu", LdapSearchScope.SUBTREE_SCOPE, "(objectClass=groupOfNames)", new String[] {"objectClass", "cn", "member", "businessCategory", "description"}, null);
     assertEquals(1, ldapEntries.size());
@@ -180,7 +187,7 @@ public class LdapProvisionerIncrementalTest extends GrouperTest {
     testGroup.addMember(blopez);
     testGroup.addMember(hdavis);
 
-    runJobs(true, true);
+    incrementalProvision();
 
     ldapEntries = LdapSessionUtils.ldapSession().list("personLdap", "ou=Groups,dc=example,dc=edu", LdapSearchScope.SUBTREE_SCOPE, "(objectClass=groupOfNames)", new String[] {"objectClass", "cn", "member", "businessCategory"}, null);
     assertEquals(1, ldapEntries.size());
@@ -209,7 +216,7 @@ public class LdapProvisionerIncrementalTest extends GrouperTest {
     // let the message cache clear
     GrouperUtil.sleep(20000);
 
-    runJobs(true, true);
+    incrementalProvision();
 
     GrouperProvisioner grouperProvisioner = GrouperProvisioner.retrieveInternalLastProvisioner();
     
@@ -217,29 +224,6 @@ public class LdapProvisionerIncrementalTest extends GrouperTest {
     
   }
   
-  private Hib3GrouperLoaderLog runJobs(boolean runChangeLog, boolean runConsumer) {
-    
-    // wait for message cache to clear
-    GrouperUtil.sleep(10000);
-    
-    if (runChangeLog) {
-      ChangeLogTempToEntity.convertRecords();
-    }
-    
-    if (runConsumer) {
-      Hib3GrouperLoaderLog hib3GrouploaderLog = new Hib3GrouperLoaderLog();
-      hib3GrouploaderLog.setHost(GrouperUtil.hostname());
-      hib3GrouploaderLog.setJobName("CHANGE_LOG_consumer_ldapProvTestCLC");
-      hib3GrouploaderLog.setStatus(GrouperLoaderStatus.RUNNING.name());
-      EsbConsumer esbConsumer = new EsbConsumer();
-      ChangeLogHelper.processRecords("ldapProvTestCLC", hib3GrouploaderLog, esbConsumer);
-  
-      return hib3GrouploaderLog;
-    }
-    
-    return null;
-  }
-
   public void testIncremental2() {
   
   
@@ -249,7 +233,7 @@ public class LdapProvisionerIncrementalTest extends GrouperTest {
         .assignUpdateGroupsAndDn(true));
 
     // init stuff
-    runJobs(true, true);
+    incrementalProvision();
     
     Stem stem = new StemSave(this.grouperSession).assignName("test").save();
     Stem stem2 = new StemSave(this.grouperSession).assignName("test2").save();
@@ -284,7 +268,7 @@ public class LdapProvisionerIncrementalTest extends GrouperTest {
     
     assertEquals(0, LdapSessionUtils.ldapSession().list("personLdap", "ou=Groups,dc=example,dc=edu", LdapSearchScope.SUBTREE_SCOPE, "(objectClass=groupOfNames)", new String[] {"objectClass", "cn", "member", "businessCategory"}, null).size());
   
-    runJobs(true, true);
+    incrementalProvision();
     
     List<LdapEntry> ldapEntries = LdapSessionUtils.ldapSession().list("personLdap", "ou=Groups,dc=example,dc=edu", LdapSearchScope.SUBTREE_SCOPE, "(objectClass=groupOfNames)", new String[] {"objectClass", "cn", "member", "businessCategory", "description"}, null);
     assertEquals(1, ldapEntries.size());
@@ -303,14 +287,14 @@ public class LdapProvisionerIncrementalTest extends GrouperTest {
     assertTrue(ldapEntry.getAttribute("member").getStringValues().contains("uid=banderson,ou=People,dc=example,dc=edu"));    
     
     // not sure why we need to process again, but the attribute propagation was sending a message
-    runJobs(true, true);
+    incrementalProvision();
 
     // try update
     testGroup.deleteMember(banderson);
     testGroup.addMember(blopez);
     testGroup.addMember(hdavis);
   
-    runJobs(true, true);
+    incrementalProvision();
   
     ldapEntries = LdapSessionUtils.ldapSession().list("personLdap", "ou=Groups,dc=example,dc=edu", LdapSearchScope.SUBTREE_SCOPE, "(objectClass=groupOfNames)", new String[] {"objectClass", "cn", "member", "businessCategory"}, null);
     assertEquals(1, ldapEntries.size());
@@ -333,7 +317,7 @@ public class LdapProvisionerIncrementalTest extends GrouperTest {
     testGroup.setExtension("testGroupRenamed");
     testGroup.store();
     
-    runJobs(true, true);
+    incrementalProvision();
   
     ldapEntries = LdapSessionUtils.ldapSession().list("personLdap", "ou=Groups,dc=example,dc=edu", LdapSearchScope.SUBTREE_SCOPE, "(objectClass=groupOfNames)", new String[] {"objectClass", "cn", "member", "businessCategory"}, null);
     assertEquals(1, ldapEntries.size());
@@ -356,7 +340,7 @@ public class LdapProvisionerIncrementalTest extends GrouperTest {
     attributeValue.setDoProvision(null);
     GrouperProvisioningService.saveOrUpdateProvisioningAttributes(attributeValue, stem);
   
-    runJobs(true, true);
+    incrementalProvision();
   
     assertEquals(1, LdapSessionUtils.ldapSession().list("personLdap", "ou=Groups,dc=example,dc=edu", LdapSearchScope.SUBTREE_SCOPE, "(objectClass=groupOfNames)", new String[] {"objectClass", "cn", "member", "businessCategory"}, null).size());
   
@@ -364,7 +348,7 @@ public class LdapProvisionerIncrementalTest extends GrouperTest {
   
     //GrouperProvisioningService.saveOrUpdateProvisioningAttributes(attributeValue, stem);
   
-    //runJobs(true, true);
+    //incrementalProvision();
   
     //assertEquals(0, LdapSessionUtils.ldapSession().list("personLdap", "ou=Groups,dc=example,dc=edu", LdapSearchScope.SUBTREE_SCOPE, "(objectClass=groupOfNames)", new String[] {"objectClass", "cn", "member", "businessCategory"}, null).size());
   }
@@ -383,7 +367,7 @@ public class LdapProvisionerIncrementalTest extends GrouperTest {
     ConfigPropertiesCascadeBase.clearCache();
 
     // init stuff
-    runJobs(true, true);
+    incrementalProvision();
     
     Stem stem = new StemSave(this.grouperSession).assignName("test").save();
     Stem stem2 = new StemSave(this.grouperSession).assignName("test2").save();
@@ -418,16 +402,16 @@ public class LdapProvisionerIncrementalTest extends GrouperTest {
     
     assertEquals(0, LdapSessionUtils.ldapSession().list("personLdap", "ou=Groups,dc=example,dc=edu", LdapSearchScope.SUBTREE_SCOPE, "(objectClass=groupOfNames)", new String[] {"objectClass", "cn", "member", "businessCategory"}, null).size());
 
-    runJobs(true, true);
+    incrementalProvision();
     
     List<LdapEntry> ldapEntries = LdapSessionUtils.ldapSession().list("personLdap", "ou=Groups,dc=example,dc=edu", LdapSearchScope.SUBTREE_SCOPE, "(objectClass=groupOfNames)", new String[] {"objectClass", "cn", "member", "businessCategory", "description"}, null);
     assertEquals(0, ldapEntries.size());
     
     addPolicyType(testGroup);
     
-    runJobs(true, true);
+    incrementalProvision();
     try { Thread.sleep(10000); } catch (Exception e) { }  // give some time for the message
-    runJobs(true, true);
+    incrementalProvision();
 
     ldapEntries = LdapSessionUtils.ldapSession().list("personLdap", "ou=Groups,dc=example,dc=edu", LdapSearchScope.SUBTREE_SCOPE, "(objectClass=groupOfNames)", new String[] {"objectClass", "cn", "member", "businessCategory", "description"}, null);
     assertEquals(1, ldapEntries.size());
@@ -448,8 +432,8 @@ public class LdapProvisionerIncrementalTest extends GrouperTest {
     // delete policy type
     testGroup.getAttributeDelegate().removeAttribute(retrieveAttributeDefNameBase());
 
-    runJobs(true, true);
-    runJobs(true, true);  // run again to get the message processed
+    incrementalProvision();
+    incrementalProvision();  // run again to get the message processed
 
     ldapEntries = LdapSessionUtils.ldapSession().list("personLdap", "ou=Groups,dc=example,dc=edu", LdapSearchScope.SUBTREE_SCOPE, "(objectClass=groupOfNames)", new String[] {"objectClass", "cn", "member", "businessCategory"}, null);
     assertEquals(0, ldapEntries.size());   
@@ -469,7 +453,7 @@ public class LdapProvisionerIncrementalTest extends GrouperTest {
     ConfigPropertiesCascadeBase.clearCache();
 
     // init stuff
-    runJobs(true, true);
+    incrementalProvision();
     
     Stem stem = new StemSave(this.grouperSession).assignName("test").save();
     Stem stem2 = new StemSave(this.grouperSession).assignName("test2").save();
@@ -504,7 +488,7 @@ public class LdapProvisionerIncrementalTest extends GrouperTest {
     
     assertEquals(0, LdapSessionUtils.ldapSession().list("personLdap", "ou=Groups,dc=example,dc=edu", LdapSearchScope.SUBTREE_SCOPE, "(objectClass=groupOfNames)", new String[] {"objectClass", "cn", "member", "businessCategory"}, null).size());
 
-    runJobs(true, true);
+    incrementalProvision();
     
     List<LdapEntry> ldapEntries = LdapSessionUtils.ldapSession().list("personLdap", "ou=Groups,dc=example,dc=edu", LdapSearchScope.SUBTREE_SCOPE, "(objectClass=groupOfNames)", new String[] {"objectClass", "cn", "member", "businessCategory", "description"}, null);
     assertEquals(0, ldapEntries.size());
@@ -512,9 +496,9 @@ public class LdapProvisionerIncrementalTest extends GrouperTest {
     addPolicyType(stem);
     GrouperObjectTypesDaemonLogic.fullSyncLogic();
 
-    runJobs(true, true);
+    incrementalProvision();
     try { Thread.sleep(10000); } catch (Exception e) { }  // give some time for the message
-    runJobs(true, true);
+    incrementalProvision();
 
     ldapEntries = LdapSessionUtils.ldapSession().list("personLdap", "ou=Groups,dc=example,dc=edu", LdapSearchScope.SUBTREE_SCOPE, "(objectClass=groupOfNames)", new String[] {"objectClass", "cn", "member", "businessCategory", "description"}, null);
     assertEquals(1, ldapEntries.size());
@@ -536,8 +520,8 @@ public class LdapProvisionerIncrementalTest extends GrouperTest {
     stem.getAttributeDelegate().removeAttribute(retrieveAttributeDefNameBase());
     GrouperObjectTypesDaemonLogic.fullSyncLogic();
 
-    runJobs(true, true);
-    runJobs(true, true);  // run again to get the message processed
+    incrementalProvision();
+    incrementalProvision();  // run again to get the message processed
 
     ldapEntries = LdapSessionUtils.ldapSession().list("personLdap", "ou=Groups,dc=example,dc=edu", LdapSearchScope.SUBTREE_SCOPE, "(objectClass=groupOfNames)", new String[] {"objectClass", "cn", "member", "businessCategory"}, null);
     assertEquals(0, ldapEntries.size());   
@@ -558,7 +542,7 @@ public class LdapProvisionerIncrementalTest extends GrouperTest {
     GrouperLoaderConfig.retrieveConfig().propertiesOverrideMap().put("provisioner.ldapProvTest.", "");
     GrouperLoaderConfig.retrieveConfig().propertiesOverrideMap().put("provisioner.ldapProvTest.", "true");
 
-    runJobs(true, true);
+    incrementalProvision();
     
     Stem stem = new StemSave(this.grouperSession).assignName("test").save();
     Stem stem2 = new StemSave(this.grouperSession).assignName("test2").save();
@@ -593,7 +577,7 @@ public class LdapProvisionerIncrementalTest extends GrouperTest {
     
     assertEquals(0, LdapSessionUtils.ldapSession().list("personLdap", "ou=Groups,dc=example,dc=edu", LdapSearchScope.SUBTREE_SCOPE, "(objectClass=groupOfNames)", new String[] {"objectClass", "cn", "member", "businessCategory"}, null).size());
 
-    runJobs(true, true);
+    incrementalProvision();
     
     List<LdapEntry> ldapEntries = LdapSessionUtils.ldapSession().list("personLdap", "ou=Groups,dc=example,dc=edu", LdapSearchScope.SUBTREE_SCOPE, "(objectClass=groupOfNames)", new String[] {"objectClass", "cn", "member", "businessCategory", "description"}, null);
     assertEquals(0, ldapEntries.size());
@@ -601,9 +585,9 @@ public class LdapProvisionerIncrementalTest extends GrouperTest {
     testGroup.setExtension("testGroup");
     testGroup.store();
     
-    runJobs(true, true);
+    incrementalProvision();
     try { Thread.sleep(10000); } catch (Exception e) { }  // give some time for the message
-    runJobs(true, true);
+    incrementalProvision();
 
     ldapEntries = LdapSessionUtils.ldapSession().list("personLdap", "ou=Groups,dc=example,dc=edu", LdapSearchScope.SUBTREE_SCOPE, "(objectClass=groupOfNames)", new String[] {"objectClass", "cn", "member", "businessCategory", "description"}, null);
     assertEquals(1, ldapEntries.size());
@@ -625,8 +609,8 @@ public class LdapProvisionerIncrementalTest extends GrouperTest {
     testGroup.setExtension("testGroup_excludes");
     testGroup.store();
 
-    runJobs(true, true);
-    runJobs(true, true);  // run again to get the message processed
+    incrementalProvision();
+    incrementalProvision();  // run again to get the message processed
 
     ldapEntries = LdapSessionUtils.ldapSession().list("personLdap", "ou=Groups,dc=example,dc=edu", LdapSearchScope.SUBTREE_SCOPE, "(objectClass=groupOfNames)", new String[] {"objectClass", "cn", "member", "businessCategory"}, null);
     assertEquals(0, ldapEntries.size());   

@@ -3,8 +3,8 @@ package edu.internet2.middleware.grouper.app.azure;
 import java.sql.Types;
 import java.util.Set;
 
-import org.apache.ddlutils.model.Database;
-import org.apache.ddlutils.model.Table;
+import edu.internet2.middleware.grouper.ext.org.apache.ddlutils.model.Database;
+import edu.internet2.middleware.grouper.ext.org.apache.ddlutils.model.Table;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -99,8 +99,8 @@ public class GrouperAzureUser {
     return accountEnabled;
   }
 
-  public void setAccountEnabled(boolean accountEnabled) {
-    this.accountEnabled = accountEnabled;
+  public void setAccountEnabled(Boolean accountEnabled) {
+    this.accountEnabled = (accountEnabled == null ? false : accountEnabled);
   }
 
   public String getAccountEnabledDb() {

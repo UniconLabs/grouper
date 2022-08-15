@@ -20,6 +20,10 @@ import edu.internet2.middleware.grouperClient.jdbc.tableSync.GcGrouperSyncMember
  */
 public class ProvisioningGroup extends ProvisioningUpdatable {
   
+  public ProvisioningGroup() {
+    super();
+  }
+
   public static void main(String[] args) {
     ProvisioningGroup provisioningGroup = new ProvisioningGroup();
     provisioningGroup.assignAttributeValue("name", "someName");
@@ -134,8 +138,11 @@ public class ProvisioningGroup extends ProvisioningUpdatable {
     firstField = this.toStringProvisioningUpdatable(result, firstField);
     
     if (this.provisioningGroupWrapper != null) {
-      if (this.provisioningGroupWrapper.isRecalc()) {
-        firstField = toStringAppendField(result, firstField, "recalc", this.provisioningGroupWrapper.isRecalc());
+      if (this.provisioningGroupWrapper.isRecalcObject()) {
+        firstField = toStringAppendField(result, firstField, "recalcObject", this.provisioningGroupWrapper.isRecalcObject());
+      }
+      if (this.provisioningGroupWrapper.isRecalcGroupMemberships()) {
+        firstField = toStringAppendField(result, firstField, "recalcMships", this.provisioningGroupWrapper.isRecalcGroupMemberships());
       }
       if (this.provisioningGroupWrapper.isCreate()) {
         firstField = toStringAppendField(result, firstField, "create", this.provisioningGroupWrapper.isCreate());
@@ -166,16 +173,6 @@ public class ProvisioningGroup extends ProvisioningUpdatable {
     provisioningGroup.provisioningGroupWrapper = this.provisioningGroupWrapper;
 
     return provisioningGroup;
-  }
-
-  public void assignSearchFilter() {
-    String groupSearchFilter = this.getProvisioningGroupWrapper().getGrouperProvisioner().retrieveGrouperProvisioningConfiguration().getGroupSearchFilter();
-    if (!StringUtils.isBlank(groupSearchFilter)) {
-      Map<String, Object> variableMap = new HashMap<String, Object>();
-      variableMap.put("targetGroup", this);
-      String result = GrouperUtil.stringValue(this.getProvisioningGroupWrapper().getGrouperProvisioner().retrieveGrouperProvisioningTranslator().runExpression(groupSearchFilter, variableMap));
-      this.setSearchFilter(result);
-    }
   }
 
   @Override
@@ -277,6 +274,11 @@ public class ProvisioningGroup extends ProvisioningUpdatable {
       throw new NullPointerException("attribute is null: " + this);
     }
     return this.retrieveAttributeValue(grouperProvisioningConfigurationAttribute.getName());
+  }
+
+  @Override
+  public String objectTypeName() {
+    return "group";
   }
 
 }

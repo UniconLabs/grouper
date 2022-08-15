@@ -291,7 +291,7 @@ public class SubjectFinder implements CheckboxValueDriver {
       if (!StringUtils.isBlank(this.sourceId)) {
         return SubjectFinder.findByIdentifierAndSource(this.subjectIdentifier, this.sourceId, this.ignoreCachedSubjects, false);
       }
-      return SubjectFinder.findByIdentifier(this.subjectId, this.ignoreCachedSubjects, false);
+      return SubjectFinder.findByIdentifier(this.subjectIdentifier, this.ignoreCachedSubjects, false);
     }
     
     if (!StringUtils.isBlank(this.subjectIdOrIdentifier)) {
@@ -2087,8 +2087,7 @@ public class SubjectFinder implements CheckboxValueDriver {
 
   /**
    * find subjects by ids
-   * @param ids
-   * @param source
+   * @param sourceIdsSubjectIds
    * @param resolveAsLazySubjects
    * @parma ignoreCachedSubjects
    * @return the map of id to subject.  If a subject is not found, it will
@@ -2105,6 +2104,10 @@ public class SubjectFinder implements CheckboxValueDriver {
       String sourceId = (String)sourceIdSubjectId.getKey(0);
       String subjectId = (String)sourceIdSubjectId.getKey(1);
       
+      // GRP-4137: error resolving subject attributes. has null subject id and subject identifier
+      if (StringUtils.isBlank(sourceId) || StringUtils.isBlank(subjectId)) {
+        continue;
+      }
       Set<String> subjectIds = sourceIdToSubjectIds.get(sourceId);
       
       if (subjectIds == null) {

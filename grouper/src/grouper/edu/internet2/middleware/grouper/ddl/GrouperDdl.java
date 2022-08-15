@@ -29,10 +29,10 @@ import java.util.Set;
 
 import org.apache.commons.lang.StringUtils;
 import org.apache.commons.logging.Log;
-import org.apache.ddlutils.model.Column;
-import org.apache.ddlutils.model.Database;
-import org.apache.ddlutils.model.Index;
-import org.apache.ddlutils.model.Table;
+import edu.internet2.middleware.grouper.ext.org.apache.ddlutils.model.Column;
+import edu.internet2.middleware.grouper.ext.org.apache.ddlutils.model.Database;
+import edu.internet2.middleware.grouper.ext.org.apache.ddlutils.model.Index;
+import edu.internet2.middleware.grouper.ext.org.apache.ddlutils.model.Table;
 import org.hibernate.internal.SessionImpl;
 import org.hibernate.type.StringType;
 
@@ -2716,12 +2716,15 @@ public enum GrouperDdl implements DdlVersionable {
 
     @Override
     public String getGrouperVersion() {
-      return null;
+      return "2.6.14";
     }
 
     @Override
     public void updateVersionFromPrevious(Database database,
         DdlVersionBean ddlVersionBean) {
+      
+      GrouperDdl2_6_14.addGrouperLoaderColumns(database, ddlVersionBean);
+      GrouperDdl2_6_14.addGrouperLoaderComments(database, ddlVersionBean);
     }
   },
   V43 {
@@ -6195,6 +6198,7 @@ public enum GrouperDdl implements DdlVersionable {
           Hib3GrouperLoaderLog.COLUMN_CONTEXT_ID, 
       "link to the audit entry table");
 
+      GrouperDdl2_6_14.addGrouperLoaderComments(database, ddlVersionBean);
     }
     
     {
@@ -6277,6 +6281,8 @@ public enum GrouperDdl implements DdlVersionable {
     GrouperDdl2_6_5.addGrouperFailsafeComments(database, ddlVersionBean);
     GrouperDdl2_6_5.addGrouperLastLoginComments(database, ddlVersionBean);
     GrouperDdl2_6_5.addGrouperStemViewPrivilegeComments(database, ddlVersionBean);
+
+    GrouperDdl2_6_14.addGrouperLoaderComments(database, ddlVersionBean);
 
     String groupIdCol = "id";
     

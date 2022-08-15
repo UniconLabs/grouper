@@ -1,12 +1,16 @@
 package edu.internet2.middleware.grouper.app.google;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 
 import org.apache.commons.lang.StringUtils;
 
+import edu.internet2.middleware.grouper.app.duo.GrouperDuoApiCommands;
+import edu.internet2.middleware.grouper.app.duo.GrouperDuoGroup;
 import edu.internet2.middleware.grouper.app.provisioning.GrouperProvisioningLists;
 import edu.internet2.middleware.grouper.app.provisioning.ProvisioningEntity;
 import edu.internet2.middleware.grouper.app.provisioning.ProvisioningGroup;
@@ -49,6 +53,7 @@ import edu.internet2.middleware.grouper.app.provisioning.targetDao.TargetDaoUpda
 import edu.internet2.middleware.grouper.util.GrouperHttpClient;
 import edu.internet2.middleware.grouper.util.GrouperHttpClientLog;
 import edu.internet2.middleware.grouper.util.GrouperUtil;
+import edu.internet2.middleware.grouperClient.util.ExpirableCache;
 
 public class GrouperGoogleTargetDao extends GrouperProvisionerTargetDaoBase {
   
@@ -79,6 +84,13 @@ public class GrouperGoogleTargetDao extends GrouperProvisionerTargetDaoBase {
           fieldNamesToInsert.add(fieldName);
         }
       }
+      
+      fieldNamesToInsert.add("defaultMessageDenyNotificationText");
+      fieldNamesToInsert.add("handleDeletedGroup");
+      fieldNamesToInsert.add("messageModerationLevel");
+      fieldNamesToInsert.add("replyTo");
+      fieldNamesToInsert.add("sendMessageDenyNotification");
+      fieldNamesToInsert.add("spamModerationLevel");
       
       GrouperGoogleGroup grouperGoogleGroup = GrouperGoogleGroup.fromProvisioningGroup(targetGroup, null);
       
@@ -242,6 +254,9 @@ public class GrouperGoogleTargetDao extends GrouperProvisionerTargetDaoBase {
     }
   }
   
+  private static ExpirableCache<Boolean, Map<String, GrouperGoogleGroup>> cacheGroupNameToGroup = new ExpirableCache<Boolean, Map<String, GrouperGoogleGroup>>(5);
+  private static ExpirableCache<Boolean, Map<String, GrouperGoogleUser>> cacheUserEmailToUser = new ExpirableCache<Boolean, Map<String, GrouperGoogleUser>>(5);
+
   @Override
   public TargetDaoRetrieveGroupResponse retrieveGroup(TargetDaoRetrieveGroupRequest targetDaoRetrieveGroupRequest) {
 
@@ -250,13 +265,39 @@ public class GrouperGoogleTargetDao extends GrouperProvisionerTargetDaoBase {
     try {
       GrouperGoogleConfiguration googleConfiguration = (GrouperGoogleConfiguration) this.getGrouperProvisioner().retrieveGrouperProvisioningConfiguration();
 
-      ProvisioningGroup grouperTargetGroup = targetDaoRetrieveGroupRequest.getTargetGroup();
-
       GrouperGoogleGroup grouperGoogleGroup = null;
 
-      if (StringUtils.isNotBlank(grouperTargetGroup.getId())) {
-        grouperGoogleGroup = GrouperGoogleApiCommands.retrieveGoogleGroup(googleConfiguration.getGoogleExternalSystemConfigId(), grouperTargetGroup.getId());
+      String attributeValue = GrouperUtil.stringValue(targetDaoRetrieveGroupRequest.getSearchAttributeValue());
+      if (StringUtils.equals("id", targetDaoRetrieveGroupRequest.getSearchAttribute())) {
+        grouperGoogleGroup = GrouperGoogleApiCommands.retrieveGoogleGroup(googleConfiguration.getGoogleExternalSystemConfigId(), 
+            attributeValue);
+      } else if (StringUtils.equals("name", targetDaoRetrieveGroupRequest.getSearchAttribute())) {
+        
+        if (StringUtils.isNotBlank(attributeValue)) {
+          
+          Map<String, GrouperGoogleGroup> groupNameToGroup = cacheGroupNameToGroup.get(Boolean.TRUE);
+          
+          grouperGoogleGroup = groupNameToGroup == null ? null : groupNameToGroup.get(attributeValue);
+          
+          if (grouperGoogleGroup == null) {
+            List<GrouperGoogleGroup> allGoogleGroups = GrouperGoogleApiCommands.retrieveGoogleGroups(googleConfiguration.getGoogleExternalSystemConfigId());
+            
+            groupNameToGroup = new HashMap<String, GrouperGoogleGroup>();
+            for (GrouperGoogleGroup currentGoogleGroup: GrouperUtil.nonNull(allGoogleGroups)) {
+              groupNameToGroup.put(currentGoogleGroup.getName(), currentGoogleGroup);
+            }
+            cacheGroupNameToGroup.put(Boolean.TRUE, groupNameToGroup);
+            
+            grouperGoogleGroup = groupNameToGroup.get(attributeValue);
+            
+          }
+          
+        }
+
+      } else {
+        throw new RuntimeException("Not expecting search attribute '" + targetDaoRetrieveGroupRequest.getSearchAttribute() + "'");
       }
+
       
       ProvisioningGroup targetGroup = grouperGoogleGroup == null ? null : grouperGoogleGroup.toProvisioningGroup();
 
@@ -278,6 +319,37 @@ public class GrouperGoogleTargetDao extends GrouperProvisionerTargetDaoBase {
       ProvisioningEntity grouperTargetEntity = targetDaoRetrieveEntityRequest.getTargetEntity();
 
       GrouperGoogleUser grouperGoogleUser = null;
+
+      String attributeValue = GrouperUtil.stringValue(targetDaoRetrieveEntityRequest.getSearchAttributeValue());
+      if (StringUtils.equals("id", targetDaoRetrieveEntityRequest.getSearchAttribute())) {
+        grouperGoogleUser = GrouperGoogleApiCommands.retrieveGoogleUser(googleConfiguration.getGoogleExternalSystemConfigId(), 
+            attributeValue);
+      } else if (StringUtils.equals("email", targetDaoRetrieveEntityRequest.getSearchAttribute())) {
+        
+        if (StringUtils.isNotBlank(attributeValue)) {
+          
+          Map<String, GrouperGoogleUser> userEmailToUser = cacheUserEmailToUser.get(Boolean.TRUE);
+          
+          grouperGoogleUser = userEmailToUser == null ? null : userEmailToUser.get(attributeValue);
+          
+          if (grouperGoogleUser == null) {
+            List<GrouperGoogleUser> allGoogleUsers = GrouperGoogleApiCommands.retrieveGoogleUsers(googleConfiguration.getGoogleExternalSystemConfigId());
+            
+            userEmailToUser = new HashMap<String, GrouperGoogleUser>();
+            for (GrouperGoogleUser currentGoogleUser: GrouperUtil.nonNull(allGoogleUsers)) {
+              userEmailToUser.put(currentGoogleUser.getPrimaryEmail(), currentGoogleUser);
+            }
+            cacheUserEmailToUser.put(Boolean.TRUE, userEmailToUser);
+            
+            grouperGoogleUser = userEmailToUser.get(attributeValue);
+            
+          }
+          
+        }
+
+      } else {
+        throw new RuntimeException("Not expecting search attribute '" + targetDaoRetrieveEntityRequest.getSearchAttribute() + "'");
+      }
 
       if (StringUtils.isNotBlank(grouperTargetEntity.getId())) {
         grouperGoogleUser = GrouperGoogleApiCommands.retrieveGoogleUser(
@@ -485,7 +557,7 @@ public class GrouperGoogleTargetDao extends GrouperProvisionerTargetDaoBase {
       return targetGroup.getId();
     }
     
-    TargetDaoRetrieveGroupResponse targetDaoRetrieveGroupResponse = this.retrieveGroup(new TargetDaoRetrieveGroupRequest(targetGroup, false));
+    TargetDaoRetrieveGroupResponse targetDaoRetrieveGroupResponse = this.getGrouperProvisioner().retrieveGrouperProvisioningTargetDaoAdapter().retrieveGroup(new TargetDaoRetrieveGroupRequest(targetGroup, false));
     
     if (targetDaoRetrieveGroupResponse == null || targetDaoRetrieveGroupResponse.getTargetGroup() == null) {
       return null;
@@ -590,6 +662,33 @@ public class GrouperGoogleTargetDao extends GrouperProvisionerTargetDaoBase {
     grouperProvisionerDaoCapabilities.setCanRetrieveMembershipsByGroup(true);
     grouperProvisionerDaoCapabilities.setCanUpdateEntity(true);
     grouperProvisionerDaoCapabilities.setCanUpdateGroup(true);
+  }
+
+  private String resolveTargetEntityId(ProvisioningEntity targetEntity) {
+    
+    if (targetEntity == null) {
+      return null;
+    }
+    
+    if (StringUtils.isNotBlank(targetEntity.getId())) {
+      return targetEntity.getId();
+    }
+    
+    if (StringUtils.isBlank(targetEntity.getEmail())) {
+      return null;
+    }
+    
+    TargetDaoRetrieveEntityRequest targetDaoRetrieveEntityRequest = new TargetDaoRetrieveEntityRequest(targetEntity, false);
+    targetDaoRetrieveEntityRequest.setSearchAttribute("email");
+    targetDaoRetrieveEntityRequest.setSearchAttributeValue(targetEntity.getEmail());
+    TargetDaoRetrieveEntityResponse targetDaoRetrieveEntityResponse = this.retrieveEntity(targetDaoRetrieveEntityRequest);
+    
+    if (targetDaoRetrieveEntityResponse == null || targetDaoRetrieveEntityResponse.getTargetEntity() == null) {
+      return null;
+    }
+    
+    return targetDaoRetrieveEntityResponse.getTargetEntity().getId();
+    
   }
 
 }

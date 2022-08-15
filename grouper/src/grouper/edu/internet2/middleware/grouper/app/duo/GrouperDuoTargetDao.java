@@ -134,22 +134,18 @@ public class GrouperDuoTargetDao extends GrouperProvisionerTargetDaoBase {
 
       // we can retrieve by id or username, prefer id
 
-      ProvisioningEntity grouperTargetEntity = targetDaoRetrieveEntityRequest
-          .getTargetEntity();
-
       GrouperDuoUser grouperDuoUser = null;
 
-      if (!StringUtils.isBlank(grouperTargetEntity.getId())) {
-        grouperDuoUser = GrouperDuoApiCommands.retrieveDuoUser(
-            duoConfiguration.getDuoExternalSystemConfigId(), grouperTargetEntity.getId());
-      }
-
-      String userName = grouperTargetEntity.retrieveAttributeValueString("username");
-      if (grouperDuoUser == null && !StringUtils.isBlank(userName)) {
+      if (StringUtils.equals("id", targetDaoRetrieveEntityRequest.getSearchAttribute())) {
+        grouperDuoUser = GrouperDuoApiCommands.retrieveDuoUser(duoConfiguration.getDuoExternalSystemConfigId(), 
+            GrouperUtil.stringValue(targetDaoRetrieveEntityRequest.getSearchAttributeValue()));
+      } else if (StringUtils.equals("loginId", targetDaoRetrieveEntityRequest.getSearchAttribute())) {
         grouperDuoUser = GrouperDuoApiCommands.retrieveDuoUserByName(
-            duoConfiguration.getDuoExternalSystemConfigId(), userName);
+            duoConfiguration.getDuoExternalSystemConfigId(), GrouperUtil.stringValue(targetDaoRetrieveEntityRequest.getSearchAttributeValue()));
+      } else {
+        throw new RuntimeException("Not expecting search attribute '" + targetDaoRetrieveEntityRequest.getSearchAttribute() + "'");
       }
-
+      
       ProvisioningEntity targetEntity = grouperDuoUser == null ? null
           : grouperDuoUser.toProvisioningEntity();
 
@@ -174,30 +170,33 @@ public class GrouperDuoTargetDao extends GrouperProvisionerTargetDaoBase {
 
       GrouperDuoGroup grouperDuoGroup = null;
 
-      if (StringUtils.isNotBlank(grouperTargetGroup.getId())) {
-        grouperDuoGroup = GrouperDuoApiCommands.retrieveDuoGroup(duoConfiguration.getDuoExternalSystemConfigId(), grouperTargetGroup.getId());
-      }
-      
-      String name = grouperTargetGroup.getName();
-      if (grouperDuoGroup == null && StringUtils.isNotBlank(name)) {
-        
-        Map<String, GrouperDuoGroup> groupNameToGroup = cacheGroupNameToGroup.get(Boolean.TRUE);
-        
-        grouperDuoGroup = groupNameToGroup == null ? null : groupNameToGroup.get(name);
-        
-        if (grouperDuoGroup == null) {
-          List<GrouperDuoGroup> allDuoGroups = GrouperDuoApiCommands.retrieveDuoGroups(duoConfiguration.getDuoExternalSystemConfigId());
+      if (StringUtils.equals("id", targetDaoRetrieveGroupRequest.getSearchAttribute())) {
+        grouperDuoGroup = GrouperDuoApiCommands.retrieveDuoGroup(duoConfiguration.getDuoExternalSystemConfigId(), GrouperUtil.stringValue(targetDaoRetrieveGroupRequest.getSearchAttributeValue()));
+      } else if (StringUtils.equals("name", targetDaoRetrieveGroupRequest.getSearchAttribute())) {
+        String name = GrouperUtil.stringValue(targetDaoRetrieveGroupRequest.getSearchAttributeValue());
+        if (StringUtils.isNotBlank(name)) {
           
-          groupNameToGroup = new HashMap<String, GrouperDuoGroup>();
-          for (GrouperDuoGroup currentDuoGroup: GrouperUtil.nonNull(allDuoGroups)) {
-            groupNameToGroup.put(currentDuoGroup.getName(), currentDuoGroup);
+          Map<String, GrouperDuoGroup> groupNameToGroup = cacheGroupNameToGroup.get(Boolean.TRUE);
+          
+          grouperDuoGroup = groupNameToGroup == null ? null : groupNameToGroup.get(name);
+          
+          if (grouperDuoGroup == null) {
+            List<GrouperDuoGroup> allDuoGroups = GrouperDuoApiCommands.retrieveDuoGroups(duoConfiguration.getDuoExternalSystemConfigId());
+            
+            groupNameToGroup = new HashMap<String, GrouperDuoGroup>();
+            for (GrouperDuoGroup currentDuoGroup: GrouperUtil.nonNull(allDuoGroups)) {
+              groupNameToGroup.put(currentDuoGroup.getName(), currentDuoGroup);
+            }
+            cacheGroupNameToGroup.put(Boolean.TRUE, groupNameToGroup);
+            
+            grouperDuoGroup = groupNameToGroup.get(name);
+            
           }
-          cacheGroupNameToGroup.put(Boolean.TRUE, groupNameToGroup);
-          
-          grouperDuoGroup = groupNameToGroup.get(name);
           
         }
         
+      } else {
+        throw new RuntimeException("Not expecting search attribute '" + targetDaoRetrieveGroupRequest.getSearchAttribute() + "'");
       }
 
       ProvisioningGroup targetGroup = grouperDuoGroup == null ? null : grouperDuoGroup.toProvisioningGroup();
@@ -372,7 +371,13 @@ public class GrouperDuoTargetDao extends GrouperProvisionerTargetDaoBase {
     try {
       GrouperDuoConfiguration duoConfiguration = (GrouperDuoConfiguration) this.getGrouperProvisioner().retrieveGrouperProvisioningConfiguration();
 
-      List<GrouperDuoGroup> duoGroups = GrouperDuoApiCommands.retrieveDuoGroupsByUser(duoConfiguration.getDuoExternalSystemConfigId(), targetEntity.getId());
+      String targetEntityId = resolveTargetEntityId(targetEntity);
+      
+      if (StringUtils.isBlank(targetEntityId)) {
+        return new TargetDaoRetrieveMembershipsByEntityResponse(new ArrayList<Object>());
+      }
+
+      List<GrouperDuoGroup> duoGroups = GrouperDuoApiCommands.retrieveDuoGroupsByUser(duoConfiguration.getDuoExternalSystemConfigId(), targetEntityId);
       
       List<Object> provisioningMemberships = new ArrayList<Object>();
       
@@ -419,7 +424,7 @@ public class GrouperDuoTargetDao extends GrouperProvisionerTargetDaoBase {
 //  }
 
   
-  private String resolveTargetGroupId(ProvisioningGroup targetGroup) {
+  public String resolveTargetGroupId(ProvisioningGroup targetGroup) {
     
     if (targetGroup == null) {
       return null;
@@ -429,7 +434,7 @@ public class GrouperDuoTargetDao extends GrouperProvisionerTargetDaoBase {
       return targetGroup.getId();
     }
     
-    TargetDaoRetrieveGroupResponse targetDaoRetrieveGroupResponse = this.retrieveGroup(new TargetDaoRetrieveGroupRequest(targetGroup, false));
+    TargetDaoRetrieveGroupResponse targetDaoRetrieveGroupResponse = this.getGrouperProvisioner().retrieveGrouperProvisioningTargetDaoAdapter().retrieveGroup(new TargetDaoRetrieveGroupRequest(targetGroup, false));
     
     if (targetDaoRetrieveGroupResponse == null || targetDaoRetrieveGroupResponse.getTargetGroup() == null) {
       return null;
@@ -677,5 +682,52 @@ public class GrouperDuoTargetDao extends GrouperProvisionerTargetDaoBase {
     grouperProvisionerDaoCapabilities.setCanUpdateEntity(true);
     grouperProvisionerDaoCapabilities.setCanUpdateGroup(true);
   }
+
+  //  @Override
+  //  public TargetDaoRetrieveMembershipsByGroupResponse retrieveMembershipsByGroup(TargetDaoRetrieveMembershipsByGroupRequest targetDaoRetrieveMembershipsByGroupRequest) {
+  //    long startNanos = System.nanoTime();
+  //    ProvisioningGroup targetGroup = targetDaoRetrieveMembershipsByGroupRequest.getTargetGroup();
+  //
+  //    try {
+  //      GrouperDuoConfiguration duoConfiguration = (GrouperDuoConfiguration) this.getGrouperProvisioner().retrieveGrouperProvisioningConfiguration();
+  //
+  //      Set<String> userIds = GrouperDuoApiCommands.retrieveDuoGroupMembers(duoConfiguration.getDuoExternalSystemConfigId(), targetGroup.getId());
+  //      
+  //      List<Object> provisioningMemberships = new ArrayList<Object>();
+  //      
+  //      for (String userId : userIds) {
+  //
+  //        ProvisioningMembership targetMembership = new ProvisioningMembership();
+  //        targetMembership.setProvisioningGroupId(targetGroup.getId());
+  //        targetMembership.setProvisioningEntityId(userId);
+  //        provisioningMemberships.add(targetMembership);
+  //      }
+  //  
+  //      return new TargetDaoRetrieveMembershipsByGroupResponse(provisioningMemberships);
+  //    } finally {
+  //      this.addTargetDaoTimingInfo(new TargetDaoTimingInfo("retrieveMembershipsByGroup", startNanos));
+  //    }
+  //  }
+  
+    
+    public String resolveTargetEntityId(ProvisioningEntity targetEntity) {
+      
+      if (targetEntity == null) {
+        return null;
+      }
+      
+      if (StringUtils.isNotBlank(targetEntity.getId())) {
+        return targetEntity.getId();
+      }
+      
+      TargetDaoRetrieveEntityResponse targetDaoRetrieveEntityResponse = this.getGrouperProvisioner().retrieveGrouperProvisioningTargetDaoAdapter().retrieveEntity(new TargetDaoRetrieveEntityRequest(targetEntity, false));
+      
+      if (targetDaoRetrieveEntityResponse == null || targetDaoRetrieveEntityResponse.getTargetEntity() == null) {
+        return null;
+      }
+      
+      return targetDaoRetrieveEntityResponse.getTargetEntity().getId();
+      
+    }
 
 }

@@ -23,6 +23,7 @@ import java.util.Set;
 
 import org.apache.commons.lang3.BooleanUtils;
 import org.apache.commons.lang3.StringUtils;
+import org.apache.commons.logging.Log;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 
@@ -47,6 +48,7 @@ import edu.internet2.middleware.grouper.internal.dao.QuerySort;
 import edu.internet2.middleware.grouper.misc.GrouperDAOFactory;
 import edu.internet2.middleware.grouper.misc.GrouperObject;
 import edu.internet2.middleware.grouper.misc.GrouperSessionHandler;
+import edu.internet2.middleware.grouper.privs.AccessPrivilege;
 import edu.internet2.middleware.grouper.privs.PrivilegeHelper;
 import edu.internet2.middleware.grouper.util.GrouperUtil;
 import edu.internet2.middleware.grouperClient.collections.MultiKey;
@@ -63,6 +65,9 @@ import edu.internet2.middleware.grouperClient.util.GrouperClientUtils;
 import edu.internet2.middleware.subject.Subject;
 
 public class GrouperProvisioningService {
+  
+  /** logger */
+  private static final Log LOG = GrouperUtil.getLog(GrouperProvisioningService.class);
   
   
   private static final ExpirableCache<MultiKey, Boolean> viewableGroupToSubject = new ExpirableCache<MultiKey, Boolean>(5);
@@ -1563,7 +1568,8 @@ public class GrouperProvisioningService {
         if (group == null) {
           group = GroupFinder.findByUuid(grouperSession, groupAllowedToAssign, false);
           if (group == null) {
-            throw new RuntimeException(groupAllowedToAssign+" is not a valid group id or group name");
+            LOG.error(groupAllowedToAssign+" is not a valid group id or group name");
+            return false;
           }
         }
         
@@ -1614,11 +1620,12 @@ public class GrouperProvisioningService {
         if (group == null) {
           group = GroupFinder.findByUuid(grouperSession, groupAllowedToView, false);
           if (group == null) {
-            throw new RuntimeException(groupAllowedToView+" is not a valid group id or group name");
+            LOG.error(groupAllowedToView+" is not a valid group id or group name");
+            return false;
           }
         }
         
-        return group.hasMember(subject);
+        return group.hasPrivilege(subject, AccessPrivilege.VIEW.getName());
         
       }
       

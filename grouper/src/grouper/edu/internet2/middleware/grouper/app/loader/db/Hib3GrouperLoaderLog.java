@@ -20,6 +20,7 @@
 package edu.internet2.middleware.grouper.app.loader.db;
 
 import java.sql.Timestamp;
+import java.util.Collection;
 import java.util.List;
 
 import org.apache.commons.lang.StringUtils;
@@ -27,6 +28,8 @@ import org.apache.commons.lang.StringUtils;
 import edu.internet2.middleware.grouper.app.loader.GrouperLoader;
 import edu.internet2.middleware.grouper.app.loader.GrouperLoaderConfig;
 import edu.internet2.middleware.grouper.app.loader.GrouperLoaderLogger;
+import edu.internet2.middleware.grouper.app.loader.GrouperLoaderStatus;
+import edu.internet2.middleware.grouper.cfg.GrouperConfig;
 import edu.internet2.middleware.grouper.hibernate.AuditControl;
 import edu.internet2.middleware.grouper.hibernate.ByHqlStatic;
 import edu.internet2.middleware.grouper.hibernate.GrouperTransactionType;
@@ -53,6 +56,16 @@ public class Hib3GrouperLoaderLog implements HibGrouperLifecycle {
    * 
    */
   public static final String COLUMN_CONTEXT_ID = "context_id";
+
+  /**
+   * 
+   */
+  public static final String COLUMN_JOB_MESSAGE_CLOB = "job_message_clob";
+
+  /**
+   * 
+   */
+  public static final String COLUMN_JOB_MESSAGE_BYTES = "job_message_bytes";
 
   /**
    * 
@@ -129,7 +142,18 @@ public class Hib3GrouperLoaderLog implements HibGrouperLifecycle {
   
   /** could be an error or success message.  might include partial stacktraces */
   private StringBuilder jobMessage;
+
+  private String jobMessageDb;
   
+  public String getJobMessageDb() {
+    return jobMessageDb;
+  }
+
+  public void setJobMessageDb(String jobMessageDb) {
+    this.jobMessageDb = jobMessageDb;
+    this.jobMessage = null;
+  }
+
   /** host that the loader is running on */
   private String host;
   
@@ -439,6 +463,9 @@ public class Hib3GrouperLoaderLog implements HibGrouperLifecycle {
     return this.status;
   }
 
+  public GrouperLoaderStatus getStatusEnum() {
+    return GrouperLoaderStatus.valueOfIgnoreCase(this.status, false);
+  }
   
   /**
    * STARTED, SUCCESS, ERROR, WARNING, GrouperLoaderStatus
@@ -598,7 +625,25 @@ public class Hib3GrouperLoaderLog implements HibGrouperLifecycle {
    * @return the jobMessage
    */
   public String getJobMessage() {
-    return this.jobMessage == null ? null : this.jobMessage.toString();
+    StringBuilder jobMessageStringBuilder = this.getJobMessageStringBuilder();
+    return jobMessageStringBuilder == null ? null : jobMessageStringBuilder.toString();
+  }
+
+  /**
+   * could be an error or success message.  might include partial stacktraces
+   * @return the jobMessage
+   */
+  public StringBuilder getJobMessageStringBuilder() {
+    if (this.jobMessage == null) {
+      if (!StringUtils.isBlank(this.jobMessageClob)) {
+        this.jobMessage = new StringBuilder(this.jobMessageClob);
+      } else if (this.jobMessageDb != null) {
+        this.jobMessage = new StringBuilder(this.jobMessageDb);
+      }
+      this.jobMessageClob = null;
+      this.jobMessageDb = null;
+    }
+    return this.jobMessage;
   }
 
   
@@ -607,6 +652,7 @@ public class Hib3GrouperLoaderLog implements HibGrouperLifecycle {
    * @param messageFragment
    */
   public void appendJobMessage(String messageFragment) {
+    this.jobMessage = this.getJobMessageStringBuilder();
     if (this.jobMessage == null) {
       this.jobMessage = new StringBuilder();
     }
@@ -620,6 +666,7 @@ public class Hib3GrouperLoaderLog implements HibGrouperLifecycle {
    * @param messageFragment
    */
   public void insertJobMessage(String messageFragment) {
+    this.jobMessage = this.getJobMessageStringBuilder();
     if (this.jobMessage == null) {
       this.jobMessage = new StringBuilder();
     }
@@ -627,11 +674,55 @@ public class Hib3GrouperLoaderLog implements HibGrouperLifecycle {
   }
   
   /**
+   * size of job message in bytes
+   * @return bytes
+   */
+  public Long getJobMessageBytes() {
+    if (this.jobMessageDb == null) {
+      return new Long(GrouperUtil.lengthAscii(this.jobMessageClob));
+    }
+    return new Long(GrouperUtil.lengthAscii(this.jobMessageDb));
+  }
+
+  /**
+   * size of job message in bytes
+   * @param jobMessageBytes
+   */
+  public void setJobMessageBytes(Long jobMessageBytes) {
+    // ignore
+  }
+
+  /**
+   * just used when reading or writing to the database
+   */
+  private String jobMessageClob;
+  
+  /**
+   * 
+   * @return
+   */
+  public String getJobMessageClob() {
+    return jobMessageClob;
+  }
+
+  /**
+   * 
+   * @param jobMessageClob
+   */
+  public void setJobMessageClob(String jobMessageClob) {
+    this.jobMessageClob = jobMessageClob;
+    this.jobMessage = null;
+  }
+
+  /**
    * could be an error or success message.  might include partial stacktraces
    * @param jobMessage1 the jobMessage to set
    */
   public void setJobMessage(String jobMessage1) {
+    
     this.jobMessage = jobMessage1 == null ? null : new StringBuilder(jobMessage1);
+    this.jobMessageClob = null;
+    this.jobMessageDb = null;
   }
 
   
@@ -821,7 +912,24 @@ public class Hib3GrouperLoaderLog implements HibGrouperLifecycle {
     this.jobType = GrouperUtil.truncateAscii(this.jobType, 128);
     this.jobScheduleType = GrouperUtil.truncateAscii(this.jobScheduleType, 128);
     this.jobDescription = GrouperUtil.truncateAscii(this.jobDescription, 4000);
-    this.setJobMessage(GrouperUtil.truncateAscii(this.getJobMessage(), 4000));
+    
+    this.jobMessageClob = null;
+    
+    if (this.jobMessage!= null) {
+      String jobMessageString = this.jobMessage.toString();
+      int length = GrouperUtil.lengthAscii(jobMessageString);
+      if (length > 3500) {
+        this.jobMessageClob = GrouperUtil.abbreviate(jobMessageString, GrouperConfig.retrieveConfig().propertyValueInt("grouper.loader.log.maxJobMessageBytes", 200000));
+        this.jobMessageDb = null;
+      } else {
+        this.jobMessageDb = this.jobMessage == null ? null : this.jobMessage.toString();
+        this.jobMessageClob = null;
+      }
+    } else {
+      this.jobMessageDb = null;
+      this.jobMessageClob = null;
+    }
+    
     this.host = GrouperUtil.truncateAscii(this.host, 128);
     this.groupUuid = GrouperUtil.truncateAscii(this.groupUuid, 128);
     this.jobScheduleQuartzCron = GrouperUtil.truncateAscii(this.jobScheduleQuartzCron, 128);
@@ -841,8 +949,11 @@ public class Hib3GrouperLoaderLog implements HibGrouperLifecycle {
       if (!StringUtils.isBlank(this.getParentJobId())) {
         GrouperLoaderLogger.addLogEntry(logLabel, "parentJobName", this.getParentJobName());
       }
-      if (!StringUtils.isBlank(this.getJobMessage())) {
-        GrouperLoaderLogger.addLogEntry(logLabel, "jobMessage", this.getJobMessage());
+      if (!StringUtils.isBlank(this.getJobMessageDb())) {
+        GrouperLoaderLogger.addLogEntry(logLabel, "jobMessage", StringUtils.abbreviate(this.getJobMessageDb(), 2000));
+      }
+      if (!StringUtils.isBlank(this.getJobMessageClob())) {
+        GrouperLoaderLogger.addLogEntry(logLabel, "jobMessageClob", StringUtils.abbreviate(this.getJobMessageClob(), 2000));
       }
       if (!StringUtils.isBlank(this.getJobScheduleQuartzCron())) {
         GrouperLoaderLogger.addLogEntry(logLabel, "quartzCron", this.getJobScheduleQuartzCron());
@@ -893,6 +1004,16 @@ public class Hib3GrouperLoaderLog implements HibGrouperLifecycle {
         
       });
     }
+    
+    //lets copy state back
+    if (!StringUtils.isBlank(this.jobMessageClob)) {
+      this.jobMessage = new StringBuilder(this.jobMessageClob);
+    } else {
+      this.jobMessage = this.jobMessageDb == null ? null : new StringBuilder(this.jobMessageDb);
+    }
+    this.jobMessageClob = null;
+    this.jobMessageDb = null;
+
   }
 
   /**
@@ -950,5 +1071,14 @@ public class Hib3GrouperLoaderLog implements HibGrouperLifecycle {
   public void onPreUpdate(HibernateSession hibernateSession) {
     this.lastUpdated = new Timestamp(System.currentTimeMillis());
     this.truncate();
+  }
+
+  /**
+   * @param hibernateSession
+   */
+  public static void reset(HibernateSession hibernateSession) {
+    
+    hibernateSession.byHql().createQuery("delete from Hib3GrouperLoaderLog").executeUpdate();
+    
   }
 }

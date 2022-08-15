@@ -2,7 +2,6 @@ package edu.internet2.middleware.grouper.app.provisioning;
 
 import java.sql.Timestamp;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Collection;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
@@ -18,6 +17,7 @@ import org.apache.commons.logging.Log;
 
 import edu.internet2.middleware.grouper.Group;
 import edu.internet2.middleware.grouper.GroupFinder;
+import edu.internet2.middleware.grouper.GroupSave;
 import edu.internet2.middleware.grouper.GrouperSession;
 import edu.internet2.middleware.grouper.Member;
 import edu.internet2.middleware.grouper.MemberFinder;
@@ -26,8 +26,10 @@ import edu.internet2.middleware.grouper.app.config.GrouperConfigurationModuleAtt
 import edu.internet2.middleware.grouper.app.loader.GrouperLoaderConfig;
 import edu.internet2.middleware.grouper.app.provisioning.targetDao.TargetDaoDeleteEntitiesRequest;
 import edu.internet2.middleware.grouper.app.provisioning.targetDao.TargetDaoDeleteGroupsRequest;
+import edu.internet2.middleware.grouper.app.provisioning.targetDao.TargetDaoDeleteMembershipsRequest;
 import edu.internet2.middleware.grouper.app.provisioning.targetDao.TargetDaoInsertEntitiesRequest;
 import edu.internet2.middleware.grouper.app.provisioning.targetDao.TargetDaoInsertGroupsRequest;
+import edu.internet2.middleware.grouper.app.provisioning.targetDao.TargetDaoInsertMembershipsRequest;
 import edu.internet2.middleware.grouper.app.provisioning.targetDao.TargetDaoRetrieveAllEntitiesRequest;
 import edu.internet2.middleware.grouper.app.provisioning.targetDao.TargetDaoRetrieveAllEntitiesResponse;
 import edu.internet2.middleware.grouper.app.provisioning.targetDao.TargetDaoRetrieveAllGroupsRequest;
@@ -42,11 +44,14 @@ import edu.internet2.middleware.grouper.app.provisioning.targetDao.TargetDaoRetr
 import edu.internet2.middleware.grouper.app.provisioning.targetDao.TargetDaoRetrieveGroupResponse;
 import edu.internet2.middleware.grouper.app.provisioning.targetDao.TargetDaoRetrieveGroupsRequest;
 import edu.internet2.middleware.grouper.app.provisioning.targetDao.TargetDaoRetrieveGroupsResponse;
+import edu.internet2.middleware.grouper.app.provisioning.targetDao.TargetDaoRetrieveMembershipRequest;
+import edu.internet2.middleware.grouper.app.provisioning.targetDao.TargetDaoRetrieveMembershipResponse;
 import edu.internet2.middleware.grouper.app.provisioning.targetDao.TargetDaoUpdateEntitiesRequest;
 import edu.internet2.middleware.grouper.app.provisioning.targetDao.TargetDaoUpdateGroupsRequest;
 import edu.internet2.middleware.grouper.app.tableSync.ProvisioningSyncIntegration;
 import edu.internet2.middleware.grouper.cfg.dbConfig.ConfigFileName;
 import edu.internet2.middleware.grouper.cfg.dbConfig.GrouperConfigHibernate;
+import edu.internet2.middleware.grouper.misc.SaveMode;
 import edu.internet2.middleware.grouper.ui.util.ProgressBean;
 import edu.internet2.middleware.grouper.util.GrouperUtil;
 import edu.internet2.middleware.grouperClient.collections.MultiKey;
@@ -194,7 +199,7 @@ public class GrouperProvisioningDiagnosticsContainer {
       this.appendSelectAllGroups();
       this.appendSelectAllEntities();
       this.appendSelectAllMemberships();
-
+      
       this.appendSelectGroupFromGrouper();
       this.appendSelectGroupFromTarget();
 
@@ -204,12 +209,31 @@ public class GrouperProvisioningDiagnosticsContainer {
       this.appendInsertGroupIntoTarget();
       this.appendInsertEntityIntoTarget();
 
-      this.appendInsertGroupAttributesMembershipIntoTarget();
-      this.appendDeleteGroupAttributesMembershipFromTarget();
+      if (this.getGrouperProvisioner().retrieveGrouperProvisioningBehavior().getGrouperProvisioningBehaviorMembershipType() == GrouperProvisioningBehaviorMembershipType.groupAttributes) {
+        this.appendInsertGroupAttributesMembershipIntoTarget();
+        this.appendDeleteGroupAttributesMembershipFromTarget();
+      }
       
-      this.appendInsertEntityAttributesMembershipIntoTarget();
-      this.appendDeleteEntityAttributesMembershipFromTarget();
-
+      if (this.getGrouperProvisioner().retrieveGrouperProvisioningBehavior().getGrouperProvisioningBehaviorMembershipType() == GrouperProvisioningBehaviorMembershipType.entityAttributes) {
+        this.appendInsertEntityAttributesMembershipIntoTarget();
+        this.appendDeleteEntityAttributesMembershipFromTarget();
+      }
+      
+      if (this.getGrouperProvisioner().retrieveGrouperProvisioningBehavior().getGrouperProvisioningBehaviorMembershipType() == GrouperProvisioningBehaviorMembershipType.membershipObjects) {
+        
+        Boolean resultInsert = this.appendInsertMembershipObjectsIntoTarget();
+        Boolean resultDelete = null;
+        if (resultInsert != null) {
+          resultDelete = this.appendDeleteMembershipObjectsFromTarget();
+        }
+        
+        if (resultInsert != null && !resultInsert && resultDelete != null && resultDelete) {
+          this.appendInsertMembershipObjectsIntoTarget();
+          this.appendDeleteMembershipObjectsFromTarget();
+        }
+        
+      }
+      
       this.appendDeleteGroupFromTarget();
       this.appendDeleteEntityFromTarget();
     } catch (Exception e) {
@@ -252,11 +276,13 @@ public class GrouperProvisioningDiagnosticsContainer {
   private ProvisioningGroupWrapper provisioningGroupWrapper = null;
   
   private ProvisioningEntityWrapper provisioningEntityWrapper = null;
+
+  private ProvisioningMembershipWrapper provisioningMembershipWrapper = null;
   
   /**
    * select a group from grouper
    */
-  private void appendSelectGroupFromGrouper() {
+  public void appendSelectGroupFromGrouper() {
 
     this.report.append("<h4>Select group from Grouper</h4><pre>");
     
@@ -267,93 +293,118 @@ public class GrouperProvisioningDiagnosticsContainer {
     
       Group group = GroupFinder.findByName(GrouperSession.staticGrouperSession(), groupName, false);
       if (group == null) {
-
-        this.report.append("<font color='orange'><b>Warning:</b></font> Group '").append(GrouperUtil.xmlEscape(groupName)).append("' does not exist in Grouper\n");
+        this.report.append("<font color='orange'><b>Warning:</b></font> Group '").append(GrouperUtil.xmlEscape(groupName)).append("' does not exist in Grouper. Going to create one.\n");
+        group = new GroupSave(GrouperSession.staticGrouperSession()).assignName(groupName).assignSaveMode(SaveMode.INSERT).save();
         
       } else {
-
         this.report.append("<font color='gray'><b>Note:</b></font> Group: ").append(GrouperUtil.xmlEscape(group.toStringDb())).append(this.getCurrentDuration()).append("\n");
-
-        GcGrouperSync gcGrouperSync = this.getGrouperProvisioner().getGcGrouperSync();
-        GcGrouperSyncGroup gcGrouperSyncGroup = gcGrouperSync.getGcGrouperSyncGroupDao().groupRetrieveByGroupId(group.getId());
-        if (gcGrouperSyncGroup == null) {
-          this.report.append("<font color='gray'><b>Note:</b></font> GrouperSyncGroup record does not exist in database\n");
-          
-        } else {
-          this.report.append("<font color='gray'><b>Note:</b></font> GrouperSyncGroup: ").append(GrouperUtil.xmlEscape(gcGrouperSyncGroup.toString())).append(this.getCurrentDuration()).append("\n");
-        }
+      }
+      
+      GcGrouperSync gcGrouperSync = this.getGrouperProvisioner().getGcGrouperSync();
+      
+      GcGrouperSyncGroup gcGrouperSyncGroup = gcGrouperSync.getGcGrouperSyncGroupDao().groupRetrieveByGroupId(group.getId());
+      
+      if (gcGrouperSyncGroup == null) {
+        this.report.append("<font color='gray'><b>Note:</b></font> GrouperSyncGroup record does not exist in database. Going to create one.\n");
+        gcGrouperSyncGroup = new GcGrouperSyncGroup();
+        gcGrouperSyncGroup.setGrouperSync(gcGrouperSync);
+        gcGrouperSyncGroup.setGroupId(group.getId());
+        gcGrouperSyncGroup.setProvisionable(true);
         
-        List<ProvisioningGroup> grouperProvisioningGroups = this.grouperProvisioner.retrieveGrouperDao().retrieveGroups(false, GrouperUtil.toList(group.getId()));
-        if (GrouperUtil.length(grouperProvisioningGroups) == 0) {
-          this.report.append("<font color='orange'><b>Warning:</b></font> Cannot find ProvisioningGroup object, perhaps the group is not marked as provisionable\n");
+        gcGrouperSync.getGcGrouperSyncGroupDao().internal_groupStore(gcGrouperSyncGroup);
+      } else {
+        this.report.append("<font color='gray'><b>Note:</b></font> GrouperSyncGroup: ").append(GrouperUtil.xmlEscape(gcGrouperSyncGroup.toString())).append(this.getCurrentDuration()).append("\n");
+      }
+      
+      String subjectIdOrIdentifier = this.getGrouperProvisioningDiagnosticsSettings().getDiagnosticsSubjectIdOrIdentifier();
+      if (StringUtils.isNotBlank(subjectIdOrIdentifier)) {
+        Subject subject = SubjectFinder.findByIdOrIdentifier(subjectIdOrIdentifier, false);
+        if (subject != null && !group.hasMember(subject)) {
+          group.addMember(subject);
+        }
+      }
+        
+      GrouperProvisioningAttributeValue provisioningAttributeValue = GrouperProvisioningService.getProvisioningAttributeValue(group, this.getGrouperProvisioner().getConfigId());
+      
+      if (provisioningAttributeValue == null) {
+        GrouperProvisioningAttributeValue attributeValue = new GrouperProvisioningAttributeValue();
+        attributeValue.setDirectAssignment(true);
+        attributeValue.setDoProvision(this.getGrouperProvisioner().getConfigId());
+        attributeValue.setTargetName(this.getGrouperProvisioner().getConfigId());
+        
+        GrouperProvisioningService.saveOrUpdateProvisioningAttributes(attributeValue, group);
+      }
+      
+      List<ProvisioningGroup> grouperProvisioningGroups = this.grouperProvisioner.retrieveGrouperDao().retrieveGroups(false, GrouperUtil.toList(group.getId()));
+      if (GrouperUtil.length(grouperProvisioningGroups) == 0) {
+        this.report.append("<font color='orange'><b>Warning:</b></font> Cannot find ProvisioningGroup object, perhaps the group is not marked as provisionable\n");
+      } else {
+        GrouperUtil.assertion(grouperProvisioningGroups.size() == 1, "Why is size not 1???? " + grouperProvisioningGroups.size());
+        
+        ProvisioningGroup grouperProvisioningGroup = grouperProvisioningGroups.get(0);
+        this.report.append("<font color='gray'><b>Note:</b></font> ProvisioningGroup (unprocessed): ").append(GrouperUtil.xmlEscape(grouperProvisioningGroup.toString())).append(this.getCurrentDuration()).append("\n");
+       
+        this.provisioningGroupWrapper = new ProvisioningGroupWrapper();
+        grouperProvisioningGroup.setProvisioningGroupWrapper(this.provisioningGroupWrapper);
+        this.provisioningGroupWrapper.setGrouperProvisioner(this.grouperProvisioner);
+        this.provisioningGroupWrapper.setGrouperProvisioningGroup(grouperProvisioningGroup);
+        this.provisioningGroupWrapper.setGcGrouperSyncGroup(gcGrouperSyncGroup);
+        
+        List<ProvisioningGroup> grouperTargetGroups = this.grouperProvisioner.retrieveGrouperProvisioningTranslator().translateGrouperToTargetGroups(grouperProvisioningGroups, false, false);
+        
+        if (GrouperUtil.length(grouperTargetGroups) == 0) {
+          this.report.append("<font color='gray'><b>Note:</b></font> Cannot find grouperTargetGroup object after translation, perhaps the group is not supposed to translate\n");
         } else {
-          GrouperUtil.assertion(grouperProvisioningGroups.size() == 1, "Why is size not 1???? " + grouperProvisioningGroups.size());
-          
-          ProvisioningGroup grouperProvisioningGroup = grouperProvisioningGroups.get(0);
-          this.report.append("<font color='gray'><b>Note:</b></font> ProvisioningGroup (unprocessed): ").append(GrouperUtil.xmlEscape(grouperProvisioningGroup.toString())).append(this.getCurrentDuration()).append("\n");
-         
-          this.provisioningGroupWrapper = new ProvisioningGroupWrapper();
-          grouperProvisioningGroup.setProvisioningGroupWrapper(this.provisioningGroupWrapper);
-          this.provisioningGroupWrapper.setGrouperProvisioner(this.grouperProvisioner);
-          this.provisioningGroupWrapper.setGrouperProvisioningGroup(grouperProvisioningGroup);
-          this.provisioningGroupWrapper.setGcGrouperSyncGroup(gcGrouperSyncGroup);
-          
-          List<ProvisioningGroup> grouperTargetGroups = this.grouperProvisioner.retrieveGrouperProvisioningTranslator().translateGrouperToTargetGroups(grouperProvisioningGroups, false, false);
-          
-          if (GrouperUtil.length(grouperTargetGroups) == 0) {
-            this.report.append("<font color='gray'><b>Note:</b></font> Cannot find grouperTargetGroup object after translation, perhaps the group is not supposed to translate\n");
-          } else {
-            GrouperUtil.assertion(grouperTargetGroups.size() == 1, "Why is size not 1???? " + grouperTargetGroups.size());
-            ProvisioningGroup grouperTargetGroup = grouperTargetGroups.get(0);
-            this.provisioningGroupWrapper.setGrouperTargetGroup(grouperTargetGroup);
-            this.report.append("<font color='gray'><b>Note:</b></font> ProvisioningGroup (translated): ").append(GrouperUtil.xmlEscape(grouperTargetGroup.toString())).append("\n");
-          
-            this.grouperProvisioner.retrieveGrouperProvisioningAttributeManipulation().assignDefaultsForGroups(grouperTargetGroups, null);
-            this.grouperProvisioner.retrieveGrouperProvisioningAttributeManipulation().filterGroupFieldsAndAttributes(grouperTargetGroups, true, false, false);
-            this.grouperProvisioner.retrieveGrouperProvisioningAttributeManipulation().manipulateAttributesGroups(grouperTargetGroups);
-            this.grouperProvisioner.retrieveGrouperProvisioningTranslator().idTargetGroups(grouperTargetGroups);
+          GrouperUtil.assertion(grouperTargetGroups.size() == 1, "Why is size not 1???? " + grouperTargetGroups.size());
+          ProvisioningGroup grouperTargetGroup = grouperTargetGroups.get(0);
+          this.provisioningGroupWrapper.setGrouperTargetGroup(grouperTargetGroup);
+          this.report.append("<font color='gray'><b>Note:</b></font> ProvisioningGroup (translated): ").append(GrouperUtil.xmlEscape(grouperTargetGroup.toString())).append("\n");
+        
+          this.grouperProvisioner.retrieveGrouperProvisioningAttributeManipulation().manipulateDefaultsFilterAttributesGroups(grouperTargetGroups, true, true, false, false);
 
-            this.report.append("<font color='gray'><b>Note:</b></font> ProvisioningGroup (filtered, attributes manipulated, matchingId calculated): ").append(GrouperUtil.xmlEscape(grouperTargetGroup.toString())).append("\n");
+          this.grouperProvisioner.retrieveGrouperProvisioningTranslator().idTargetGroups(grouperTargetGroups);
+
+          this.report.append("<font color='gray'><b>Note:</b></font> ProvisioningGroup (filtered, attributes manipulated, matchingId calculated): ").append(GrouperUtil.xmlEscape(grouperTargetGroup.toString())).append("\n");
+          
+          if (GrouperUtil.length(grouperTargetGroup.getMatchingIdAttributeNameToValues()) == 0) {
             
-            if (GrouperUtil.isBlank(grouperTargetGroup.getMatchingId())) {
-              
-              // TODO handle multiple matching IDs
-              GrouperProvisioningConfigurationAttribute matchingAttribute = null;
-              if (GrouperUtil.length(this.getGrouperProvisioner().retrieveGrouperProvisioningConfiguration().getGroupMatchingAttributes()) > 0) {
-                matchingAttribute = this.getGrouperProvisioner().retrieveGrouperProvisioningConfiguration().getGroupMatchingAttributes().get(0);
+            boolean attributeInsertOrUpdate = false;
+            
+            for (GrouperProvisioningConfigurationAttribute matchingAttribute : this.getGrouperProvisioner().retrieveGrouperProvisioningConfiguration().getGroupMatchingAttributes()) {
+              if (matchingAttribute.isInsert() || matchingAttribute.isUpdate()) {
+                attributeInsertOrUpdate = true;
               }
+            }
 
-              if (matchingAttribute == null) {
-                
-                if (this.getGrouperProvisioner().retrieveGrouperProvisioningBehavior().isInsertGroups() || this.getGrouperProvisioner().retrieveGrouperProvisioningBehavior().isUpdateGroups() || this.getGrouperProvisioner().retrieveGrouperProvisioningBehavior().isDeleteGroups()) {
-                  this.report.append("<font color='red'><b>Error:</b></font> Cannot find the group matching attribute/field\n");
+            if (GrouperUtil.length(this.getGrouperProvisioner().retrieveGrouperProvisioningConfiguration().getGroupMatchingAttributes()) == 0) {
+              
+              if (this.getGrouperProvisioner().retrieveGrouperProvisioningBehavior().isInsertGroups() || this.getGrouperProvisioner().retrieveGrouperProvisioningBehavior().isUpdateGroups() || this.getGrouperProvisioner().retrieveGrouperProvisioningBehavior().isDeleteGroups()) {
+                this.report.append("<font color='red'><b>Error:</b></font> Cannot find the group matching attribute/field\n");
+              } else {
+                this.report.append("<font color='gray'><b>Note:</b></font> Cannot find the group matching attribute/field\n");
+              }
+            } else {
+              if (!attributeInsertOrUpdate) {
+                if (gcGrouperSyncGroup != null && gcGrouperSyncGroup.isInTarget()) {
+                  this.report.append("<font color='red'><b>Error:</b></font> Grouper target group matching id is blank and it is currently in target\n");
                 } else {
-                  this.report.append("<font color='gray'><b>Note:</b></font> Cannot find the group matching attribute/field\n");
+                  this.report.append("<font color='green'><b>Success:</b></font> Grouper target group matching id is blank but it is not inserted or updated so it probably is not retrieved from target yet\n");
                 }
               } else {
-                if (!matchingAttribute.isInsert() && !matchingAttribute.isUpdate()) {
-                  if (gcGrouperSyncGroup != null && gcGrouperSyncGroup.isInTarget()) {
-                    this.report.append("<font color='red'><b>Error:</b></font> Grouper target group matching id is blank and it is currently in target\n");
-                  } else {
-                    this.report.append("<font color='green'><b>Success:</b></font> Grouper target group matching id is blank but it is not inserted or updated so it probably is not retrieved from target yet\n");
-                  }
-                } else {
-                  this.report.append("<font color='red'><b>Error:</b></font> Grouper target group matching id is blank\n");
-                }
+                this.report.append("<font color='red'><b>Error:</b></font> Grouper target group matching id is blank\n");
               }
-              
             }
-            
-            // validate
-            this.getGrouperProvisioner().retrieveGrouperProvisioningValidation().validateGroups(grouperTargetGroups, false, false);
-            
-            if (this.provisioningGroupWrapper.getErrorCode() != null) {
-              this.report.append("<font color='red'><b>Error:</b></font> Group is not valid! " + this.provisioningGroupWrapper.getErrorCode() + "\n");
-            } else {
-              this.report.append("<font color='green'><b>Success:</b></font> Group is valid\n");
-            }
-          }          
-        }
+          }
+          
+          // validate
+          this.getGrouperProvisioner().retrieveGrouperProvisioningValidation().validateGroups(grouperTargetGroups, false, false, true);
+          
+          if (this.provisioningGroupWrapper.getErrorCode() != null) {
+            this.report.append("<font color='red'><b>Error:</b></font> Group is not valid! " + this.provisioningGroupWrapper.getErrorCode() + "\n");
+          } else {
+            this.report.append("<font color='green'><b>Success:</b></font> Group is valid\n");
+          }
+        }          
       }
       
     }
@@ -364,7 +415,7 @@ public class GrouperProvisioningDiagnosticsContainer {
   /**
    * select an entity from grouper
    */
-  private void appendSelectEntityFromGrouper() {
+  public void appendSelectEntityFromGrouper() {
 
     this.report.append("<h4>Select entity from Grouper</h4><pre>");
     
@@ -433,29 +484,30 @@ public class GrouperProvisioningDiagnosticsContainer {
               this.provisioningEntityWrapper.setGrouperTargetEntity(grouperTargetEntity);
               this.report.append("<font color='gray'><b>Note:</b></font> ProvisioningEntity (translated): ").append(GrouperUtil.xmlEscape(grouperTargetEntity.toString())).append("\n");
             
-              this.grouperProvisioner.retrieveGrouperProvisioningAttributeManipulation().assignDefaultsForEntities(grouperTargetEntities, null);
-              this.grouperProvisioner.retrieveGrouperProvisioningAttributeManipulation().filterEntityFieldsAndAttributes(grouperTargetEntities, true, false, false);
-              this.grouperProvisioner.retrieveGrouperProvisioningAttributeManipulation().manipulateAttributesEntities(grouperTargetEntities);
+              this.grouperProvisioner.retrieveGrouperProvisioningAttributeManipulation().manipulateDefaultsFilterAttributesEntities(grouperTargetEntities, true, true, false, false);
+
               this.grouperProvisioner.retrieveGrouperProvisioningTranslator().idTargetEntities(grouperTargetEntities);
   
               this.report.append("<font color='gray'><b>Note:</b></font> ProvisioningEntity (filtered, attributes manipulated, matchingId calculated): ").append(GrouperUtil.xmlEscape(grouperTargetEntity.toString())).append("\n");
               
-              if (GrouperUtil.isBlank(grouperTargetEntity.getMatchingId())) {
+              if (GrouperUtil.length(grouperTargetEntity.getMatchingIdAttributeNameToValues()) == 0) {
                 
-                // TODO handle multiple matching IDs
-                GrouperProvisioningConfigurationAttribute matchingAttribute = null;
-                if (GrouperUtil.length(this.getGrouperProvisioner().retrieveGrouperProvisioningConfiguration().getEntityMatchingAttributes()) > 0) {
-                  matchingAttribute = this.getGrouperProvisioner().retrieveGrouperProvisioningConfiguration().getEntityMatchingAttributes().get(0);
+                boolean attributeInsertOrUpdate = false;
+                
+                for (GrouperProvisioningConfigurationAttribute matchingAttribute : this.getGrouperProvisioner().retrieveGrouperProvisioningConfiguration().getEntityMatchingAttributes()) {
+                  if (matchingAttribute.isInsert() || matchingAttribute.isUpdate()) {
+                    attributeInsertOrUpdate = true;
+                  }
                 }
 
-                if (matchingAttribute == null) {
+                if (GrouperUtil.length(this.getGrouperProvisioner().retrieveGrouperProvisioningConfiguration().getEntityMatchingAttributes()) == 0) {
                   if (this.getGrouperProvisioner().retrieveGrouperProvisioningBehavior().isInsertEntities() || this.getGrouperProvisioner().retrieveGrouperProvisioningBehavior().isUpdateEntities() || this.getGrouperProvisioner().retrieveGrouperProvisioningBehavior().isDeleteEntities()) {
                     this.report.append("<font color='red'><b>Error:</b></font> Cannot find the entity matching attribute/field\n");
                   } else {
                     this.report.append("<font color='gray'><b>Note:</b></font> Cannot find the entity matching attribute/field\n");
                   }
                 } else {
-                  if (!matchingAttribute.isInsert() && !matchingAttribute.isUpdate()) {
+                  if (!attributeInsertOrUpdate) {
                     if (gcGrouperSyncMember != null && gcGrouperSyncMember.isInTarget()) {
                       this.report.append("<font color='red'><b>Error:</b></font> Grouper target entity matching id is blank and it is currently in target\n");
                     } else {
@@ -469,7 +521,7 @@ public class GrouperProvisioningDiagnosticsContainer {
               }
               
               // validate
-              this.getGrouperProvisioner().retrieveGrouperProvisioningValidation().validateEntities(grouperTargetEntities, false, false);
+              this.getGrouperProvisioner().retrieveGrouperProvisioningValidation().validateEntities(grouperTargetEntities, false, false, true);
               
               if (this.provisioningEntityWrapper.getErrorCode() != null) {
                 this.report.append("<font color='red'><b>Error:</b></font> Entity is not valid! " + this.provisioningEntityWrapper.getErrorCode() + "\n");
@@ -490,10 +542,10 @@ public class GrouperProvisioningDiagnosticsContainer {
    * insert entity to group as a group attribute in target
    */
   @SuppressWarnings({ "unchecked", "rawtypes" })
-  private void appendInsertGroupAttributesMembershipIntoTarget() {
+  public void appendInsertGroupAttributesMembershipIntoTarget() {
     this.report.append("<h4>Add entity to group (groupAttribute)</h4><pre>");
     
-    if (!this.getGrouperProvisioningDiagnosticsSettings().isDiagnosticsGroupAttributesMembershipInsert()) {
+    if (!this.getGrouperProvisioningDiagnosticsSettings().isDiagnosticsMembershipInsert()) {
       this.report.append("<font color='gray'><b>Note:</b></font> Not configured to add entity to group in target\n");
       this.report.append("</pre>\n");
       return;
@@ -557,7 +609,7 @@ public class GrouperProvisioningDiagnosticsContainer {
         provisioningMembershipWrapper.setGrouperProvisioningMembership(grouperProvisioningMembership);
         provisioningMembershipWrapper.setGcGrouperSyncMembership(gcGrouperSyncMembership);
         
-        this.grouperProvisioner.retrieveGrouperProvisioningLinkLogic().updateEntityLink(GrouperUtil.toSet(provisioningEntityWrapper));
+        this.grouperProvisioner.retrieveGrouperProvisioningLinkLogic().updateEntityLink(GrouperUtil.toSet(provisioningEntityWrapper), true);
         
         this.grouperProvisioner.retrieveGrouperProvisioningDataIndex().getGroupUuidMemberUuidToProvisioningMembershipWrapper().put(groupIdMemberId, provisioningMembershipWrapper);
 
@@ -659,20 +711,309 @@ public class GrouperProvisioningDiagnosticsContainer {
 
     } finally {
       String debugInfo = this.grouperProvisioner.retrieveGrouperProvisioningTargetDaoAdapter().loggingStop();
-      debugInfo = StringUtils.defaultString(debugInfo, "None implemented for this DAO");
+      debugInfo = StringUtils.defaultString(debugInfo, "No debug info implemented for this DAO");
       this.report.append("<font color='gray'><b>Note:</b></font> Debug info:").append(this.getCurrentDuration()).append(" ").append(GrouperUtil.xmlEscape(StringUtils.trim(debugInfo))).append("\n");
       this.report.append("</pre>\n");
     }
+  }
+  
+  
+  /**
+   * @return null if not applicable, true if inserted, false if already existed
+   */
+  @SuppressWarnings({ "unchecked", "rawtypes" })
+  public Boolean appendInsertMembershipObjectsIntoTarget() {
+    
+    Boolean result = null;
+    this.report.append("<h4>Add membership (membershipObjects)</h4><pre>");
+    
+    if (!this.getGrouperProvisioningDiagnosticsSettings().isDiagnosticsMembershipInsert()) {
+      this.report.append("<font color='gray'><b>Note:</b></font> Not configured to add membership in target\n");
+      this.report.append("</pre>\n");
+      return null;
+    }
+
+    if (this.provisioningGroupWrapper.getTargetProvisioningGroup() == null) {
+      this.report.append("<font color='gray'><b>Note:</b></font> Cannot add membership in target since the group does not exist there\n");
+      this.report.append("</pre>\n");
+      return null;
+    }
+    
+    if (this.provisioningEntityWrapper.getTargetProvisioningEntity() == null) {
+      this.report.append("<font color='gray'><b>Note:</b></font> Cannot add membership in target since the entity does not exist there\n");
+      this.report.append("</pre>\n");
+      return null;
+    }
+
+    if (null != this.provisioningGroupWrapper.getErrorCode()) {
+      this.report.append("<font color='red'><b>Error:</b></font> Cannot add membership in target since the group has an error code: " + this.provisioningGroupWrapper.getErrorCode() + "\n");
+      this.report.append("</pre>\n");
+      return null;
+    }
+    
+    if (null != this.provisioningEntityWrapper.getErrorCode()) {
+      this.report.append("<font color='red'><b>Error:</b></font> Cannot add membership in target since the entity has an error code: " + this.provisioningEntityWrapper.getErrorCode() + "\n");
+      this.report.append("</pre>\n");
+      return null;
+    }
+    
+    try {
+      this.grouperProvisioner.retrieveGrouperProvisioningTargetDaoAdapter().loggingStart();
+
+      Set<MultiKey> groupUuidMemberUuids = new HashSet<MultiKey>();
+      MultiKey groupIdMemberId = new MultiKey(this.provisioningGroupWrapper.getGroupId(), this.provisioningEntityWrapper.getMemberId());
+      groupUuidMemberUuids.add(groupIdMemberId);
+      List<ProvisioningMembership> grouperProvisioningMemberships = this.grouperProvisioner.retrieveGrouperDao().retrieveMemberships(false, null, null, groupUuidMemberUuids);
+      
+      if (GrouperUtil.length(grouperProvisioningMemberships) == 0) {
+        this.report.append("<font color='orange'><b>Warning:</b></font> Cannot find ProvisioningMembership object.  Note that the entity must be a member of the group in Grouper.\n");
+        return null;
+      } 
+        
+      ProvisioningMembership grouperProvisioningMembership = grouperProvisioningMemberships.get(0);
+
+      GcGrouperSync gcGrouperSync = this.getGrouperProvisioner().getGcGrouperSync();
+      GcGrouperSyncMembership gcGrouperSyncMembership = gcGrouperSync.getGcGrouperSyncMembershipDao().membershipRetrieveByGroupIdAndMemberId(this.provisioningGroupWrapper.getGroupId(), this.provisioningEntityWrapper.getMemberId());
+      if (gcGrouperSyncMembership == null) {
+        this.report.append("<font color='gray'><b>Note:</b></font> GcGrouperSyncMembership record does not exist in database\n");
+
+      } else {
+        this.report.append("<font color='gray'><b>Note:</b></font> GcGrouperSyncMembership: ").append(GrouperUtil.xmlEscape(gcGrouperSyncMembership.toString())).append(this.getCurrentDuration()).append("\n");
+      }
+      GrouperProvisioningLists grouperProvisioningLists = new GrouperProvisioningLists();
+      grouperProvisioningLists.setProvisioningMemberships(grouperProvisioningMemberships);
+      this.getGrouperProvisioner().retrieveGrouperDao().processWrappers(grouperProvisioningLists);
+      
+      this.getGrouperProvisioner().retrieveGrouperDao().fixGrouperProvisioningMembershipReferences();
+      
+      ProvisioningSyncIntegration.fullSyncMemberships(
+          this.getGrouperProvisioner().getProvisioningSyncResult(),
+          this.getGrouperProvisioner().getGcGrouperSync(),
+          this.getGrouperProvisioner().retrieveGrouperProvisioningDataSync()
+          .getGcGrouperSyncGroups(),
+          this.getGrouperProvisioner().retrieveGrouperProvisioningDataSync()
+          .getGcGrouperSyncMembers(),
+          this.getGrouperProvisioner().retrieveGrouperProvisioningDataSync()
+          .getGcGrouperSyncMemberships(),
+          this.getGrouperProvisioner().retrieveGrouperProvisioningDataIndex()
+          .getGroupUuidMemberUuidToProvisioningMembershipWrapper());
+      
+      this.grouperProvisioner.retrieveGrouperProvisioningLogic().assignSyncObjectsToWrappers();
+
+      this.getGrouperProvisioner().retrieveGrouperProvisioningLogic().retrieveAllTargetAndGrouperDataPost();
+      
+      // TODO do we need this???  
+      // this.getGrouperProvisioner().retrieveGrouperProvisioningLogic().processTargetWrappers();
+      
+      this.provisioningMembershipWrapper = grouperProvisioningMembership.getProvisioningMembershipWrapper();
+      
+      grouperProvisioningMembership.getProvisioningMembershipWrapper().setRecalcObject(true);
+      this.provisioningMembershipWrapper.getGrouperProvisioningMembership().setProvisioningGroup(this.provisioningGroupWrapper.getGrouperProvisioningGroup());
+      List<ProvisioningMembership> grouperTargetMemberships = this.grouperProvisioner.retrieveGrouperProvisioningTranslator().translateGrouperToTargetMemberships(GrouperUtil.toList(grouperProvisioningMembership), false);
+
+              
+      if (grouperProvisioningMembership.getProvisioningMembershipWrapper().getGrouperTargetMembership() == null) {
+        this.report.append("<font color='red'><b>Error:</b></font> Could not translate\n");
+        return result;
+      }
+      
+      this.grouperProvisioner.retrieveGrouperProvisioningAttributeManipulation().manipulateDefaultsFilterAttributesMemberships(grouperTargetMemberships, true, true, false, false);
+      
+      this.grouperProvisioner.retrieveGrouperProvisioningTranslator().idTargetMemberships(this.getGrouperProvisioner().retrieveGrouperProvisioningData().retrieveGrouperTargetMemberships(false));
+
+      this.grouperProvisioner.retrieveGrouperProvisioningMatchingIdIndex().indexMatchingIdMemberships(null);
+      
+      this.grouperProvisioner.retrieveGrouperProvisioningSyncDao().processResultsSelectMembershipsFull(
+          this.grouperProvisioner.retrieveGrouperProvisioningData().getProvisioningGroupWrappers(),
+          this.grouperProvisioner.retrieveGrouperProvisioningData().getProvisioningEntityWrappers(),
+          this.grouperProvisioner.retrieveGrouperProvisioningData().getProvisioningMembershipWrappers());
+      
+      this.grouperProvisioner.retrieveGrouperProvisioningCompare().compareTargetMemberships(GrouperUtil.toSet(grouperProvisioningMembership.getProvisioningMembershipWrapper()));
+      
+      RuntimeException runtimeException = null;
+      
+      if (GrouperUtil.length(this.getGrouperProvisioner().retrieveGrouperProvisioningDataChanges().getTargetObjectInserts().getProvisioningMemberships()) > 0) {
+        try {
+          this.grouperProvisioner.retrieveGrouperProvisioningTargetDaoAdapter().insertMemberships(new TargetDaoInsertMembershipsRequest(grouperTargetMemberships));
+        } catch (RuntimeException re) {
+          runtimeException = re;
+          result = null;
+        } finally {
+          try {
+            this.grouperProvisioner.retrieveGrouperProvisioningSyncDao().processResultsInsertMemberships(grouperTargetMemberships);
+
+          } catch (RuntimeException e) {
+            GrouperUtil.exceptionFinallyInjectOrThrow(runtimeException, e);
+          }
+        }
+        
+        if (this.provisioningMembershipWrapper.getGrouperTargetMembership().getException() != null) {
+          this.report.append("<font color='red'><b>Error:</b></font> Adding membership in target:\n" + GrouperUtil.xmlEscape(GrouperUtil.getFullStackTrace(this.provisioningMembershipWrapper.getGrouperTargetMembership().getException())) + "\n");
+          result = null;
+        }
+
+        if (runtimeException != null) {
+          this.report.append("<font color='red'><b>Error:</b></font> Adding membership in target:\n" + GrouperUtil.xmlEscape(GrouperUtil.getFullStackTrace(runtimeException)) + "\n");
+          result = null;
+        }
+        this.report.append("<font color='green'><b>Success:</b></font> No error adding membership in target\n");
+        result = true;
+        
+      } else {
+        this.report.append("<font color='gray'><b>Note:</b></font> Membership was already in target\n");
+        result = false;
+      }
+      
+      if (result == null) {
+        return result;
+      }
+      
+      // check target
+      TargetDaoRetrieveMembershipRequest targetDaoRetrieveMembershipRequest = new TargetDaoRetrieveMembershipRequest();
+      targetDaoRetrieveMembershipRequest.setTargetMembership(this.provisioningMembershipWrapper.getGrouperTargetMembership());
+      TargetDaoRetrieveMembershipResponse targetDaoRetrieveMembershipResponse = this.grouperProvisioner.retrieveGrouperProvisioningTargetDaoAdapter().retrieveMembership(targetDaoRetrieveMembershipRequest);
+      
+      ProvisioningMembership targetProvisioningMembership = targetDaoRetrieveMembershipResponse == null ? null : (ProvisioningMembership)targetDaoRetrieveMembershipResponse.getTargetMembership();
+  
+      if (targetProvisioningMembership == null) {
+        this.report.append("<font color='red'><b>Error:</b></font> Cannot find membership from target after inserting membership!\n");
+        return null;
+      } else {
+        this.report.append("<font color='green'><b>Success:</b></font> Found membership in target after inserting\n");
+      }
+      
+      updateProvisioningMembershipWrapperAfterTargetQuery(grouperTargetMemberships);
+      
+      this.getGrouperProvisioner().getGcGrouperSync().getGcGrouperSyncDao().storeAllObjects();
+      return result;
+    } catch (RuntimeException re) {
+      this.report.append("<font color='red'><b>Error:</b></font> Adding membership to target").append(this.getCurrentDuration()).append("\n");
+      this.report.append(GrouperUtil.xmlEscape(ExceptionUtils.getFullStackTrace(re)));
+
+    } finally {
+      String debugInfo = this.grouperProvisioner.retrieveGrouperProvisioningTargetDaoAdapter().loggingStop();
+      debugInfo = StringUtils.defaultString(debugInfo, "No debug info implemented for this DAO");
+      this.report.append("<font color='gray'><b>Note:</b></font> Debug info:").append(this.getCurrentDuration()).append(" ").append(GrouperUtil.xmlEscape(StringUtils.trim(debugInfo))).append("\n");
+      this.report.append("</pre>\n");
+    }
+    
+    return null;
+  }
+  
+  /**
+   * @return null if not applicable, true if deleted, false if didn't exist
+   */
+  @SuppressWarnings({ "unchecked", "rawtypes" })
+  public Boolean appendDeleteMembershipObjectsFromTarget() {
+    
+    Boolean result = null;
+    this.report.append("<h4>Delete membership (membershipObjects)</h4><pre>");
+    
+    if (!this.getGrouperProvisioningDiagnosticsSettings().isDiagnosticsMembershipDelete()) {
+      this.report.append("<font color='gray'><b>Note:</b></font> Not configured to delete membership in target\n");
+      this.report.append("</pre>\n");
+      return null;
+    }
+
+    if (this.provisioningGroupWrapper.getTargetProvisioningGroup() == null) {
+      this.report.append("<font color='gray'><b>Note:</b></font> Cannot add membership in target since the group does not exist there\n");
+      this.report.append("</pre>\n");
+      return null;
+    }
+    
+    if (this.provisioningEntityWrapper.getTargetProvisioningEntity() == null) {
+      this.report.append("<font color='gray'><b>Note:</b></font> Cannot add membership in target since the entity does not exist there\n");
+      this.report.append("</pre>\n");
+      return null;
+    }
+
+    if (null != this.provisioningGroupWrapper.getErrorCode()) {
+      this.report.append("<font color='red'><b>Error:</b></font> Cannot add membership in target since the group has an error code: " + this.provisioningGroupWrapper.getErrorCode() + "\n");
+      this.report.append("</pre>\n");
+      return null;
+    }
+    
+    if (null != this.provisioningEntityWrapper.getErrorCode()) {
+      this.report.append("<font color='red'><b>Error:</b></font> Cannot add membership in target since the entity has an error code: " + this.provisioningEntityWrapper.getErrorCode() + "\n");
+      this.report.append("</pre>\n");
+      return null;
+    }
+    
+    try {
+      this.grouperProvisioner.retrieveGrouperProvisioningTargetDaoAdapter().loggingStart();
+     
+      RuntimeException runtimeException = null;
+      List<ProvisioningMembership> grouperTargetMemberships = GrouperUtil.toList(this.provisioningMembershipWrapper.getGrouperTargetMembership());
+      try {
+        this.grouperProvisioner.retrieveGrouperProvisioningTargetDaoAdapter().deleteMemberships(new TargetDaoDeleteMembershipsRequest(grouperTargetMemberships));
+      } catch (RuntimeException re) {
+        runtimeException = re;
+        result = null;
+      } finally {
+        try {
+          this.grouperProvisioner.retrieveGrouperProvisioningSyncDao().processResultsDeleteMemberships(grouperTargetMemberships);
+
+        } catch (RuntimeException e) {
+          GrouperUtil.exceptionFinallyInjectOrThrow(runtimeException, e);
+        }
+      }
+      
+      if (this.provisioningMembershipWrapper.getGrouperTargetMembership().getException() != null) {
+        this.report.append("<font color='red'><b>Error:</b></font> Delete membership from target:\n" + GrouperUtil.xmlEscape(GrouperUtil.getFullStackTrace(this.provisioningMembershipWrapper.getGrouperTargetMembership().getException())) + "\n");
+        result = null;
+      }
+
+      if (runtimeException != null) {
+        this.report.append("<font color='red'><b>Error:</b></font> Delete membership in target:\n" + GrouperUtil.xmlEscape(GrouperUtil.getFullStackTrace(runtimeException)) + "\n");
+        result = null;
+      }
+      this.report.append("<font color='green'><b>Success:</b></font> No error deleting membership from target\n");
+      result = true;
+      
+      if (result == null) {
+        return result;
+      }
+      
+      // check target
+      TargetDaoRetrieveMembershipRequest targetDaoRetrieveMembershipRequest = new TargetDaoRetrieveMembershipRequest();
+      targetDaoRetrieveMembershipRequest.setTargetMembership(this.provisioningMembershipWrapper.getGrouperTargetMembership());
+      TargetDaoRetrieveMembershipResponse targetDaoRetrieveMembershipResponse = this.grouperProvisioner.retrieveGrouperProvisioningTargetDaoAdapter().retrieveMembership(targetDaoRetrieveMembershipRequest);
+      
+      ProvisioningMembership targetProvisioningMembership = targetDaoRetrieveMembershipResponse == null ? null : (ProvisioningMembership)targetDaoRetrieveMembershipResponse.getTargetMembership();
+  
+      if (targetProvisioningMembership != null) {
+        this.report.append("<font color='red'><b>Error:</b></font> Found membership in target after deleting membership!\n");
+        return null;
+      } else {
+        this.report.append("<font color='green'><b>Success:</b></font> Did not find membership in target after deleting\n");
+      }
+      
+      updateProvisioningMembershipWrapperAfterTargetQuery(grouperTargetMemberships);
+      
+      this.getGrouperProvisioner().getGcGrouperSync().getGcGrouperSyncDao().storeAllObjects();
+      return result;
+    } catch (RuntimeException re) {
+      this.report.append("<font color='red'><b>Error:</b></font> Deleting membership from target").append(this.getCurrentDuration()).append("\n");
+      this.report.append(GrouperUtil.xmlEscape(ExceptionUtils.getFullStackTrace(re)));
+
+    } finally {
+      String debugInfo = this.grouperProvisioner.retrieveGrouperProvisioningTargetDaoAdapter().loggingStop();
+      debugInfo = StringUtils.defaultString(debugInfo, "No debug info implemented for this DAO");
+      this.report.append("<font color='gray'><b>Note:</b></font> Debug info:").append(this.getCurrentDuration()).append(" ").append(GrouperUtil.xmlEscape(StringUtils.trim(debugInfo))).append("\n");
+      this.report.append("</pre>\n");
+    }
+    
+    return null;
   }
   
   /**
    * remove entity from group as a group attribute in target
    */
   @SuppressWarnings({ "unchecked", "rawtypes" })
-  private void appendDeleteGroupAttributesMembershipFromTarget() {
+  public void appendDeleteGroupAttributesMembershipFromTarget() {
     this.report.append("<h4>Remove entity from group (groupAttribute)</h4><pre>");
     
-    if (!this.getGrouperProvisioningDiagnosticsSettings().isDiagnosticsGroupAttributesMembershipDelete()) {
+    if (!this.getGrouperProvisioningDiagnosticsSettings().isDiagnosticsMembershipDelete()) {
       this.report.append("<font color='gray'><b>Note:</b></font> Not configured to remove entity from group in target\n");
       this.report.append("</pre>\n");
       return;
@@ -836,7 +1177,7 @@ public class GrouperProvisioningDiagnosticsContainer {
 
     } finally {
       String debugInfo = this.grouperProvisioner.retrieveGrouperProvisioningTargetDaoAdapter().loggingStop();
-      debugInfo = StringUtils.defaultString(debugInfo, "None implemented for this DAO");
+      debugInfo = StringUtils.defaultString(debugInfo, "No debug info implemented for this DAO");
       this.report.append("<font color='gray'><b>Note:</b></font> Debug info:").append(this.getCurrentDuration()).append(" ").append(GrouperUtil.xmlEscape(StringUtils.trim(debugInfo))).append("\n");
       this.report.append("</pre>\n");
     }
@@ -846,7 +1187,7 @@ public class GrouperProvisioningDiagnosticsContainer {
   /**
    * insert group into target
    */
-  private void appendInsertGroupIntoTarget() {
+  public void appendInsertGroupIntoTarget() {
     this.report.append("<h4>Insert group into Target</h4><pre>");
     
     if (!this.getGrouperProvisioningDiagnosticsSettings().isDiagnosticsGroupInsert()) {
@@ -880,7 +1221,7 @@ public class GrouperProvisioningDiagnosticsContainer {
     try {
       this.grouperProvisioner.retrieveGrouperProvisioningTargetDaoAdapter().loggingStart();
 
-      this.provisioningGroupWrapper.setRecalc(true);
+      this.provisioningGroupWrapper.setRecalcObject(true);
       
       List<ProvisioningGroup> grouperTargetGroupsToInsert = GrouperUtil.toList(this.provisioningGroupWrapper.getGrouperTargetGroup());
       
@@ -937,31 +1278,43 @@ public class GrouperProvisioningDiagnosticsContainer {
       
     } finally {
       String debugInfo = this.grouperProvisioner.retrieveGrouperProvisioningTargetDaoAdapter().loggingStop();
-      debugInfo = StringUtils.defaultString(debugInfo, "None implemented for this DAO");
+      debugInfo = StringUtils.defaultString(debugInfo, "No debug info implemented for this DAO");
       this.report.append("<font color='gray'><b>Note:</b></font> Debug info:").append(this.getCurrentDuration()).append(" ").append(GrouperUtil.xmlEscape(StringUtils.trim(debugInfo))).append("\n");
       this.report.append("</pre>\n");
     }
           
   }
   
-  private void updateProvisioningGroupWrapperAfterTargetQuery(List<ProvisioningGroup> targetGroups) {
-    this.grouperProvisioner.retrieveGrouperProvisioningAttributeManipulation().filterGroupFieldsAndAttributes(targetGroups, true, false, false);
-    this.grouperProvisioner.retrieveGrouperProvisioningAttributeManipulation().manipulateAttributesGroups(targetGroups);
+  public void updateProvisioningGroupWrapperAfterTargetQuery(List<ProvisioningGroup> targetGroups) {
+    this.grouperProvisioner.retrieveGrouperProvisioningAttributeManipulation().manipulateDefaultsFilterAttributesGroups(targetGroups, false, true, false, false);
 
     // index
     this.grouperProvisioner.retrieveGrouperProvisioningTranslator().idTargetGroups(targetGroups);
-    this.grouperProvisioner.retrieveGrouperProvisioningMatchingIdIndex().indexMatchingIdGroups();
-
+    this.grouperProvisioner.retrieveGrouperProvisioningMatchingIdIndex().indexMatchingIdGroups(targetGroups);
+      
     this.provisioningGroupWrapper.setTargetProvisioningGroup(targetGroups.get(0));
     this.provisioningGroupWrapper.setCreate(false);
     
     GrouperUtil.setClear(this.provisioningGroupWrapper.getGrouperTargetGroup().getInternal_objectChanges());
   }
   
+  public void updateProvisioningMembershipWrapperAfterTargetQuery(List<ProvisioningMembership> targetMemberships) {
+    this.grouperProvisioner.retrieveGrouperProvisioningAttributeManipulation().manipulateDefaultsFilterAttributesMemberships(targetMemberships, false, true, false, false);
+
+    // index
+    this.grouperProvisioner.retrieveGrouperProvisioningTranslator().idTargetMemberships(targetMemberships);
+    this.grouperProvisioner.retrieveGrouperProvisioningMatchingIdIndex().indexMatchingIdMemberships(targetMemberships);
+      
+    this.provisioningMembershipWrapper.setTargetProvisioningMembership(targetMemberships.get(0));
+    this.provisioningMembershipWrapper.setCreate(false);
+    
+    GrouperUtil.setClear(this.provisioningMembershipWrapper.getGrouperTargetMembership().getInternal_objectChanges());
+  }
+  
   /**
    * delete group from target
    */
-  private void appendDeleteGroupFromTarget() {
+  public void appendDeleteGroupFromTarget() {
     this.report.append("<h4>Delete group from Target</h4><pre>");
     
     if (!this.getGrouperProvisioningDiagnosticsSettings().isDiagnosticsGroupDelete()) {
@@ -991,7 +1344,7 @@ public class GrouperProvisioningDiagnosticsContainer {
     try {
       this.grouperProvisioner.retrieveGrouperProvisioningTargetDaoAdapter().loggingStart();
 
-      this.provisioningGroupWrapper.setRecalc(true);
+      this.provisioningGroupWrapper.setRecalcObject(true);
       
       List<ProvisioningGroup> grouperTargetGroupsToDelete = GrouperUtil.toList(this.provisioningGroupWrapper.getGrouperTargetGroup());
       
@@ -1043,7 +1396,7 @@ public class GrouperProvisioningDiagnosticsContainer {
       
     } finally {
       String debugInfo = this.grouperProvisioner.retrieveGrouperProvisioningTargetDaoAdapter().loggingStop();
-      debugInfo = StringUtils.defaultString(debugInfo, "None implemented for this DAO");
+      debugInfo = StringUtils.defaultString(debugInfo, "No debug info implemented for this DAO");
       this.report.append("<font color='gray'><b>Note:</b></font> Debug info:").append(this.getCurrentDuration()).append(" ").append(GrouperUtil.xmlEscape(StringUtils.trim(debugInfo))).append("\n");
       this.report.append("</pre>\n");
     }
@@ -1053,7 +1406,7 @@ public class GrouperProvisioningDiagnosticsContainer {
   /**
    * insert entity into target
    */
-  private void appendInsertEntityIntoTarget() {
+  public void appendInsertEntityIntoTarget() {
     this.report.append("<h4>Insert entity into Target</h4><pre>");
     
     if (!this.getGrouperProvisioningDiagnosticsSettings().isDiagnosticsEntityInsert()) {
@@ -1082,7 +1435,7 @@ public class GrouperProvisioningDiagnosticsContainer {
     try {
       this.grouperProvisioner.retrieveGrouperProvisioningTargetDaoAdapter().loggingStart();
 
-      this.provisioningEntityWrapper.setRecalc(true);
+      this.provisioningEntityWrapper.setRecalcObject(true);
 
       List<ProvisioningEntity> grouperTargetEntitiesToInsert = GrouperUtil.toList(this.provisioningEntityWrapper.getGrouperTargetEntity());
       
@@ -1139,20 +1492,19 @@ public class GrouperProvisioningDiagnosticsContainer {
       
     } finally {
       String debugInfo = this.grouperProvisioner.retrieveGrouperProvisioningTargetDaoAdapter().loggingStop();
-      debugInfo = StringUtils.defaultString(debugInfo, "None implemented for this DAO");
+      debugInfo = StringUtils.defaultString(debugInfo, "No debug info implemented for this DAO");
       this.report.append("<font color='gray'><b>Note:</b></font> Debug info:").append(this.getCurrentDuration()).append(" ").append(GrouperUtil.xmlEscape(StringUtils.trim(debugInfo))).append("\n");
       this.report.append("</pre>\n");
     }
           
   }
   
-  private void updateProvisioningEntityWrapperAfterTargetQuery(List<ProvisioningEntity> targetEntities) {
-    this.grouperProvisioner.retrieveGrouperProvisioningAttributeManipulation().filterEntityFieldsAndAttributes(targetEntities, true, false, false);
-    this.grouperProvisioner.retrieveGrouperProvisioningAttributeManipulation().manipulateAttributesEntities(targetEntities);
+  public void updateProvisioningEntityWrapperAfterTargetQuery(List<ProvisioningEntity> targetEntities) {
+    this.grouperProvisioner.retrieveGrouperProvisioningAttributeManipulation().manipulateDefaultsFilterAttributesEntities(targetEntities, false, true, false, false);
 
     // index
     this.grouperProvisioner.retrieveGrouperProvisioningTranslator().idTargetEntities(targetEntities);
-    this.grouperProvisioner.retrieveGrouperProvisioningMatchingIdIndex().indexMatchingIdEntities();
+    this.grouperProvisioner.retrieveGrouperProvisioningMatchingIdIndex().indexMatchingIdEntities(targetEntities);
 
     this.provisioningEntityWrapper.setTargetProvisioningEntity(targetEntities.get(0));
     this.provisioningEntityWrapper.setCreate(false);
@@ -1163,7 +1515,7 @@ public class GrouperProvisioningDiagnosticsContainer {
   /**
    * delete entity from target
    */
-  private void appendDeleteEntityFromTarget() {
+  public void appendDeleteEntityFromTarget() {
     this.report.append("<h4>Delete entity from Target</h4><pre>");
     
     if (!this.getGrouperProvisioningDiagnosticsSettings().isDiagnosticsEntityDelete()) {
@@ -1193,7 +1545,7 @@ public class GrouperProvisioningDiagnosticsContainer {
     try {
       this.grouperProvisioner.retrieveGrouperProvisioningTargetDaoAdapter().loggingStart();
 
-      this.provisioningEntityWrapper.setRecalc(true);
+      this.provisioningEntityWrapper.setRecalcObject(true);
       
       List<ProvisioningEntity> grouperTargetEntitiesToDelete = GrouperUtil.toList(this.provisioningEntityWrapper.getGrouperTargetEntity());
       
@@ -1245,7 +1597,7 @@ public class GrouperProvisioningDiagnosticsContainer {
       
     } finally {
       String debugInfo = this.grouperProvisioner.retrieveGrouperProvisioningTargetDaoAdapter().loggingStop();
-      debugInfo = StringUtils.defaultString(debugInfo, "None implemented for this DAO");
+      debugInfo = StringUtils.defaultString(debugInfo, "No debug info implemented for this DAO");
       this.report.append("<font color='gray'><b>Note:</b></font> Debug info:").append(this.getCurrentDuration()).append(" ").append(GrouperUtil.xmlEscape(StringUtils.trim(debugInfo))).append("\n");
       this.report.append("</pre>\n");
     }
@@ -1255,7 +1607,7 @@ public class GrouperProvisioningDiagnosticsContainer {
   /**
    * select a group from target
    */
-  private void appendSelectGroupFromTarget() {
+  public void appendSelectGroupFromTarget() {
     this.report.append("<h4>Select group from Target</h4><pre>");
     
     if (this.provisioningGroupWrapper == null) {
@@ -1286,21 +1638,22 @@ public class GrouperProvisioningDiagnosticsContainer {
             
             List<ProvisioningGroup> targetGroupsForOne = GrouperUtil.toList(targetDaoRetrieveGroupResponse.getTargetGroup());
             
-            this.grouperProvisioner.retrieveGrouperProvisioningAttributeManipulation().filterGroupFieldsAndAttributes(
-                targetGroupsForOne, true, false, false);
-            this.grouperProvisioner.retrieveGrouperProvisioningAttributeManipulation().manipulateAttributesGroups(
-                targetGroupsForOne);
+            this.grouperProvisioner.retrieveGrouperProvisioningAttributeManipulation().manipulateDefaultsFilterAttributesGroups(targetGroupsForOne, false, true, false, false);
+
             this.grouperProvisioner.retrieveGrouperProvisioningTranslator().idTargetGroups(
+                targetGroupsForOne);
+            this.grouperProvisioner.retrieveGrouperProvisioningMatchingIdIndex().indexMatchingIdGroups(
                 targetGroupsForOne);
 
             this.report.append("<font color='gray'><b>Note:</b></font> Target group (filtered, attributes manipulated, matchingId calculated):\n  ")
               .append(GrouperUtil.xmlEscape(targetDaoRetrieveGroupResponse.getTargetGroup().toString())).append("\n");
 
-            if (GrouperUtil.isBlank(targetDaoRetrieveGroupResponse.getTargetGroup().getMatchingId())) {
+            if (GrouperUtil.length(targetDaoRetrieveGroupResponse.getTargetGroup().getMatchingIdAttributeNameToValues()) == 0) {
               this.report.append("<font color='red'><b>Error:</b></font> Target group matching id is blank\n");
             }
             
-            if (!GrouperUtil.equals(this.provisioningGroupWrapper.getGrouperTargetGroup().getMatchingId(), targetDaoRetrieveGroupResponse.getTargetGroup().getMatchingId())) {
+            if (this.provisioningGroupWrapper.getGrouperTargetGroup().getProvisioningGroupWrapper() == null || 
+                this.provisioningGroupWrapper.getGrouperTargetGroup().getProvisioningGroupWrapper() != targetDaoRetrieveGroupResponse.getTargetGroup().getProvisioningGroupWrapper()) {
               this.report.append("<font color='red'><b>Error:</b></font> Matching id's do not match!\n");
             }
             
@@ -1321,7 +1674,7 @@ public class GrouperProvisioningDiagnosticsContainer {
   /**
    * select an entity from target
    */
-  private void appendSelectEntityFromTarget() {
+  public void appendSelectEntityFromTarget() {
     this.report.append("<h4>Select entity from Target</h4><pre>");
     
     if (this.provisioningEntityWrapper == null) {
@@ -1352,24 +1705,26 @@ public class GrouperProvisioningDiagnosticsContainer {
             
             List<ProvisioningEntity> targetEntitiesForOne = GrouperUtil.toList(targetDaoRetrieveEntityResponse.getTargetEntity());
             
-            this.grouperProvisioner.retrieveGrouperProvisioningAttributeManipulation().filterEntityFieldsAndAttributes(
-                targetEntitiesForOne, true, false, false);
-            this.grouperProvisioner.retrieveGrouperProvisioningAttributeManipulation().manipulateAttributesEntities(
-                targetEntitiesForOne);
+            this.grouperProvisioner.retrieveGrouperProvisioningAttributeManipulation().manipulateDefaultsFilterAttributesEntities(
+                targetEntitiesForOne, false, true, false, false);
+
             this.grouperProvisioner.retrieveGrouperProvisioningTranslator().idTargetEntities(
+                targetEntitiesForOne);
+            this.grouperProvisioner.retrieveGrouperProvisioningMatchingIdIndex().indexMatchingIdEntities(
                 targetEntitiesForOne);
 
             this.report.append("<font color='gray'><b>Note:</b></font> Target entity (filtered, attributes manipulated, matchingId calculated):\n  ")
               .append(GrouperUtil.xmlEscape(targetDaoRetrieveEntityResponse.getTargetEntity().toString())).append("\n");
 
-            if (GrouperUtil.isBlank(targetDaoRetrieveEntityResponse.getTargetEntity().getMatchingId())) {
+            if (GrouperUtil.length(targetDaoRetrieveEntityResponse.getTargetEntity().getMatchingIdAttributeNameToValues()) == 0) {
               this.report.append("<font color='red'><b>Error:</b></font> Target entity matching id is blank\n");
             }
             
-            if (!GrouperUtil.equals(this.provisioningEntityWrapper.getGrouperTargetEntity().getMatchingId(), targetDaoRetrieveEntityResponse.getTargetEntity().getMatchingId())) {
+            if (this.provisioningEntityWrapper.getGrouperTargetEntity().getProvisioningEntityWrapper() == null || 
+                this.provisioningEntityWrapper.getGrouperTargetEntity().getProvisioningEntityWrapper() != targetDaoRetrieveEntityResponse.getTargetEntity().getProvisioningEntityWrapper()) {
               this.report.append("<font color='red'><b>Error:</b></font> Matching id's do not match!\n");
             }
-            
+
           }
           
           
@@ -1384,7 +1739,7 @@ public class GrouperProvisioningDiagnosticsContainer {
 
   }
   
-  private void appendValidation() {
+  public void appendValidation() {
     
     this.report.append("<h4>Validation</h4><pre>");
 
@@ -1437,7 +1792,7 @@ public class GrouperProvisioningDiagnosticsContainer {
   }
 
 
-  private void appendGeneralInfo() {
+  public void appendGeneralInfo() {
     this.report.append("<h4>Provisioner</h4><pre>");
     GrouperProvisioningObjectLogType.appendProvisioner(grouperProvisioner, this.report, "Provisioner");
     this.report.append("</pre>\n<h4>Configuration analysis</h4><pre>");
@@ -1455,7 +1810,7 @@ public class GrouperProvisioningDiagnosticsContainer {
    * get current duration
    * @return duration
    */
-  private String getCurrentDuration() {
+  public String getCurrentDuration() {
     return " (elapsed: " + DurationFormatUtils.formatDurationHMS(System.currentTimeMillis() - this.started) + ")";
   }
   
@@ -1479,7 +1834,6 @@ public class GrouperProvisioningDiagnosticsContainer {
           TargetDaoRetrieveAllGroupsResponse targetDaoRetrieveAllGroupsResponse = this.grouperProvisioner.retrieveGrouperProvisioningTargetDaoAdapter().retrieveAllGroups(
               new TargetDaoRetrieveAllGroupsRequest(this.getGrouperProvisioningDiagnosticsSettings().isDiagnosticsMembershipsAllSelect()));
           List<ProvisioningGroup> targetGroups = GrouperUtil.nonNull(targetDaoRetrieveAllGroupsResponse == null ? null : targetDaoRetrieveAllGroupsResponse.getTargetGroups());
-          this.grouperProvisioner.retrieveGrouperProvisioningDataTarget().getTargetProvisioningObjects().setProvisioningGroups(targetGroups);
 
           if (GrouperUtil.length(targetGroups) > 0) {
             this.report.append("<font color='green'><b>Success:</b></font> Selected " + GrouperUtil.length(targetGroups) + " groups")
@@ -1495,10 +1849,8 @@ public class GrouperProvisioningDiagnosticsContainer {
             this.report.append("<font color='gray'><b>Note:</b></font> Group ").append(i+1).append(" of ")
               .append(GrouperUtil.length(targetGroups)).append(" (unprocessed):\n  ").append(GrouperUtil.xmlEscape(targetGroup.toString())).append("\n");
           }
-          this.grouperProvisioner.retrieveGrouperProvisioningAttributeManipulation().filterGroupFieldsAndAttributes(
-              targetGroups, true, false, false);
-          this.grouperProvisioner.retrieveGrouperProvisioningAttributeManipulation().manipulateAttributesGroups(
-              targetGroups);
+          this.grouperProvisioner.retrieveGrouperProvisioningAttributeManipulation().manipulateDefaultsFilterAttributesGroups(targetGroups, false, true, false, false);
+
           this.grouperProvisioner.retrieveGrouperProvisioningTranslator().idTargetGroups(
               targetGroups);
           for (int i=0;i<Math.min(10, GrouperUtil.length(targetGroups)); i++) {
@@ -1512,7 +1864,7 @@ public class GrouperProvisioningDiagnosticsContainer {
             int countWithoutMatchingId = 0;
             for (int i=0;i<GrouperUtil.length(targetGroups);i++) {
               ProvisioningGroup targetGroup = targetGroups.get(i);
-              if (GrouperUtil.isBlank(targetGroup.getMatchingId())) {
+              if (GrouperUtil.length(targetGroup.getMatchingIdAttributeNameToValues()) == 0) {
                 countWithoutMatchingId++;
               }
             }
@@ -1527,18 +1879,18 @@ public class GrouperProvisioningDiagnosticsContainer {
           
           {
             int countWithDuplicateMatchingId = 0;
-            Set<Object> matchingIds = new HashSet<Object>();
+            Set<ProvisioningUpdatableAttributeAndValue> matchingIds = new HashSet<ProvisioningUpdatableAttributeAndValue>();
             Set<Object> firstTen = new HashSet<Object>();
             for (int i=0;i<GrouperUtil.length(targetGroups);i++) {
               ProvisioningGroup targetGroup = targetGroups.get(i);
-              if (!GrouperUtil.isBlank(targetGroup.getMatchingId())) {
-                if (matchingIds.contains(targetGroup.getMatchingId())) {
+              for (ProvisioningUpdatableAttributeAndValue provisioningUpdatableAttributeAndValue : GrouperUtil.nonNull(targetGroup.getMatchingIdAttributeNameToValues())) {
+                if (matchingIds.contains(provisioningUpdatableAttributeAndValue)) {
                   countWithDuplicateMatchingId++;
                   if (firstTen.size() <= 10) {
-                    firstTen.add(targetGroup.getMatchingId());
+                    firstTen.add(provisioningUpdatableAttributeAndValue);
                   }
                 } else {
-                  matchingIds.add(targetGroup.getMatchingId());
+                  matchingIds.add(provisioningUpdatableAttributeAndValue);
                 }
               }
             }
@@ -1557,7 +1909,7 @@ public class GrouperProvisioningDiagnosticsContainer {
           
         } finally {
           String debugInfo = this.grouperProvisioner.retrieveGrouperProvisioningTargetDaoAdapter().loggingStop();
-          debugInfo = StringUtils.defaultString(debugInfo, "None implemented for this DAO");
+          debugInfo = StringUtils.defaultString(debugInfo, "No debug info implemented for this DAO");
           this.report.append("<font color='gray'><b>Note:</b></font> Debug info:").append(this.getCurrentDuration()).append(" ").append(GrouperUtil.xmlEscape(StringUtils.trim(debugInfo))).append("\n");
         }
       }
@@ -1628,7 +1980,6 @@ public class GrouperProvisioningDiagnosticsContainer {
           TargetDaoRetrieveAllEntitiesResponse targetDaoRetrieveAllEntitiesResponse = this.grouperProvisioner.retrieveGrouperProvisioningTargetDaoAdapter().retrieveAllEntities(
               new TargetDaoRetrieveAllEntitiesRequest(this.getGrouperProvisioningDiagnosticsSettings().isDiagnosticsMembershipsAllSelect()));
           List<ProvisioningEntity> targetEntities = targetDaoRetrieveAllEntitiesResponse == null ? null : targetDaoRetrieveAllEntitiesResponse.getTargetEntities();
-          this.grouperProvisioner.retrieveGrouperProvisioningDataTarget().getTargetProvisioningObjects().setProvisioningEntities(targetEntities);
   
           if (GrouperUtil.length(targetEntities) > 0) {
             this.report.append("<font color='green'><b>Success:</b></font> Selected " + GrouperUtil.length(targetEntities) + " entities")
@@ -1646,10 +1997,8 @@ public class GrouperProvisioningDiagnosticsContainer {
   
             List<ProvisioningEntity> targetEntitiesForOne = GrouperUtil.toList(targetEntity);
             
-            this.grouperProvisioner.retrieveGrouperProvisioningAttributeManipulation().filterEntityFieldsAndAttributes(
-                targetEntitiesForOne, true, false, false);
-            this.grouperProvisioner.retrieveGrouperProvisioningAttributeManipulation().manipulateAttributesEntities(
-                targetEntitiesForOne);
+            this.grouperProvisioner.retrieveGrouperProvisioningAttributeManipulation().manipulateDefaultsFilterAttributesEntities(targetEntitiesForOne, false, true, false, false);
+            
             this.grouperProvisioner.retrieveGrouperProvisioningTranslator().idTargetEntities(
                 targetEntitiesForOne);
   
@@ -1690,7 +2039,6 @@ public class GrouperProvisioningDiagnosticsContainer {
             
           TargetDaoRetrieveAllMembershipsResponse targetDaoRetrieveAllMembershipsResponse = this.grouperProvisioner.retrieveGrouperProvisioningTargetDaoAdapter().retrieveAllMemberships(new TargetDaoRetrieveAllMembershipsRequest());
           List<ProvisioningMembership> targetMemberships = targetDaoRetrieveAllMembershipsResponse == null ? null : targetDaoRetrieveAllMembershipsResponse.getTargetMemberships();
-          this.grouperProvisioner.retrieveGrouperProvisioningDataTarget().getTargetProvisioningObjects().setProvisioningMemberships(targetMemberships);
   
           if (GrouperUtil.length(targetMemberships) > 0) {
             this.report.append("<font color='green'><b>Success:</b></font> Selected " + GrouperUtil.length(targetMemberships) + " memberships")
@@ -1708,10 +2056,8 @@ public class GrouperProvisioningDiagnosticsContainer {
   
             List<ProvisioningMembership> targetMembershipsForOne = GrouperUtil.toList(targetMembership);
             
-            this.grouperProvisioner.retrieveGrouperProvisioningAttributeManipulation().filterMembershipFieldsAndAttributes(
-                targetMembershipsForOne, true, false, false);
-            this.grouperProvisioner.retrieveGrouperProvisioningAttributeManipulation().manipulateAttributesMemberships(
-                targetMembershipsForOne);
+            this.grouperProvisioner.retrieveGrouperProvisioningAttributeManipulation().manipulateDefaultsFilterAttributesMemberships(targetMembershipsForOne, false, true, false, false);
+
             this.grouperProvisioner.retrieveGrouperProvisioningTranslator().idTargetMemberships(
                 targetMembershipsForOne);
   
@@ -1737,10 +2083,10 @@ public class GrouperProvisioningDiagnosticsContainer {
    * insert group to entity as an entity attribute in target
    */
   @SuppressWarnings({ "unchecked", "rawtypes" })
-  private void appendInsertEntityAttributesMembershipIntoTarget() {
+  public void appendInsertEntityAttributesMembershipIntoTarget() {
     this.report.append("<h4>Add group to entity (entityAttribute)</h4><pre>");
     
-    if (!this.getGrouperProvisioningDiagnosticsSettings().isDiagnosticsEntityAttributesMembershipInsert()) {
+    if (!this.getGrouperProvisioningDiagnosticsSettings().isDiagnosticsMembershipInsert()) {
       this.report.append("<font color='gray'><b>Note:</b></font> Not configured to add group to entity in target\n");
       this.report.append("</pre>\n");
       return;
@@ -1821,7 +2167,7 @@ public class GrouperProvisioningDiagnosticsContainer {
 
         grouperProvisioningMembership.setProvisioningGroup(this.provisioningGroupWrapper.getGrouperProvisioningGroup());
         grouperProvisioningMembership.setProvisioningEntity(this.provisioningEntityWrapper.getGrouperProvisioningEntity());
-        this.grouperProvisioner.retrieveGrouperProvisioningData().getProvisioningEntityWrappers().add(this.provisioningEntityWrapper);
+        this.grouperProvisioner.retrieveGrouperProvisioningData().addAndIndexEntityWrapper(this.provisioningEntityWrapper);
 
         this.grouperProvisioner.retrieveGrouperProvisioningTranslator().translateGrouperToTargetMemberships(GrouperUtil.toList(grouperProvisioningMembership), false);
 
@@ -1902,7 +2248,7 @@ public class GrouperProvisioningDiagnosticsContainer {
 
     } finally {
       String debugInfo = this.grouperProvisioner.retrieveGrouperProvisioningTargetDaoAdapter().loggingStop();
-      debugInfo = StringUtils.defaultString(debugInfo, "None implemented for this DAO");
+      debugInfo = StringUtils.defaultString(debugInfo, "No debug info implemented for this DAO");
       this.report.append("<font color='gray'><b>Note:</b></font> Debug info:").append(this.getCurrentDuration()).append(" ").append(GrouperUtil.xmlEscape(StringUtils.trim(debugInfo))).append("\n");
       this.report.append("</pre>\n");
     }
@@ -1912,10 +2258,10 @@ public class GrouperProvisioningDiagnosticsContainer {
    * remove group from entity as an entity attribute in target
    */
   @SuppressWarnings({ "unchecked", "rawtypes" })
-  private void appendDeleteEntityAttributesMembershipFromTarget() {
+  public void appendDeleteEntityAttributesMembershipFromTarget() {
     this.report.append("<h4>Remove group from entity (entityAttribute)</h4><pre>");
     
-    if (!this.getGrouperProvisioningDiagnosticsSettings().isDiagnosticsEntityAttributesMembershipDelete()) {
+    if (!this.getGrouperProvisioningDiagnosticsSettings().isDiagnosticsMembershipDelete()) {
       this.report.append("<font color='gray'><b>Note:</b></font> Not configured to remove group from entity in target\n");
       this.report.append("</pre>\n");
       return;
@@ -1996,7 +2342,7 @@ public class GrouperProvisioningDiagnosticsContainer {
 
         grouperProvisioningMembership.setProvisioningGroup(this.provisioningGroupWrapper.getGrouperProvisioningGroup());
         grouperProvisioningMembership.setProvisioningEntity(this.provisioningEntityWrapper.getGrouperProvisioningEntity());
-        this.grouperProvisioner.retrieveGrouperProvisioningData().getProvisioningEntityWrappers().add(this.provisioningEntityWrapper);
+        this.grouperProvisioner.retrieveGrouperProvisioningData().addAndIndexEntityWrapper(this.provisioningEntityWrapper);
 
         this.grouperProvisioner.retrieveGrouperProvisioningTranslator().translateGrouperToTargetMemberships(GrouperUtil.toList(grouperProvisioningMembership), false);
 
@@ -2077,7 +2423,7 @@ public class GrouperProvisioningDiagnosticsContainer {
 
     } finally {
       String debugInfo = this.grouperProvisioner.retrieveGrouperProvisioningTargetDaoAdapter().loggingStop();
-      debugInfo = StringUtils.defaultString(debugInfo, "None implemented for this DAO");
+      debugInfo = StringUtils.defaultString(debugInfo, "No debug info implemented for this DAO");
       this.report.append("<font color='gray'><b>Note:</b></font> Debug info:").append(this.getCurrentDuration()).append(" ").append(GrouperUtil.xmlEscape(StringUtils.trim(debugInfo))).append("\n");
       this.report.append("</pre>\n");
     }

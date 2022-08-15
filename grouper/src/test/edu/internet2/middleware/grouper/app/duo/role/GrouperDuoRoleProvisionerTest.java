@@ -15,6 +15,7 @@ import edu.internet2.middleware.grouper.app.loader.GrouperLoaderStatus;
 import edu.internet2.middleware.grouper.app.loader.db.Hib3GrouperLoaderLog;
 import edu.internet2.middleware.grouper.app.provisioning.GrouperProvisioner;
 import edu.internet2.middleware.grouper.app.provisioning.GrouperProvisioningAttributeValue;
+import edu.internet2.middleware.grouper.app.provisioning.GrouperProvisioningBaseTest;
 import edu.internet2.middleware.grouper.app.provisioning.GrouperProvisioningOutput;
 import edu.internet2.middleware.grouper.app.provisioning.GrouperProvisioningService;
 import edu.internet2.middleware.grouper.app.provisioning.GrouperProvisioningType;
@@ -34,7 +35,7 @@ import edu.internet2.middleware.grouperClient.jdbc.tableSync.GcGrouperSync;
 import edu.internet2.middleware.grouperClient.jdbc.tableSync.GcGrouperSyncDao;
 import junit.textui.TestRunner;
 
-public class GrouperDuoRoleProvisionerTest extends GrouperTest {
+public class GrouperDuoRoleProvisionerTest extends GrouperProvisioningBaseTest {
 
   public GrouperDuoRoleProvisionerTest(String name) {
     super(name);
@@ -42,6 +43,11 @@ public class GrouperDuoRoleProvisionerTest extends GrouperTest {
 
   public GrouperDuoRoleProvisionerTest() {
 
+  }
+
+  @Override
+  public String defaultConfigId() {
+    return "myDuoRoleProvisioner";
   }
 
   public static void main(String[] args) {
@@ -135,11 +141,11 @@ public class GrouperDuoRoleProvisionerTest extends GrouperTest {
           MemberFinder.findBySubject(grouperSession, SubjectTestHelper.SUBJ1, true));
   
       //lets sync these over
-      GrouperProvisioner grouperProvisioner = GrouperProvisioner.retrieveProvisioner("myDuoRoleProvisioner");
       
       assertEquals(new Integer(0), new GcDbAccess().connectionName("grouper").sql("select count(1) from mock_duo_role_user").select(int.class));
       
-      GrouperProvisioningOutput grouperProvisioningOutput = grouperProvisioner.provision(GrouperProvisioningType.fullProvisionFull);
+      GrouperProvisioningOutput grouperProvisioningOutput = fullProvision();
+
       assertTrue(1 <= grouperProvisioningOutput.getInsert());
       assertEquals(2, HibernateSession.byHqlStatic().createQuery("from GrouperDuoRoleUser").list(GrouperDuoRoleUser.class).size());
       
@@ -149,15 +155,13 @@ public class GrouperDuoRoleProvisionerTest extends GrouperTest {
       //now remove one of the subjects from the testGroup
       testGroup.deleteMember(SubjectTestHelper.SUBJ1);
       
-      grouperProvisioner = GrouperProvisioner.retrieveProvisioner("myDuoRoleProvisioner");
-      grouperProvisioningOutput = grouperProvisioner.provision(GrouperProvisioningType.fullProvisionFull);
+      grouperProvisioningOutput = fullProvision();
       assertEquals(1, HibernateSession.byHqlStatic().createQuery("from GrouperDuoRoleUser").list(GrouperDuoRoleUser.class).size());
 //      
       //now delete the group and sync again
       testGroup.delete();
       
-      grouperProvisioner = GrouperProvisioner.retrieveProvisioner("myDuoRoleProvisioner");
-      grouperProvisioningOutput = grouperProvisioner.provision(GrouperProvisioningType.fullProvisionFull);
+      grouperProvisioningOutput = fullProvision();
       
       assertEquals(0, HibernateSession.byHqlStatic().createQuery("from GrouperDuoRoleUser").list(GrouperDuoRoleUser.class).size());
       
@@ -189,14 +193,12 @@ public class GrouperDuoRoleProvisionerTest extends GrouperTest {
 //  
       new GcDbAccess().connectionName("grouper").sql("delete from mock_duo_role_user").executeSql();
       
-      GrouperProvisioner grouperProvisioner = GrouperProvisioner.retrieveProvisioner("myDuoRoleProvisioner");
-      
       assertEquals(new Integer(0), new GcDbAccess().connectionName("grouper").sql("select count(1) from mock_duo_role_user").select(int.class));
       
-      GrouperProvisioningOutput grouperProvisioningOutput = grouperProvisioner.provision(GrouperProvisioningType.fullProvisionFull);
-      
-      runJobs(true, true);
-      
+      GrouperProvisioningOutput grouperProvisioningOutput = fullProvision();
+
+      incrementalProvision();
+
       GrouperSession grouperSession = GrouperSession.startRootSession();
       
       Stem stem = new StemSave(grouperSession).assignName("test").save();
@@ -245,22 +247,22 @@ public class GrouperDuoRoleProvisionerTest extends GrouperTest {
   
       assertEquals(new Integer(0), new GcDbAccess().connectionName("grouper").sql("select count(1) from mock_duo_role_user").select(int.class));
 //      
-      runJobs(true, true);
+      incrementalProvision();
       
       assertEquals(2, HibernateSession.byHqlStatic().createQuery("from GrouperDuoRoleUser").list(GrouperDuoRoleUser.class).size());
       
       //now remove one of the subjects from the testGroup
       testGroup.deleteMember(SubjectTestHelper.SUBJ1);
       
-      runJobs(true, true);
+      incrementalProvision();
       
       assertEquals(1, HibernateSession.byHqlStatic().createQuery("from GrouperDuoRoleUser").list(GrouperDuoRoleUser.class).size());
       
       //now delete the group and sync again
       testGroup.delete();
       
-      runJobs(true, true);
-      
+      incrementalProvision();
+
       assertEquals(0, HibernateSession.byHqlStatic().createQuery("from GrouperDuoRoleUser").list(GrouperDuoRoleUser.class).size());
       
     } finally {
@@ -270,28 +272,5 @@ public class GrouperDuoRoleProvisionerTest extends GrouperTest {
 //      }
     }
     
-  }
-  
-  private Hib3GrouperLoaderLog runJobs(boolean runChangeLog, boolean runConsumer) {
-    
-    // wait for message cache to clear
-    GrouperUtil.sleep(10000);
-    
-    if (runChangeLog) {
-      ChangeLogTempToEntity.convertRecords();
-    }
-    
-    if (runConsumer) {
-      Hib3GrouperLoaderLog hib3GrouploaderLog = new Hib3GrouperLoaderLog();
-      hib3GrouploaderLog.setHost(GrouperUtil.hostname());
-      hib3GrouploaderLog.setJobName("CHANGE_LOG_consumer_duoRoleProvTestCLC");
-      hib3GrouploaderLog.setStatus(GrouperLoaderStatus.RUNNING.name());
-      EsbConsumer esbConsumer = new EsbConsumer();
-      ChangeLogHelper.processRecords("duoRoleProvTestCLC", hib3GrouploaderLog, esbConsumer);
-  
-      return hib3GrouploaderLog;
-    }
-    
-    return null;
   }
 }

@@ -47,6 +47,225 @@ public abstract class GrouperProvisioningConfiguration {
   public void setCustomizeEntityCrud(boolean customizeEntityCrud) {
     this.customizeEntityCrud = customizeEntityCrud;
   }
+
+  /**
+   * # If the full or incremental provisioner should have a ERROR if there is an error in a group / entity / membership
+   * # {valueType: "boolean", order: 130010, defaultValue: "true", subSection: "errorHandling", showEl: "${errorHandlingShow}"}
+   * # provisioner.genericProvisioner.errorHandlingProvisionerDaemonShouldFailOnObjectError =
+   */
+  private boolean errorHandlingProvisionerDaemonShouldFailOnObjectError = true;
+
+  /**
+   * # If the full or incremental provisioner should have a ERROR if there is an error in a group / entity / membership
+   * # {valueType: "boolean", order: 130010, defaultValue: "true", subSection: "errorHandling", showEl: "${errorHandlingShow}"}
+   * # provisioner.genericProvisioner.errorHandlingProvisionerDaemonShouldFailOnObjectError =
+   * @return
+   */
+  public boolean isErrorHandlingProvisionerDaemonShouldFailOnObjectError() {
+    return errorHandlingProvisionerDaemonShouldFailOnObjectError;
+  }
+
+  /**
+   * # If the full or incremental provisioner should have a ERROR if there is an error in a group / entity / membership
+   * # {valueType: "boolean", order: 130010, defaultValue: "true", subSection: "errorHandling", showEl: "${errorHandlingShow}"}
+   * # provisioner.genericProvisioner.errorHandlingProvisionerDaemonShouldFailOnObjectError =
+   * @param errorHandlingProvisionerDaemonShouldFailOnObjectError
+   */
+  public void setErrorHandlingProvisionerDaemonShouldFailOnObjectError(
+      boolean errorHandlingProvisionerDaemonShouldFailOnObjectError) {
+    this.errorHandlingProvisionerDaemonShouldFailOnObjectError = errorHandlingProvisionerDaemonShouldFailOnObjectError;
+  }
+
+  /**
+   * # Object errors will be logged, at least a handful of each type
+   * # {valueType: "boolean", order: 130020, defaultValue: "true", subSection: "errorHandling", showEl: "${errorHandlingShow}"}
+   * # provisioner.genericProvisioner.errorHandlingLogErrors =
+   */
+  private boolean errorHandlingLogErrors = true;
+
+  /**
+   * # Object errors will be logged, at least a handful of each type
+   * # {valueType: "boolean", order: 130020, defaultValue: "true", subSection: "errorHandling", showEl: "${errorHandlingShow}"}
+   * # provisioner.genericProvisioner.errorHandlingLogErrors =
+   * @return
+   */
+  public boolean isErrorHandlingLogErrors() {
+    return errorHandlingLogErrors;
+  }
+
+  /**
+   * # Object errors will be logged, at least a handful of each type
+   * # {valueType: "boolean", order: 130020, defaultValue: "true", subSection: "errorHandling", showEl: "${errorHandlingShow}"}
+   * # provisioner.genericProvisioner.errorHandlingLogErrors =
+   * @param errorHandlingLogErrors
+   */
+  public void setErrorHandlingLogErrors(boolean errorHandlingLogErrors) {
+    this.errorHandlingLogErrors = errorHandlingLogErrors;
+  }
+
+  /**
+   * # Object errors will be logged, at least a handful of each type
+   * # {valueType: "integer", order: 130030, defaultValue: "5", subSection: "errorHandling", showEl: "${errorHandlingShow && errorHandlingLogErrors}"}
+   * # provisioner.genericProvisioner.errorHandlingLogCountPerType = 
+   */
+  private int errorHandlingLogCountPerType = 5;
+
+  /**
+   * # Object errors will be logged, at least a handful of each type
+   * # {valueType: "integer", order: 130030, defaultValue: "5", subSection: "errorHandling", showEl: "${errorHandlingShow && errorHandlingLogErrors}"}
+   * # provisioner.genericProvisioner.errorHandlingLogCountPerType = 
+   * @return
+   */
+  public int getErrorHandlingLogCountPerType() {
+    return errorHandlingLogCountPerType;
+  }
+
+  /**
+   * # Object errors will be logged, at least a handful of each type
+   * # {valueType: "integer", order: 130030, defaultValue: "5", subSection: "errorHandling", showEl: "${errorHandlingShow && errorHandlingLogErrors}"}
+   * # provisioner.genericProvisioner.errorHandlingLogCountPerType = 
+   * @param errorHandlingLogCountPerType1
+   */
+  public void setErrorHandlingLogCountPerType(int errorHandlingLogCountPerType1) {
+    this.errorHandlingLogCountPerType = errorHandlingLogCountPerType1;
+  }
+
+  /**
+   * # If invalid data counts as an error.  Data is invalid if it is the wrong type or fails a validation
+   * # {valueType: "boolean", order: 130040, defaultValue: "true", subSection: "errorHandling", showEl: "${errorHandlingShow}"}
+   * # provisioner.genericProvisioner.errorHandlingInvalidDataIsAnError = 
+   */
+  private boolean errorHandlingInvalidDataIsAnError = true;
+
+  /**
+   * # If invalid data counts as an error.  Data is invalid if it is the wrong type or fails a validation
+   * # {valueType: "boolean", order: 130040, defaultValue: "true", subSection: "errorHandling", showEl: "${errorHandlingShow}"}
+   * # provisioner.genericProvisioner.errorHandlingInvalidDataIsAnError = 
+   * @return
+   */
+  public boolean isErrorHandlingInvalidDataIsAnError() {
+    return errorHandlingInvalidDataIsAnError;
+  }
+
+  /**
+   * # If invalid data counts as an error.  Data is invalid if it is the wrong type or fails a validation
+   * # {valueType: "boolean", order: 130040, defaultValue: "true", subSection: "errorHandling", showEl: "${errorHandlingShow}"}
+   * # provisioner.genericProvisioner.errorHandlingInvalidDataIsAnError = 
+   * @param errorHandlingInvalidDataIsAnError
+   */
+  public void setErrorHandlingInvalidDataIsAnError(boolean errorHandlingInvalidDataIsAnError) {
+    this.errorHandlingInvalidDataIsAnError = errorHandlingInvalidDataIsAnError;
+  }
+
+  /**
+   * # If attribute length validation counts as an error.  This happens when there is a max length on an attribute and the data is too long
+   * # {valueType: "boolean", order: 130050, defaultValue: "true", subSection: "errorHandling", showEl: "${errorHandlingShow}"}
+   * # provisioner.genericProvisioner.errorHandlingLengthValidationIsAnError = 
+   */
+  private boolean errorHandlingLengthValidationIsAnError = true;
+
+  /**
+   * # If attribute length validation counts as an error.  This happens when there is a max length on an attribute and the data is too long
+   * # {valueType: "boolean", order: 130050, defaultValue: "true", subSection: "errorHandling", showEl: "${errorHandlingShow}"}
+   * # provisioner.genericProvisioner.errorHandlingLengthValidationIsAnError = 
+   * @return
+   */
+  public boolean isErrorHandlingLengthValidationIsAnError() {
+    return errorHandlingLengthValidationIsAnError;
+  }
+
+  /**
+   * # If attribute length validation counts as an error.  This happens when there is a max length on an attribute and the data is too long
+   * # {valueType: "boolean", order: 130050, defaultValue: "true", subSection: "errorHandling", showEl: "${errorHandlingShow}"}
+   * # provisioner.genericProvisioner.errorHandlingLengthValidationIsAnError = 
+   * @param errorHandlingLengthValidationIsAnError
+   */
+  public void setErrorHandlingLengthValidationIsAnError(boolean errorHandlingLengthValidationIsAnError) {
+    this.errorHandlingLengthValidationIsAnError = errorHandlingLengthValidationIsAnError;
+  }
+
+  /**
+   * # If the grouper translated objects match to multiple target objects on the same attribute, then this problem happens
+   * # {valueType: "boolean", order: 130065, defaultValue: "true", subSection: "errorHandling", showEl: "${errorHandlingShow}"}
+   * # provisioner.genericProvisioner.errorHandlingMatchingValidationIsAnError = 
+   */
+  private boolean errorHandlingMatchingValidationIsAnError = true;
+
+  /**
+   * # If the grouper translated objects match to multiple target objects on the same attribute, then this problem happens
+   * # {valueType: "boolean", order: 130065, defaultValue: "true", subSection: "errorHandling", showEl: "${errorHandlingShow}"}
+   * # provisioner.genericProvisioner.errorHandlingMatchingValidationIsAnError = 
+   * @return true if so
+   */
+  public boolean isErrorHandlingMatchingValidationIsAnError() {
+    return this.errorHandlingMatchingValidationIsAnError;
+  }
+
+  /**
+   * # If the grouper translated objects match to multiple target objects on the same attribute, then this problem happens
+   * # {valueType: "boolean", order: 130065, defaultValue: "true", subSection: "errorHandling", showEl: "${errorHandlingShow}"}
+   * # provisioner.genericProvisioner.errorHandlingMatchingValidationIsAnError = 
+   * @param errorHandlingMatchingValidationIsAnError1
+   */
+  public void setErrorHandlingMatchingValidationIsAnError(boolean errorHandlingMatchingValidationIsAnError1) {
+    this.errorHandlingMatchingValidationIsAnError = errorHandlingMatchingValidationIsAnError1;
+  }
+
+  /**
+   * # If required but missing attributes count as an error.  Attribute can be marked as required, if they are blank then this problem happens
+   * # {valueType: "boolean", order: 130060, defaultValue: "true", subSection: "errorHandling", showEl: "${errorHandlingShow}"}
+   * # provisioner.genericProvisioner.errorHandlingRequiredValidationIsAnError = 
+   */
+  private boolean errorHandlingRequiredValidationIsAnError = true;
+
+  /**
+   * # If required but missing attributes count as an error.  Attribute can be marked as required, if they are blank then this problem happens
+   * # {valueType: "boolean", order: 130060, defaultValue: "true", subSection: "errorHandling", showEl: "${errorHandlingShow}"}
+   * # provisioner.genericProvisioner.errorHandlingRequiredValidationIsAnError = 
+   * @return
+   */
+  public boolean isErrorHandlingRequiredValidationIsAnError() {
+    return errorHandlingRequiredValidationIsAnError;
+  }
+  
+  /**
+   * # If required but missing attributes count as an error.  Attribute can be marked as required, if they are blank then this problem happens
+   * # {valueType: "boolean", order: 130060, defaultValue: "true", subSection: "errorHandling", showEl: "${errorHandlingShow}"}
+   * # provisioner.genericProvisioner.errorHandlingRequiredValidationIsAnError = 
+   * @param errorHandlingRequiredValidationIsAnError
+   */
+  public void setErrorHandlingRequiredValidationIsAnError(boolean errorHandlingRequiredValidationIsAnError) {
+    this.errorHandlingRequiredValidationIsAnError = errorHandlingRequiredValidationIsAnError;
+  }
+
+  /**
+   * # If missing object in target counts as an error.  If the object is missing from the target and cannot be created this this problem happens
+   * # {valueType: "boolean", order: 130070, defaultValue: "true", subSection: "errorHandling", showEl: "${errorHandlingShow}"}
+   * # provisioner.genericProvisioner.errorHandlingTargetObjectDoesNotExistIsAnError = 
+   */
+  private boolean errorHandlingTargetObjectDoesNotExistIsAnError = true;
+
+  /**
+   * # If missing object in target counts as an error.  If the object is missing from the target and cannot be created this this problem happens
+   * # {valueType: "boolean", order: 130070, defaultValue: "true", subSection: "errorHandling", showEl: "${errorHandlingShow}"}
+   * # provisioner.genericProvisioner.errorHandlingTargetObjectDoesNotExistIsAnError = 
+   * @return
+   */
+  public boolean isErrorHandlingTargetObjectDoesNotExistIsAnError() {
+    return errorHandlingTargetObjectDoesNotExistIsAnError;
+  }
+
+  /**
+   * # If missing object in target counts as an error.  If the object is missing from the target and cannot be created this this problem happens
+   * # {valueType: "boolean", order: 130070, defaultValue: "true", subSection: "errorHandling", showEl: "${errorHandlingShow}"}
+   * # provisioner.genericProvisioner.errorHandlingTargetObjectDoesNotExistIsAnError = 
+   * @param errorHandlingTargetObjectDoesNotExistIsAnError
+   */
+  public void setErrorHandlingTargetObjectDoesNotExistIsAnError(boolean errorHandlingTargetObjectDoesNotExistIsAnError) {
+    this.errorHandlingTargetObjectDoesNotExistIsAnError = errorHandlingTargetObjectDoesNotExistIsAnError;
+  }
+
+  
   
   private boolean makeChangesToEntities;
   
@@ -116,11 +335,6 @@ public abstract class GrouperProvisioningConfiguration {
   private boolean filterAllLDAPOnFull = true;
   
   private boolean loadEntitiesToGrouperTable;
-  private boolean allowBlankMatchingIds;
-  
-  public boolean isAllowBlankMatchingIds() {
-    return allowBlankMatchingIds;
-  }
 
 
   private String entityAttributesSqlExternalSystem;
@@ -683,9 +897,28 @@ public abstract class GrouperProvisioningConfiguration {
   
   private boolean logAllObjectsVerbose = false;
   
+  private boolean logAllObjectsVerboseToLogFile = false;
+
+  private boolean logAllObjectsVerboseToDaemonDbLog = false;
   
   
   
+  public boolean isLogAllObjectsVerboseToLogFile() {
+    return logAllObjectsVerboseToLogFile;
+  }
+
+  public void setLogAllObjectsVerboseToLogFile(boolean logAllObjectsVerboseToLogFile) {
+    this.logAllObjectsVerboseToLogFile = logAllObjectsVerboseToLogFile;
+  }
+
+  public boolean isLogAllObjectsVerboseToDaemonDbLog() {
+    return logAllObjectsVerboseToDaemonDbLog;
+  }
+
+  public void setLogAllObjectsVerboseToDaemonDbLog(boolean logAllObjectsVerboseToDaemonDbLog) {
+    this.logAllObjectsVerboseToDaemonDbLog = logAllObjectsVerboseToDaemonDbLog;
+  }
+
   public boolean isLogAllObjectsVerbose() {
     return logAllObjectsVerbose;
   }
@@ -1207,7 +1440,20 @@ public abstract class GrouperProvisioningConfiguration {
    */
   private boolean selectAllEntities = true;
   
+  /**
+   * should the provisioner select all groups from the target
+   */
+  private boolean selectAllGroups = true;
   
+  
+  public boolean isSelectAllGroups() {
+    return selectAllGroups;
+  }
+
+  public void setSelectAllGroups(boolean selectAllGroups) {
+    this.selectAllGroups = selectAllGroups;
+  }
+
   /**
    * delete entities if grouper deleted them
    * @return
@@ -1979,6 +2225,16 @@ public abstract class GrouperProvisioningConfiguration {
         }
   
         {
+          String translateExpressionType = this.retrieveConfigString(objectType + "."+i+".translateExpressionType" , false);
+          attributeConfig.setTranslateExpressionType(GrouperProvisioningConfigurationAttributeTranslationType.valueOfIgnoreCase(translateExpressionType, false));
+        }
+        
+        {
+          String translateExpressionType = this.retrieveConfigString(objectType + "."+i+".translateExpressionTypeCreateOnly" , false);
+          attributeConfig.setTranslateExpressionTypeCreateOnly(GrouperProvisioningConfigurationAttributeTranslationType.valueOfIgnoreCase(translateExpressionType, false));
+        }
+        
+        {
           String translateExpression = this.retrieveConfigString(objectType + "."+i+".translateExpression" , false);
           attributeConfig.setTranslateExpression(translateExpression);
         }
@@ -2135,6 +2391,10 @@ public abstract class GrouperProvisioningConfiguration {
 
     this.logAllObjectsVerbose = GrouperUtil.defaultIfNull(this.retrieveConfigBoolean("logAllObjectsVerbose", false), false);
 
+    this.logAllObjectsVerboseToDaemonDbLog = GrouperUtil.defaultIfNull(this.retrieveConfigBoolean("logAllObjectsVerboseToDaemonDbLog", false), true);
+
+    this.logAllObjectsVerboseToLogFile = GrouperUtil.defaultIfNull(this.retrieveConfigBoolean("logAllObjectsVerboseToLogFile", false), true);
+
     this.logCommandsAlways = GrouperUtil.defaultIfNull(this.retrieveConfigBoolean("logCommandsAlways", false), false);
     
     this.logCommandsOnError = GrouperUtil.defaultIfNull(this.retrieveConfigBoolean("logCommandsOnError", false), false);
@@ -2264,6 +2524,21 @@ public abstract class GrouperProvisioningConfiguration {
           (deleteMemberships && !this.deleteMembershipsIfNotExistInGrouper && !this.deleteMembershipsIfGrouperDeleted));
     }
 
+    boolean errorHandlingShow = GrouperUtil.booleanValue(this.retrieveConfigBoolean("errorHandlingShow", false), false);
+
+    if (errorHandlingShow) {
+      
+      this.errorHandlingLogErrors = GrouperUtil.booleanValue(this.retrieveConfigBoolean("errorHandlingLogErrors", false), true);
+      this.errorHandlingLogCountPerType = GrouperUtil.intValue(this.retrieveConfigInt("errorHandlingLogCountPerType", false), 5);
+      this.errorHandlingProvisionerDaemonShouldFailOnObjectError = GrouperUtil.booleanValue(this.retrieveConfigBoolean("errorHandlingProvisionerDaemonShouldFailOnObjectError", false), true);
+      this.errorHandlingInvalidDataIsAnError = GrouperUtil.booleanValue(this.retrieveConfigBoolean("errorHandlingInvalidDataIsAnError", false), true);
+      this.errorHandlingLengthValidationIsAnError = GrouperUtil.booleanValue(this.retrieveConfigBoolean("errorHandlingLengthValidationIsAnError", false), true);
+      this.errorHandlingMatchingValidationIsAnError = GrouperUtil.booleanValue(this.retrieveConfigBoolean("errorHandlingMatchingValidationIsAnError", false), true);
+      this.errorHandlingRequiredValidationIsAnError = GrouperUtil.booleanValue(this.retrieveConfigBoolean("errorHandlingRequiredValidationIsAnError", false), true);
+      this.errorHandlingTargetObjectDoesNotExistIsAnError = GrouperUtil.booleanValue(this.retrieveConfigBoolean("errorHandlingTargetObjectDoesNotExistIsAnError", false), true);
+      
+    }
+    
     this.makeChangesToEntities = GrouperUtil.booleanValue(this.retrieveConfigBoolean("makeChangesToEntities", false), false);
 
     // reset some defaults if making changes
@@ -2294,11 +2569,11 @@ public abstract class GrouperProvisioningConfiguration {
           
     }
     this.selectAllEntities = GrouperUtil.booleanValue(this.retrieveConfigBoolean("selectAllEntities", false), true);
+    this.selectAllGroups = GrouperUtil.booleanValue(this.retrieveConfigBoolean("selectAllGroups", false), true);
 
     this.groupIdOfUsersToProvision = this.retrieveConfigString("groupIdOfUsersToProvision", false);
     
     this.loadEntitiesToGrouperTable = GrouperUtil.booleanValue(this.retrieveConfigBoolean("loadEntitiesToGrouperTable", false), false);
-    this.allowBlankMatchingIds = GrouperUtil.booleanValue(this.retrieveConfigBoolean("allowBlankMatchingIds", false), false);
     
     this.hasEntityAttributes = GrouperUtil.booleanValue(this.retrieveConfigBoolean("entityResolver.entityAttributesNotInSubjectSource", false), false);
     this.resolveAttributesWithSql = GrouperUtil.booleanValue(this.retrieveConfigBoolean("entityResolver.resolveAttributesWithSQL", false), false);
@@ -2366,7 +2641,7 @@ public abstract class GrouperProvisioningConfiguration {
       }
     }
 
-    boolean entityMatchingAttributeSameAsSearchAttribute = GrouperUtil.booleanValue(this.retrieveConfigBoolean("entityMatchingAttributeSameAsSearchAttribute", false), true);
+    this.entityMatchingAttributeSameAsSearchAttribute = GrouperUtil.booleanValue(this.retrieveConfigBoolean("entityMatchingAttributeSameAsSearchAttribute", false), true);
     int entityMatchingAttributeCount = GrouperUtil.intValue(this.retrieveConfigInt("entityMatchingAttributeCount", false), 0);
     this.entityMatchingAttributes = new ArrayList<GrouperProvisioningConfigurationAttribute>();
     this.entitySearchAttributes = new ArrayList<GrouperProvisioningConfigurationAttribute>();
@@ -2396,7 +2671,7 @@ public abstract class GrouperProvisioningConfiguration {
       }
     }
 
-    boolean groupMatchingAttributeSameAsSearchAttribute = GrouperUtil.booleanValue(this.retrieveConfigBoolean("groupMatchingAttributeSameAsSearchAttribute", false), true);
+    this.groupMatchingAttributeSameAsSearchAttribute = GrouperUtil.booleanValue(this.retrieveConfigBoolean("groupMatchingAttributeSameAsSearchAttribute", false), true);
     int groupMatchingAttributeCount = GrouperUtil.intValue(this.retrieveConfigInt("groupMatchingAttributeCount", false), 0);
     this.groupMatchingAttributes = new ArrayList<GrouperProvisioningConfigurationAttribute>();
     this.groupSearchAttributes = new ArrayList<GrouperProvisioningConfigurationAttribute>();
@@ -2508,6 +2783,22 @@ public abstract class GrouperProvisioningConfiguration {
     
   }
   
+  private boolean groupMatchingAttributeSameAsSearchAttribute;
+  
+  
+  
+  public boolean isGroupMatchingAttributeSameAsSearchAttribute() {
+    return groupMatchingAttributeSameAsSearchAttribute;
+  }
+
+  private boolean entityMatchingAttributeSameAsSearchAttribute;
+  
+  
+  
+  public boolean isEntityMatchingAttributeSameAsSearchAttribute() {
+    return entityMatchingAttributeSameAsSearchAttribute;
+  }
+
   public boolean isGroupsRequireMembers() {
     return groupsRequireMembers;
   }
@@ -2929,12 +3220,18 @@ public abstract class GrouperProvisioningConfiguration {
   }
 
 
-
-
-
-
   public String getEntityAttributesLdapSubjectSource() {
     return entityAttributesLdapSubjectSource;
+  }
+  
+  public int getDaoSleepBeforeSelectAfterInsertMillis() {
+    return 0;
+  }
+
+  /**
+   * finish configuration after figuring out metadata
+   */
+  public void configureAfterMetadata() {
   }
   
 }

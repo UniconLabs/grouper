@@ -70,18 +70,19 @@
                           
                           <c:forEach items="${grouperRequestContainer.provisioningContainer.grouperProvisioningObjectMetadataItems}" var="metadataItem">
 			  				
-			  				<grouper:provisioningMetadataItemFormElement
-			  				    name="${metadataItem.name}"
-			  					formElementType="${metadataItem.formElementType}" 
-			  					labelKey="${metadataItem.labelKey}"
-			  					descriptionKey="${metadataItem.descriptionKey}"
-			  					required="${metadataItem.required}"
-			  					value="${metadataItem.defaultValue}"
-			  					readOnly="${metadataItem.readOnly}"
-			  					valuesAndLabels="${metadataItem.keysAndLabelsForDropdown}"
-			  				/>
+            			  				<grouper:provisioningMetadataItemFormElement
+            			  				    name="${metadataItem.name}"
+            			  					formElementType="${metadataItem.formElementType}" 
+            			  					labelKey="${metadataItem.labelKey}"
+            			  					descriptionKey="${metadataItem.descriptionKey}"
+            			  					required="${metadataItem.required}"
+            			  					value="${metadataItem.defaultValue}"
+            			  					readOnly="${metadataItem.readOnly}"
+            			  					valuesAndLabels="${metadataItem.keysAndLabelsForDropdown}"
+                              ajaxCallback="ajax('../app/UiV2Provisioning.editProvisioningOn${ObjectType}', {formIds: 'editProvisioningFormId'}); return false;"
+            			  				/>
 			  				
-			  		    </c:forEach>
+			  		             </c:forEach>
                           
                         </c:if>
 

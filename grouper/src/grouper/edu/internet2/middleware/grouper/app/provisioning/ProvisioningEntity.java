@@ -219,8 +219,11 @@ public class ProvisioningEntity extends ProvisioningUpdatable {
     firstField = this.toStringProvisioningUpdatable(result, firstField);
     
     if (this.provisioningEntityWrapper != null) {
-      if (this.provisioningEntityWrapper.isRecalc()) {
-        firstField = toStringAppendField(result, firstField, "recalc", this.provisioningEntityWrapper.isRecalc());
+      if (this.provisioningEntityWrapper.isRecalcObject()) {
+        firstField = toStringAppendField(result, firstField, "recalcObject", this.provisioningEntityWrapper.isRecalcObject());
+      }
+      if (this.provisioningEntityWrapper.isRecalcEntityMemberships()) {
+        firstField = toStringAppendField(result, firstField, "recalcMships", this.provisioningEntityWrapper.isRecalcEntityMemberships());
       }
       if (this.provisioningEntityWrapper.isCreate()) {
         firstField = toStringAppendField(result, firstField, "create", this.provisioningEntityWrapper.isCreate());
@@ -251,16 +254,6 @@ public class ProvisioningEntity extends ProvisioningUpdatable {
     provisioningEntity.provisioningEntityWrapper = this.provisioningEntityWrapper;
 
     return provisioningEntity;
-  }
-
-  public void assignSearchFilter() {
-    String userSearchFilter = this.getProvisioningEntityWrapper().getGrouperProvisioner().retrieveGrouperProvisioningConfiguration().getEntitySearchFilter();
-    if (!StringUtils.isBlank(userSearchFilter)) {
-      Map<String, Object> variableMap = new HashMap<String, Object>();
-      variableMap.put("targetEntity", this);
-      String result = GrouperUtil.stringValue(this.getProvisioningEntityWrapper().getGrouperProvisioner().retrieveGrouperProvisioningTranslator().runExpression(userSearchFilter, variableMap));
-      this.setSearchFilter(result);
-    }
   }
 
   @Override
@@ -339,6 +332,11 @@ public class ProvisioningEntity extends ProvisioningUpdatable {
     }
     // regular delete was already checked
     return true;
+  }
+
+  @Override
+  public String objectTypeName() {
+    return "entity";
   }
 
 }

@@ -11,6 +11,7 @@ import edu.internet2.middleware.grouper.app.loader.GrouperLoaderStatus;
 import edu.internet2.middleware.grouper.app.loader.db.Hib3GrouperLoaderLog;
 import edu.internet2.middleware.grouper.app.provisioning.GrouperProvisioner;
 import edu.internet2.middleware.grouper.app.provisioning.GrouperProvisioningAttributeValue;
+import edu.internet2.middleware.grouper.app.provisioning.GrouperProvisioningBaseTest;
 import edu.internet2.middleware.grouper.app.provisioning.GrouperProvisioningOutput;
 import edu.internet2.middleware.grouper.app.provisioning.GrouperProvisioningService;
 import edu.internet2.middleware.grouper.app.provisioning.GrouperProvisioningType;
@@ -29,12 +30,17 @@ import edu.internet2.middleware.grouper.util.GrouperUtil;
 import edu.internet2.middleware.grouperClient.jdbc.GcDbAccess;
 import junit.textui.TestRunner;
 
-public class GrouperMessagingProvisionerTest extends GrouperTest {
+public class GrouperMessagingProvisionerTest extends GrouperProvisioningBaseTest {
   
   public static boolean startTomcat = false;
   
   public GrouperMessagingProvisionerTest(String name) {
     super(name);
+  }
+
+  @Override
+  public String defaultConfigId() {
+    return "myMessagingProvisioner";
   }
 
   public static void main(String[] args) {
@@ -62,11 +68,10 @@ public class GrouperMessagingProvisionerTest extends GrouperTest {
         // TODO: handle exception
       }
 
-      GrouperProvisioner grouperProvisioner = GrouperProvisioner.retrieveProvisioner("myMessagingProvisioner");
+      GrouperProvisioningOutput grouperProvisioningOutput = fullProvision();
+      GrouperProvisioner grouperProvisioner = GrouperProvisioner.retrieveInternalLastProvisioner();
       
-      GrouperProvisioningOutput grouperProvisioningOutput = grouperProvisioner.provision(GrouperProvisioningType.fullProvisionFull);
-      
-      runJobs(true, true);
+      incrementalProvision();
       
       GrouperSession grouperSession = GrouperSession.startRootSession();
       
@@ -94,9 +99,9 @@ public class GrouperMessagingProvisionerTest extends GrouperTest {
 //      assertEquals(new Integer(0), new GcDbAccess().connectionName("grouper").sql("select count(1) from mock_azure_group").select(int.class));
 //      assertEquals(0, HibernateSession.byHqlStatic().createQuery("from GrouperAzureGroup").list(GrouperAzureGroup.class).size());
       
-      runJobs(true, true);
+      incrementalProvision();
       
-      // one group add, two members add, two memberships add
+      // (5) one group add, two members add, two memberships add
       assertEquals(new Integer(5), new GcDbAccess().connectionName("grouper").sql("select count(1) from grouper_message").select(int.class));
       
       // update group description and it should generate one message
@@ -104,28 +109,39 @@ public class GrouperMessagingProvisionerTest extends GrouperTest {
           .assignName(testGroup.getName()+"New")
           .assignUuid(testGroup.getUuid()).assignSaveMode(SaveMode.UPDATE).save();
       
-      runJobs(true, true);
+      incrementalProvision();
       
-      // one group add, two members add, two memberships add, one group update
+      // (5) one group add, two members add, two memberships add
+      // (1) one group update
       assertEquals(new Integer(6), new GcDbAccess().connectionName("grouper").sql("select count(1) from grouper_message").select(int.class));
       
       //now remove one of the subjects from the testGroup
       testGroup.deleteMember(SubjectTestHelper.SUBJ1);
-      runJobs(true, true);
+      incrementalProvision();
       
-      // one group add, two members add, two memberships add, one group update, one member remove, one membership remove
+      // (5) one group add, two members add, two memberships add
+      // (1) one group update
+      // (2) one member remove, one membership remove
       assertEquals(new Integer(8), new GcDbAccess().connectionName("grouper").sql("select count(1) from grouper_message").select(int.class));
       
       testGroup.addMember(SubjectTestHelper.SUBJ3);
-      runJobs(true, true);
+      incrementalProvision();
       
-      // one group add, three members add, three memberships add, one group update, one member remove, one membership remove
+      // (5) one group add, two members add, two memberships add
+      // (1) one group update
+      // (2) one member remove, one membership remove
+      // (2) one member add, one membership add
       assertEquals(new Integer(10), new GcDbAccess().connectionName("grouper").sql("select count(1) from grouper_message").select(int.class));
       
       //now delete the group and sync again
       testGroup.delete();
-      runJobs(true, true);
+      incrementalProvision();
       
+      // (5) one group add, two members add, two memberships add
+      // (1) one group update
+      // (2) one membership remove, one member remove
+      // (2) one member add, one membership add
+      // (5) two membership remove, two member remove, one group delete
       assertEquals(new Integer(15), new GcDbAccess().connectionName("grouper").sql("select count(1) from grouper_message").select(int.class));
       
     } finally {
@@ -137,27 +153,4 @@ public class GrouperMessagingProvisionerTest extends GrouperTest {
     
   }
   
-  private Hib3GrouperLoaderLog runJobs(boolean runChangeLog, boolean runConsumer) {
-    
-    // wait for message cache to clear
-    GrouperUtil.sleep(10000);
-    
-    if (runChangeLog) {
-      ChangeLogTempToEntity.convertRecords();
-    }
-    
-    if (runConsumer) {
-      Hib3GrouperLoaderLog hib3GrouploaderLog = new Hib3GrouperLoaderLog();
-      hib3GrouploaderLog.setHost(GrouperUtil.hostname());
-      hib3GrouploaderLog.setJobName("CHANGE_LOG_consumer_messagingProvTestCLC");
-      hib3GrouploaderLog.setStatus(GrouperLoaderStatus.RUNNING.name());
-      EsbConsumer esbConsumer = new EsbConsumer();
-      ChangeLogHelper.processRecords("messagingProvTestCLC", hib3GrouploaderLog, esbConsumer);
-  
-      return hib3GrouploaderLog;
-    }
-    
-    return null;
-  }
-
 }

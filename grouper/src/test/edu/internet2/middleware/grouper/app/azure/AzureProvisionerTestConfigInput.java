@@ -10,10 +10,27 @@ import java.util.Map;
  */
 public class AzureProvisionerTestConfigInput {
   
+  private boolean realAzure = false;
+  
+  /**
+   * 
+   * @param theRealAzure
+   * @return this for chaining
+   */
+  public AzureProvisionerTestConfigInput assignRealAzure(boolean theRealAzure) {
+    this.realAzure = theRealAzure;
+    return this;
+  }
+  
   private String displayNameMapping = "name";
   
   
   
+  public boolean isRealAzure() {
+    return realAzure;
+  }
+
+
   public String getDisplayNameMapping() {
     return displayNameMapping;
   }
@@ -49,15 +66,30 @@ public class AzureProvisionerTestConfigInput {
     return this.extraConfig;
   }
 
+  private boolean udelUseCase = false;
+  
+  
+  
+  public boolean isUdelUseCase() {
+    return udelUseCase;
+  }
+
+
+  public AzureProvisionerTestConfigInput assignUdelUseCase(boolean udelUseCase) {
+    this.udelUseCase = udelUseCase;
+    return this;
+  }
+
+
   /**
-   * 5 (default), or 8
+   * 3 (default), or 5
    */
   public int getGroupAttributeCount() {
     return groupAttributeCount;
   }
 
   /**
-   * 5 (default), or 8
+   * 3 (default), or 5
    */
   public AzureProvisionerTestConfigInput assignGroupAttributeCount(int groupAttributeCount) {
     this.groupAttributeCount = groupAttributeCount;
@@ -70,9 +102,32 @@ public class AzureProvisionerTestConfigInput {
   private String configId = "myAzureProvisioner";
 
   /**
-   * 5 (default), or 8
+   * 4, or 5 (default)
    */
-  private int groupAttributeCount = 5;
+  private int entityAttributeCount = 5;
+
+  
+  /**
+   * 4, or 5 (default)
+   * @return
+   */
+  public int getEntityAttributeCount() {
+    return entityAttributeCount;
+  }
+
+  /**
+   * 4, or 5 (default)
+   * @param entityAttributeCount
+   */
+  public AzureProvisionerTestConfigInput assignEntityAttributeCount(int entityAttributeCount) {
+    this.entityAttributeCount = entityAttributeCount;
+    return this;
+  }
+
+  /**
+   * 3 (default), or 5
+   */
+  private int groupAttributeCount = 3;
   
   /**
    * default to myAzureProvisioner

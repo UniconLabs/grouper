@@ -14,12 +14,10 @@ import javax.servlet.http.HttpServletResponse;
 import org.apache.commons.lang3.BooleanUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
 
 import edu.internet2.middleware.grouper.GrouperSession;
 import edu.internet2.middleware.grouper.app.config.GrouperConfigurationModuleAttribute;
 import edu.internet2.middleware.grouper.app.provisioning.GrouperProvisioner;
-import edu.internet2.middleware.grouper.app.provisioning.GrouperProvisioningBehaviorMembershipType;
 import edu.internet2.middleware.grouper.app.provisioning.GrouperProvisioningDiagnosticsContainer;
 import edu.internet2.middleware.grouper.app.provisioning.GrouperProvisioningService;
 import edu.internet2.middleware.grouper.app.provisioning.GrouperProvisioningSettings;
@@ -30,7 +28,6 @@ import edu.internet2.middleware.grouper.app.provisioning.ProvisioningConfigurati
 import edu.internet2.middleware.grouper.audit.AuditEntry;
 import edu.internet2.middleware.grouper.audit.AuditTypeBuiltin;
 import edu.internet2.middleware.grouper.cfg.dbConfig.ConfigItemFormElement;
-import edu.internet2.middleware.grouper.cfg.dbConfig.OptionValueDriver;
 import edu.internet2.middleware.grouper.changeLog.esb.consumer.ProvisioningMessage;
 import edu.internet2.middleware.grouper.grouperUi.beans.json.GuiPaging;
 import edu.internet2.middleware.grouper.grouperUi.beans.json.GuiResponseJs;
@@ -68,7 +65,7 @@ import edu.internet2.middleware.subject.Subject;
 public class UiV2ProvisionerConfiguration {
   
   /** logger */
-  protected static final Log LOG = LogFactory.getLog(UiV2ProvisionerConfiguration.class);
+  protected static final Log LOG = edu.internet2.middleware.grouper.util.GrouperUtil.getLog(UiV2ProvisionerConfiguration.class);
   
   /**
    * keep an expirble cache of diagnostic progress for 5 hours (longest a diagnostics is expected).  This has multikey of session id and some random uuid
@@ -200,27 +197,15 @@ public class UiV2ProvisionerConfiguration {
           }
         }
         {
-          boolean diagnosticsGroupAttributesMembershipInsertName = GrouperUtil.booleanValue(request.getParameter("diagnosticsGroupAttributesMembershipInsertName[]"), false);
-          if (diagnosticsGroupAttributesMembershipInsertName && GrouperProvisioningBehaviorMembershipType.groupAttributes == provisioner.retrieveGrouperProvisioningBehavior().getGrouperProvisioningBehaviorMembershipType()) {
-            grouperProvisioningDiagnosticsContainer.getGrouperProvisioningDiagnosticsSettings().setDiagnosticsGroupAttributesMembershipInsert(diagnosticsGroupAttributesMembershipInsertName);
+          boolean diagnosticsMembershipInsertName = GrouperUtil.booleanValue(request.getParameter("diagnosticsMembershipInsertName[]"), false);
+          if (diagnosticsMembershipInsertName) {
+            grouperProvisioningDiagnosticsContainer.getGrouperProvisioningDiagnosticsSettings().setDiagnosticsMembershipInsert(diagnosticsMembershipInsertName);
           }
         }
         {
-          boolean diagnosticsGroupAttributesMembershipDeleteName = GrouperUtil.booleanValue(request.getParameter("diagnosticsGroupAttributesMembershipDeleteName[]"), false);
-          if (diagnosticsGroupAttributesMembershipDeleteName && GrouperProvisioningBehaviorMembershipType.groupAttributes == provisioner.retrieveGrouperProvisioningBehavior().getGrouperProvisioningBehaviorMembershipType()) {
-            grouperProvisioningDiagnosticsContainer.getGrouperProvisioningDiagnosticsSettings().setDiagnosticsGroupAttributesMembershipDelete(diagnosticsGroupAttributesMembershipDeleteName);
-          }
-        }
-        {
-          boolean diagnosticsEntityAttributesMembershipInsertName = GrouperUtil.booleanValue(request.getParameter("diagnosticsEntityAttributesMembershipInsertName[]"), false);
-          if (diagnosticsEntityAttributesMembershipInsertName && GrouperProvisioningBehaviorMembershipType.entityAttributes == provisioner.retrieveGrouperProvisioningBehavior().getGrouperProvisioningBehaviorMembershipType()) {
-            grouperProvisioningDiagnosticsContainer.getGrouperProvisioningDiagnosticsSettings().setDiagnosticsEntityAttributesMembershipInsert(diagnosticsEntityAttributesMembershipInsertName);
-          }
-        }
-        {
-          boolean diagnosticsEntityAttributesMembershipDeleteName = GrouperUtil.booleanValue(request.getParameter("diagnosticsEntityAttributesMembershipDeleteName[]"), false);
-          if (diagnosticsEntityAttributesMembershipDeleteName && GrouperProvisioningBehaviorMembershipType.entityAttributes == provisioner.retrieveGrouperProvisioningBehavior().getGrouperProvisioningBehaviorMembershipType()) {
-            grouperProvisioningDiagnosticsContainer.getGrouperProvisioningDiagnosticsSettings().setDiagnosticsEntityAttributesMembershipDelete(diagnosticsEntityAttributesMembershipDeleteName);
+          boolean diagnosticsMembershipDeleteName = GrouperUtil.booleanValue(request.getParameter("diagnosticsMembershipDeleteName[]"), false);
+          if (diagnosticsMembershipDeleteName) {
+            grouperProvisioningDiagnosticsContainer.getGrouperProvisioningDiagnosticsSettings().setDiagnosticsMembershipDelete(diagnosticsMembershipDeleteName);
           }
         }
       }
@@ -417,7 +402,7 @@ public class UiV2ProvisionerConfiguration {
         diagnosticsThreadProgress.put(diagnosticsMultiKey, null);
       }
       
-      List<ProvisioningConfiguration> provisionerConfigurations = ProvisioningConfiguration.retrieveAllProvisioningConfigurations();
+      List<ProvisioningConfiguration> provisionerConfigurations = ProvisioningConfiguration.retrieveAllViewableProvisioningConfigurations(loggedInSubject);
       
       List<GuiProvisionerConfiguration> guiProvisionerConfigurations = GuiProvisionerConfiguration.convertFromProvisioningConfiguration(provisionerConfigurations);
       
@@ -452,14 +437,14 @@ public class UiV2ProvisionerConfiguration {
       
       ProvisionerConfigurationContainer provisionerConfigurationContainer = GrouperRequestContainer.retrieveFromRequestOrCreate().getProvisionerConfigurationContainer();
       
-      if (!provisionerConfigurationContainer.isCanViewProvisionerConfiguration()) {
-        throw new RuntimeException("Not allowed!!!!!");
-      }
-      
       String provisionerConfigId = request.getParameter("provisionerConfigId");
       
       if (StringUtils.isBlank(provisionerConfigId)) {
         throw new RuntimeException("provisionerConfigId cannot be blank");
+      }
+      
+      if (!provisionerConfigurationContainer.isCanViewProvisionerConfiguration(provisionerConfigId)) {
+        throw new RuntimeException("Not allowed!!!!!");
       }
       
       GrouperProvisioner grouperProvisioner = GrouperProvisioner.retrieveProvisioner(provisionerConfigId);
@@ -496,14 +481,14 @@ public class UiV2ProvisionerConfiguration {
       
       ProvisionerConfigurationContainer provisionerConfigurationContainer = GrouperRequestContainer.retrieveFromRequestOrCreate().getProvisionerConfigurationContainer();
       
-      if (!provisionerConfigurationContainer.isCanViewProvisionerConfiguration()) {
-        throw new RuntimeException("Not allowed!!!!!");
-      }
-      
       String provisionerConfigId = request.getParameter("provisionerConfigId");
       
       if (StringUtils.isBlank(provisionerConfigId)) {
         throw new RuntimeException("provisionerConfigId cannot be blank");
+      }
+      
+      if (!provisionerConfigurationContainer.isCanViewProvisionerConfiguration(provisionerConfigId)) {
+        throw new RuntimeException("Not allowed!!!!!");
       }
 
       GrouperProvisioner grouperProvisioner = GrouperProvisioner.retrieveProvisioner(provisionerConfigId);
@@ -542,10 +527,6 @@ public class UiV2ProvisionerConfiguration {
       
       ProvisionerConfigurationContainer provisionerConfigurationContainer = GrouperRequestContainer.retrieveFromRequestOrCreate().getProvisionerConfigurationContainer();
       
-      if (!provisionerConfigurationContainer.isCanViewProvisionerConfiguration()) {
-        throw new RuntimeException("Not allowed!!!!!");
-      }
-      
       String provisionerConfigId = request.getParameter("provisionerConfigId");
       
       String provisionerJobId = request.getParameter("provisionerJobId");
@@ -556,6 +537,10 @@ public class UiV2ProvisionerConfiguration {
       
       if (StringUtils.isBlank(provisionerJobId)) {
         throw new RuntimeException("provisionerJobId cannot be blank");
+      }
+      
+      if (!provisionerConfigurationContainer.isCanViewProvisionerConfiguration(provisionerConfigId)) {
+        throw new RuntimeException("Not allowed!!!!!");
       }
       
       GrouperProvisioner grouperProvisioner = GrouperProvisioner.retrieveProvisioner(provisionerConfigId);
@@ -603,14 +588,14 @@ public class UiV2ProvisionerConfiguration {
       
       ProvisionerConfigurationContainer provisionerConfigurationContainer = GrouperRequestContainer.retrieveFromRequestOrCreate().getProvisionerConfigurationContainer();
       
-      if (!provisionerConfigurationContainer.isCanViewProvisionerConfiguration()) {
-        throw new RuntimeException("Not allowed!!!!!");
-      }
-      
       String provisionerConfigId = request.getParameter("provisionerConfigId");
       
       if (StringUtils.isBlank(provisionerConfigId)) {
         throw new RuntimeException("provisionerConfigId cannot be blank");
+      }
+      
+      if (!provisionerConfigurationContainer.isCanViewProvisionerConfiguration(provisionerConfigId)) {
+        throw new RuntimeException("Not allowed!!!!!");
       }
 
       GrouperProvisioner grouperProvisioner = GrouperProvisioner.retrieveProvisioner(provisionerConfigId);
@@ -645,10 +630,6 @@ public class UiV2ProvisionerConfiguration {
       
       ProvisionerConfigurationContainer provisionerConfigurationContainer = GrouperRequestContainer.retrieveFromRequestOrCreate().getProvisionerConfigurationContainer();
       
-      if (!provisionerConfigurationContainer.isCanViewProvisionerConfiguration()) {
-        throw new RuntimeException("Not allowed!!!!!");
-      }
-      
       String provisionerConfigId = request.getParameter("provisionerConfigId");
       
       String provisionerConfigObjectType = request.getParameter("provisionerConfigObjectType");
@@ -659,6 +640,10 @@ public class UiV2ProvisionerConfiguration {
       
       if (StringUtils.isBlank(provisionerConfigObjectType)) {
         throw new RuntimeException("provisionerConfigObjectType cannot be blank");
+      }
+      
+      if (!provisionerConfigurationContainer.isCanViewProvisionerConfiguration(provisionerConfigId)) {
+        throw new RuntimeException("Not allowed!!!!!");
       }
       
       GrouperProvisioner grouperProvisioner = GrouperProvisioner.retrieveProvisioner(provisionerConfigId);
@@ -708,14 +693,14 @@ public class UiV2ProvisionerConfiguration {
       
       ProvisionerConfigurationContainer provisionerConfigurationContainer = GrouperRequestContainer.retrieveFromRequestOrCreate().getProvisionerConfigurationContainer();
       
-      if (!provisionerConfigurationContainer.isCanViewProvisionerConfiguration()) {
-        throw new RuntimeException("Not allowed!!!!!");
-      }
-      
       String provisionerConfigId = request.getParameter("provisionerConfigId");
       
       if (StringUtils.isBlank(provisionerConfigId)) {
         throw new RuntimeException("provisionerConfigId cannot be blank");
+      }
+      
+      if (!provisionerConfigurationContainer.isCanViewProvisionerConfiguration(provisionerConfigId)) {
+        throw new RuntimeException("Not allowed!!!!!");
       }
       
       GrouperProvisioner grouperProvisioner = GrouperProvisioner.retrieveProvisioner(provisionerConfigId);
@@ -762,7 +747,7 @@ public class UiV2ProvisionerConfiguration {
       
       ProvisionerConfigurationContainer provisionerConfigurationContainer = GrouperRequestContainer.retrieveFromRequestOrCreate().getProvisionerConfigurationContainer();
       
-      if (!provisionerConfigurationContainer.isCanViewProvisionerConfiguration()) {
+      if (!provisionerConfigurationContainer.isCanEditProvisionerConfiguration()) {
         throw new RuntimeException("Not allowed!!!!!");
       }
       
@@ -791,10 +776,12 @@ public class UiV2ProvisionerConfiguration {
         
         provisionerConfiguration.setConfigId(provisionerConfigId);
         
-        if (provisionerConfiguration.retrieveConfigurationConfigIds().contains(provisionerConfigId)) {
-          guiResponseJs.addAction(GuiScreenAction.newValidationMessage(GuiMessageType.error, 
-              "#provisionerConfigId", TextContainer.retrieveFromRequest().getText().get("grouperConfigurationValidationConfigIdUsed")));
-          return;
+        for (ProvisioningConfiguration provisioningConfiguration : ProvisioningConfiguration.retrieveAllProvisioningConfigurations()) {
+          if (StringUtils.equals(provisioningConfiguration.getConfigId(), provisionerConfigId)) {
+            guiResponseJs.addAction(GuiScreenAction.newValidationMessage(GuiMessageType.error, 
+                "#provisionerConfigId", TextContainer.retrieveFromRequest().getText().get("grouperConfigurationValidationConfigIdUsed")));
+            return;
+          }
         }
         
         List<ProvisionerStartWithBase> startWithConfigClasses = provisionerConfiguration.getStartWithConfigClasses();
@@ -973,7 +960,7 @@ public class UiV2ProvisionerConfiguration {
       
       ProvisionerConfigurationContainer provisionerConfigurationContainer = GrouperRequestContainer.retrieveFromRequestOrCreate().getProvisionerConfigurationContainer();
       
-      if (!provisionerConfigurationContainer.isCanViewProvisionerConfiguration()) {
+      if (!provisionerConfigurationContainer.isCanEditProvisionerConfiguration()) {
         throw new RuntimeException("Not allowed!!!!!");
       }
       
@@ -1120,8 +1107,10 @@ public class UiV2ProvisionerConfiguration {
           guiResponseJs.addAction(GuiScreenAction.newMessageAppend(GuiMessageType.error, errorToDisplay));
         }
         for (String validationKey: validationErrorsToDisplay.keySet()) {
-          guiResponseJs.addAction(GuiScreenAction.newValidationMessage(GuiMessageType.error, validationKey, 
-              validationErrorsToDisplay.get(validationKey)));
+          //make error message clickable and navigate to the element when clicked
+          String errorMessage = validationErrorsToDisplay.get(validationKey);
+          String clickableErrorMessage = "<a href='"+validationKey+"'>"+errorMessage+"</a>";
+          guiResponseJs.addAction(GuiScreenAction.newValidationMessage(GuiMessageType.error, validationKey, clickableErrorMessage));
         }
 
         return;
@@ -1172,7 +1161,7 @@ public class UiV2ProvisionerConfiguration {
       
       ProvisionerConfigurationContainer provisionerConfigurationContainer = GrouperRequestContainer.retrieveFromRequestOrCreate().getProvisionerConfigurationContainer();
       
-      if (!provisionerConfigurationContainer.isCanViewProvisionerConfiguration()) {
+      if (!provisionerConfigurationContainer.isCanEditProvisionerConfiguration()) {
         throw new RuntimeException("Not allowed!!!!!");
       }
       
@@ -1246,7 +1235,7 @@ public class UiV2ProvisionerConfiguration {
       
       ProvisionerConfigurationContainer provisionerConfigurationContainer = GrouperRequestContainer.retrieveFromRequestOrCreate().getProvisionerConfigurationContainer();
       
-      if (!provisionerConfigurationContainer.isCanViewProvisionerConfiguration()) {
+      if (!provisionerConfigurationContainer.isCanEditProvisionerConfiguration()) {
         throw new RuntimeException("Not allowed!!!!!");
       }
       
@@ -1285,8 +1274,11 @@ public class UiV2ProvisionerConfiguration {
           guiResponseJs.addAction(GuiScreenAction.newMessageAppend(GuiMessageType.error, errorToDisplay));
         }
         for (String validationKey: validationErrorsToDisplay.keySet()) {
-          guiResponseJs.addAction(GuiScreenAction.newValidationMessage(GuiMessageType.error, validationKey, 
-              validationErrorsToDisplay.get(validationKey)));
+          
+          String errorMessage = validationErrorsToDisplay.get(validationKey);
+          //make error message clickable and navigate to the element when clicked
+          String clickableErrorMessage = "<a href='"+validationKey+"'>"+errorMessage+"</a>";
+          guiResponseJs.addAction(GuiScreenAction.newValidationMessage(GuiMessageType.error, validationKey, clickableErrorMessage));
         }
 
         return;
@@ -1336,7 +1328,7 @@ public class UiV2ProvisionerConfiguration {
       
       ProvisionerConfigurationContainer provisionerConfigurationContainer = GrouperRequestContainer.retrieveFromRequestOrCreate().getProvisionerConfigurationContainer();
       
-      if (!provisionerConfigurationContainer.isCanViewProvisionerConfiguration()) {
+      if (!provisionerConfigurationContainer.isCanEditProvisionerConfiguration()) {
         throw new RuntimeException("Not allowed!!!!!");
       }
       
@@ -1375,6 +1367,101 @@ public class UiV2ProvisionerConfiguration {
   
   
   /**
+   * delete group member cache for a given provisioner
+   * @param request
+   * @param response
+   */
+  public void deleteGroupMemberCache(final HttpServletRequest request, final HttpServletResponse response) {
+    
+    final Subject loggedInSubject = GrouperUiFilter.retrieveSubjectLoggedIn();
+    
+    GrouperSession grouperSession = null;
+    
+    final GuiResponseJs guiResponseJs = GuiResponseJs.retrieveGuiResponseJs();
+    
+    try {
+      
+      grouperSession = GrouperSession.start(loggedInSubject);
+      
+      ProvisionerConfigurationContainer provisionerConfigurationContainer = GrouperRequestContainer.retrieveFromRequestOrCreate().getProvisionerConfigurationContainer();
+      
+      if (!provisionerConfigurationContainer.isCanEditProvisionerConfiguration()) {
+        throw new RuntimeException("Not allowed!!!!!");
+      }
+      
+      String provisionerConfigId = request.getParameter("provisionerConfigId");
+      
+      if (StringUtils.isBlank(provisionerConfigId)) {
+        throw new RuntimeException("provisionerConfigId cannot be blank");
+      }
+      
+      GrouperProvisioner grouperProvisioner = GrouperProvisioner.retrieveProvisioner(provisionerConfigId);
+      grouperProvisioner.setGcGrouperSync(GcGrouperSyncDao.retrieveByProvisionerName(null, provisionerConfigId));
+      
+      grouperProvisioner.getGcGrouperSync().getGcGrouperSyncMembershipDao().membershipDeleteAll(false);
+      grouperProvisioner.getGcGrouperSync().getGcGrouperSyncGroupDao().groupDeleteAll(false, false);
+      grouperProvisioner.getGcGrouperSync().getGcGrouperSyncMemberDao().memberDeleteAll(false, false);
+      
+      guiResponseJs.addAction(GuiScreenAction.newScript("guiV2link('operation=UiV2ProvisionerConfiguration.viewProvisionerConfigurations')"));
+      
+      guiResponseJs.addAction(GuiScreenAction.newMessage(GuiMessageType.success,
+          TextContainer.retrieveFromRequest().getText().get("provisionerGroupMemberCacheDeleteSuccess")));
+      
+    } finally {
+      GrouperSession.stopQuietly(grouperSession);
+    }
+  }
+  
+  /**
+   * delete all cache for a given provisioner
+   * @param request
+   * @param response
+   */
+  public void deleteAllCache(final HttpServletRequest request, final HttpServletResponse response) {
+    
+    final Subject loggedInSubject = GrouperUiFilter.retrieveSubjectLoggedIn();
+    
+    GrouperSession grouperSession = null;
+    
+    final GuiResponseJs guiResponseJs = GuiResponseJs.retrieveGuiResponseJs();
+    
+    try {
+      
+      grouperSession = GrouperSession.start(loggedInSubject);
+      
+      ProvisionerConfigurationContainer provisionerConfigurationContainer = GrouperRequestContainer.retrieveFromRequestOrCreate().getProvisionerConfigurationContainer();
+      
+      if (!provisionerConfigurationContainer.isCanEditProvisionerConfiguration()) {
+        throw new RuntimeException("Not allowed!!!!!");
+      }
+      
+      String provisionerConfigId = request.getParameter("provisionerConfigId");
+      
+      if (StringUtils.isBlank(provisionerConfigId)) {
+        throw new RuntimeException("provisionerConfigId cannot be blank");
+      }
+      
+      GrouperProvisioner grouperProvisioner = GrouperProvisioner.retrieveProvisioner(provisionerConfigId);
+      grouperProvisioner.setGcGrouperSync(GcGrouperSyncDao.retrieveByProvisionerName(null, provisionerConfigId));
+      
+      grouperProvisioner.getGcGrouperSync().getGcGrouperSyncMembershipDao().membershipDeleteAll(true);
+      grouperProvisioner.getGcGrouperSync().getGcGrouperSyncGroupDao().groupDeleteAll(true, true);
+      grouperProvisioner.getGcGrouperSync().getGcGrouperSyncMemberDao().memberDeleteAll(true, true);
+      grouperProvisioner.getGcGrouperSync().getGcGrouperSyncJobDao().jobDeleteAll(true);
+      grouperProvisioner.getGcGrouperSync().getGcGrouperSyncLogDao().logDeleteAll();
+      grouperProvisioner.getGcGrouperSync().getGcGrouperSyncDao().delete();
+      
+      guiResponseJs.addAction(GuiScreenAction.newScript("guiV2link('operation=UiV2ProvisionerConfiguration.viewProvisionerConfigurations')"));
+      
+      guiResponseJs.addAction(GuiScreenAction.newMessage(GuiMessageType.success,
+          TextContainer.retrieveFromRequest().getText().get("provisionerGroupMemberCacheDeleteSuccess")));
+      
+    } finally {
+      GrouperSession.stopQuietly(grouperSession);
+    }
+  }
+  
+  /**
    * show form to run full sync job
    * @param request
    * @param response
@@ -1393,7 +1480,7 @@ public class UiV2ProvisionerConfiguration {
       
       ProvisionerConfigurationContainer provisionerConfigurationContainer = GrouperRequestContainer.retrieveFromRequestOrCreate().getProvisionerConfigurationContainer();
       
-      if (!provisionerConfigurationContainer.isCanViewProvisionerConfiguration()) {
+      if (!provisionerConfigurationContainer.isCanEditProvisionerConfiguration()) {
         throw new RuntimeException("Not allowed!!!!!");
       }
       
@@ -1435,7 +1522,7 @@ public class UiV2ProvisionerConfiguration {
       
       ProvisionerConfigurationContainer provisionerConfigurationContainer = GrouperRequestContainer.retrieveFromRequestOrCreate().getProvisionerConfigurationContainer();
       
-      if (!provisionerConfigurationContainer.isCanViewProvisionerConfiguration()) {
+      if (!provisionerConfigurationContainer.isCanEditProvisionerConfiguration()) {
         throw new RuntimeException("Not allowed!!!!!");
       }
       

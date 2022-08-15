@@ -3,21 +3,42 @@ package edu.internet2.middleware.grouper.app.provisioning;
 import edu.internet2.middleware.grouperClient.jdbc.tableSync.GcGrouperSyncErrorCode;
 import edu.internet2.middleware.grouperClient.jdbc.tableSync.GcGrouperSyncGroup;
 
-public class ProvisioningGroupWrapper {
+public class ProvisioningGroupWrapper extends ProvisioningUpdatableWrapper {
   
+  /**
+   * if recalcing the groupAttribute memberships 
+   */
+  private boolean recalcGroupMemberships;
+
+  /**
+   * if recalcing the groupAttribute memberships 
+   * @return
+   */
+  public boolean isRecalcGroupMemberships() {
+    return recalcGroupMemberships;
+  }
+
+  /**
+   * if recalcing the group memberships 
+   * @param recalcGroupMemberships1
+   */
+  public void setRecalcGroupMemberships(boolean recalcGroupMemberships1) {
+    this.recalcGroupMemberships = recalcGroupMemberships1;
+  }
+
   private boolean grouperTargetGroupFromCacheInitted = false;
   private ProvisioningGroup grouperTargetGroupFromCache;
 
   //TODO finish this for cached objects
   public ProvisioningGroup getGrouperTargetGroupFromCache() {
     if (grouperTargetGroupFromCacheInitted 
-        || this.gcGrouperSyncGroup == null || this.grouperProvisioner == null) {
+        || this.gcGrouperSyncGroup == null || this.getGrouperProvisioner() == null) {
       return grouperTargetGroupFromCache;
     }
     
     // see if there is an object cached
     for (GrouperProvisioningConfigurationAttributeDbCache cache :
-      this.grouperProvisioner.retrieveGrouperProvisioningConfiguration().getGroupAttributeDbCaches()) {
+      this.getGrouperProvisioner().retrieveGrouperProvisioningConfiguration().getGroupAttributeDbCaches()) {
       if (cache == null 
           || cache.getSource() != GrouperProvisioningConfigurationAttributeDbCacheSource.grouper 
           || cache.getType() != GrouperProvisioningConfigurationAttributeDbCacheType.object) {
@@ -35,48 +56,6 @@ public class ProvisioningGroupWrapper {
     
   public ProvisioningGroup getTargetProvisioningGroupFromCache() {
     return targetProvisioningGroupFromCache;
-  }
-
-  /**
-   * if this object should not be provisioned because there is an error, list it here
-   */
-  private GcGrouperSyncErrorCode errorCode;
-  
-  /**
-   * if this object should not be provisioned because there is an error, list it here
-   * @return
-   */
-  public GcGrouperSyncErrorCode getErrorCode() {
-    return errorCode;
-  }
-
-  /**
-   * if this object should not be provisioned because there is an error, list it here
-   * @param errorCode
-   */
-  public void setErrorCode(GcGrouperSyncErrorCode errorCode) {
-    this.errorCode = errorCode;
-  }
-
-  /**
-   * if incremental and recalc
-   */
-  private boolean recalc;
-  
-  /**
-   * if incremental and recalc
-   * @return
-   */
-  public boolean isRecalc() {
-    return recalc;
-  }
-
-  /**
-   * if incremental and recalc
-   * @param recalc
-   */
-  public void setRecalc(boolean recalc) {
-    this.recalc = recalc;
   }
 
   /**
@@ -98,20 +77,6 @@ public class ProvisioningGroupWrapper {
    */
   public void setIncrementalSyncMemberships(boolean incrementalSyncMemberships1) {
     this.incrementalSyncMemberships = incrementalSyncMemberships1;
-  }
-
-  private Object matchingId = null;
-  
-  
-  public Object getMatchingId() {
-    return matchingId;
-  }
-
-
-
-  
-  public void setMatchingId(Object matchingId) {
-    this.matchingId = matchingId;
   }
 
   private String groupId;
@@ -154,22 +119,6 @@ public class ProvisioningGroupWrapper {
 
   public ProvisioningGroupWrapper() {
     super();
-  }
-
-  private GrouperProvisioner grouperProvisioner;
-  
-  
-  
-  
-  public GrouperProvisioner getGrouperProvisioner() {
-    return grouperProvisioner;
-  }
-
-
-
-  
-  public void setGrouperProvisioner(GrouperProvisioner grouperProvisioner) {
-    this.grouperProvisioner = grouperProvisioner;
   }
 
   private ProvisioningGroup grouperProvisioningGroup;
@@ -271,19 +220,35 @@ public class ProvisioningGroupWrapper {
     return grouperProvisioningGroup;
   }
 
+  private void calculateGroupId() {
+    this.groupId = null;
+    if (this.grouperProvisioningGroup != null) {
+      this.groupId = this.grouperProvisioningGroup.getId();
+    } else if (this.gcGrouperSyncGroup != null) {
+      this.groupId = this.gcGrouperSyncGroup.getGroupId();
+    }
+  }
   
   public void setGrouperProvisioningGroup(ProvisioningGroup grouperProvisioningGroup) {
+    if (this.grouperProvisioningGroup == grouperProvisioningGroup) {
+      return;
+    }
+    ProvisioningGroup oldGrouperProvisioningGroup = this.grouperProvisioningGroup;
+    ProvisioningGroupWrapper oldProvisioningGroupWrapper = oldGrouperProvisioningGroup == null ? null : oldGrouperProvisioningGroup.getProvisioningGroupWrapper();
+
     this.grouperProvisioningGroup = grouperProvisioningGroup;
-    if (this.grouperProvisioningGroup!=null) {
-      this.groupId = this.grouperProvisioningGroup.getId();
-      if (this != this.grouperProvisioningGroup.getProvisioningGroupWrapper()) {
-        if (this.grouperProvisioningGroup.getProvisioningGroupWrapper() != null) {
-          this.grouperProvisioner.retrieveGrouperProvisioningData().getProvisioningGroupWrappers().remove(this.grouperProvisioningGroup.getProvisioningGroupWrapper());
-        }
-        this.grouperProvisioningGroup.setProvisioningGroupWrapper(this);
-      }
+    
+    if (this.grouperProvisioningGroup != null) {
+      this.grouperProvisioningGroup.setProvisioningGroupWrapper(this);
     }
 
+    if (oldGrouperProvisioningGroup != null) {
+      oldGrouperProvisioningGroup.setProvisioningGroupWrapper(null);
+    }
+    if (oldProvisioningGroupWrapper != null && oldProvisioningGroupWrapper != this) {
+      oldProvisioningGroupWrapper.grouperProvisioningGroup = null;
+    }
+    this.calculateGroupId();
   }
 
   
@@ -293,13 +258,26 @@ public class ProvisioningGroupWrapper {
 
   
   public void setTargetProvisioningGroup(ProvisioningGroup targetProvisioningGroup) {
+    
+    if (this.targetProvisioningGroup == targetProvisioningGroup) {
+      return;
+    }
+    ProvisioningGroup oldTargetProvisioningGroup = this.targetProvisioningGroup;
+    ProvisioningGroupWrapper oldProvisioningGroupWrapper = oldTargetProvisioningGroup == null ? null : oldTargetProvisioningGroup.getProvisioningGroupWrapper();
+
     this.targetProvisioningGroup = targetProvisioningGroup;
-    if (this.targetProvisioningGroup != null && this != this.targetProvisioningGroup.getProvisioningGroupWrapper()) {
-      if (this.targetProvisioningGroup.getProvisioningGroupWrapper() != null) {
-        this.grouperProvisioner.retrieveGrouperProvisioningData().getProvisioningGroupWrappers().remove(this.targetProvisioningGroup.getProvisioningGroupWrapper());
-      }
+    
+    if (this.targetProvisioningGroup != null) {
       this.targetProvisioningGroup.setProvisioningGroupWrapper(this);
     }
+
+    if (oldTargetProvisioningGroup != null) {
+      oldTargetProvisioningGroup.setProvisioningGroupWrapper(null);
+    }
+    if (oldProvisioningGroupWrapper != null && oldProvisioningGroupWrapper != this) {
+      oldProvisioningGroupWrapper.targetProvisioningGroup = null;
+    }
+
   }
 
   
@@ -309,12 +287,25 @@ public class ProvisioningGroupWrapper {
 
   
   public void setGrouperTargetGroup(ProvisioningGroup grouperTargetGroup) {
+    
+    if (this.grouperTargetGroup == grouperTargetGroup) {
+      return;
+    }
+    
+    ProvisioningGroup oldGrouperTargetGroup = this.grouperTargetGroup;
+    ProvisioningGroupWrapper oldProvisioningGroupWrapper = oldGrouperTargetGroup == null ? null : oldGrouperTargetGroup.getProvisioningGroupWrapper();
+
     this.grouperTargetGroup = grouperTargetGroup;
-    if (this.grouperTargetGroup != null && this != this.grouperTargetGroup.getProvisioningGroupWrapper()) {
-      if (this.grouperTargetGroup.getProvisioningGroupWrapper() != null) {
-        this.grouperProvisioner.retrieveGrouperProvisioningData().getProvisioningGroupWrappers().remove(this.grouperTargetGroup.getProvisioningGroupWrapper());
-      }
+    
+    if (this.grouperTargetGroup != null) {
       this.grouperTargetGroup.setProvisioningGroupWrapper(this);
+    }
+
+    if (oldGrouperTargetGroup != null) {
+      oldGrouperTargetGroup.setProvisioningGroupWrapper(null);
+    }
+    if (oldProvisioningGroupWrapper != null && oldProvisioningGroupWrapper != this) {
+      oldProvisioningGroupWrapper.grouperTargetGroup = null;
     }
   }
 
@@ -339,10 +330,35 @@ public class ProvisioningGroupWrapper {
     if (this.gcGrouperSyncGroup != null) {
       this.syncGroupId = this.getGcGrouperSyncGroup().getId();
     }
+    this.calculateGroupId();
 
   }
   
   public String toString() {
     return "GroupWrapper@" + Integer.toHexString(hashCode());
   }
+  
+  public String toStringForError() {
+    
+    if (this.grouperTargetGroup != null) {
+      return "grouperTargetGroup: " + this.grouperTargetGroup;
+    }
+
+    if (this.grouperProvisioningGroup != null) {
+      return "grouperProvisioningGroup: " + this.grouperProvisioningGroup;
+    }
+
+    if (this.targetProvisioningGroup != null) {
+      return "targetProvisioningGroup: " + this.targetProvisioningGroup;
+    }
+    
+    return this.toString();
+  }
+
+  @Override
+  public String objectTypeName() {
+    return "group";
+  }
+  
+
 }

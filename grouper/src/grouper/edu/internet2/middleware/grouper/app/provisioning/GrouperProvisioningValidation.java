@@ -6,12 +6,13 @@ import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 import org.apache.commons.lang.StringUtils;
 
-import edu.internet2.middleware.grouper.cfg.dbConfig.GrouperDbConfig;
 import edu.internet2.middleware.grouper.util.GrouperUtil;
 import edu.internet2.middleware.grouperClient.collections.MultiKey;
 import edu.internet2.middleware.grouperClient.jdbc.GcDbAccess;
@@ -57,13 +58,69 @@ public class GrouperProvisioningValidation {
   }
 
   /**
+   * see if a group has a matching ID
+   * @param provisioningGroup
+   * @return true if has matching id
+   */
+  public boolean validateGroupHasMatchingId(ProvisioningGroup provisioningGroup, boolean forInsert) {
+
+    if (GrouperUtil.length(provisioningGroup.getMatchingIdAttributeNameToValues()) > 0) {
+      return true;
+    }
+
+    // cant have one
+    if (GrouperUtil.length(this.getGrouperProvisioner().retrieveGrouperProvisioningConfiguration().getGroupMatchingAttributes())==0) {
+      return true;
+    }
+    
+    if (forInsert) {
+      for (GrouperProvisioningConfigurationAttribute matchingAttribute : this.getGrouperProvisioner().retrieveGrouperProvisioningConfiguration().getGroupMatchingAttributes()) {
+        // if there is no translation, then thats ok... its retrieved from the target so it will be null until after create
+        if (matchingAttribute.getTranslateExpressionType() == null && matchingAttribute.getTranslateExpressionTypeCreateOnly() == null) {
+          return true;
+        }
+      }
+    }
+    return false;
+  }
+  
+  /**
+   * see if an entity has a matching ID
+   * @param provisioningEntity
+   * @return true if has matching id
+   */
+  public boolean validateEntityHasMatchingId(ProvisioningEntity provisioningEntity, boolean forInsert) {
+
+    if (GrouperUtil.length(provisioningEntity.getMatchingIdAttributeNameToValues()) > 0) {
+      return true;
+    }
+    
+    // cant have one
+    if (GrouperUtil.length(this.getGrouperProvisioner().retrieveGrouperProvisioningConfiguration().getEntityMatchingAttributes())==0) {
+      return true;
+    }
+
+    if (forInsert) {
+      for (GrouperProvisioningConfigurationAttribute matchingAttribute : this.getGrouperProvisioner().retrieveGrouperProvisioningConfiguration().getEntityMatchingAttributes()) {
+        // if there is no translation, then thats ok... its retrieved from the target so it will be null until after create
+        if (matchingAttribute.getTranslateExpressionType() == null && matchingAttribute.getTranslateExpressionTypeCreateOnly() == null) {
+          return true;
+        }
+      }
+    }
+    return false;
+  }
+  
+  /**
    * validate groups based on attribute constraints and set the error code in the sync
    * object and the wrapper object
    * @param provisioningGroups
    * @param removeInvalid
    */
-  public void validateGroups(Collection<ProvisioningGroup> provisioningGroups, boolean removeInvalid, Boolean forMembershipAttribute) {
+  public Set<ProvisioningGroup> validateGroups(Collection<ProvisioningGroup> provisioningGroups, boolean removeInvalid, Boolean forMembershipAttribute, boolean forInsert) {
     
+    Set<ProvisioningGroup> invalidGroups = new LinkedHashSet<ProvisioningGroup>();
+
     String membershipAttributeName =  null;
     if (this.getGrouperProvisioner().retrieveGrouperProvisioningBehavior().getGrouperProvisioningBehaviorMembershipType() == GrouperProvisioningBehaviorMembershipType.groupAttributes) {
       membershipAttributeName =  this.getGrouperProvisioner().retrieveGrouperProvisioningConfiguration().getGroupMembershipAttributeName();
@@ -86,23 +143,15 @@ public class GrouperProvisioningValidation {
       if (gcGrouperSyncGroup != null && !gcGrouperSyncGroup.isProvisionable()) {
         continue;
       }
-      
+
       // matching ID must be there
-      // if a matching id is configured on groups even
-      if (this.getGrouperProvisioner().retrieveGrouperProvisioningTranslator().isHasMatchingIdStrategyForGroups()) {
-        if (!this.getGrouperProvisioner().retrieveGrouperProvisioningConfiguration().isAllowBlankMatchingIds()) {
-          
-          // lets see which attribute is the matching id
-          
-          
-          if (GrouperUtil.isBlank(provisioningGroupWrapper.getMatchingId())) {
-            // TODO see if the matching ID field is stored in a bucket, if so, maybe its not required?
-            this.assignGroupError(provisioningGroupWrapper, GcGrouperSyncErrorCode.REQ, "matching ID is required and missing");
-            if (removeInvalid) {
-              iterator.remove();
-              continue;
-            }
-          }
+      // lets see which attribute is the matching id
+      if (!validateGroupHasMatchingId(provisioningGroup, forInsert)) {
+        this.assignGroupError(provisioningGroupWrapper, GcGrouperSyncErrorCode.MAT, "matching ID is required and missing");
+        invalidGroups.add(provisioningGroup);
+        if (removeInvalid) {
+          iterator.remove();
+          continue;
         }
       }
       
@@ -121,6 +170,9 @@ public class GrouperProvisioningValidation {
           }
           
           boolean hasErrorCode = assignErrorCodeToGroupWrapper(provisioningGroup, grouperProvisioningConfigurationAttribute, provisioningGroupWrapper);
+          if (hasErrorCode) {
+            invalidGroups.add(provisioningGroup);
+          }
           if (hasErrorCode && removeInvalid) {
             iterator.remove();
           }
@@ -138,7 +190,10 @@ public class GrouperProvisioningValidation {
     if (groupsViolateValidExpression > 0) {
       GrouperUtil.mapAddValue(this.getGrouperProvisioner().getDebugMap(), "groupsViolateValidExpression", groupsViolateValidExpression);
     }
-
+    if (GrouperUtil.length(invalidGroups) > 0) {
+      this.getGrouperProvisioner().retrieveGrouperProvisioningObjectLog().debug(GrouperProvisioningObjectLogType.validateGrouperGroups, invalidGroups);
+    }
+    return invalidGroups;
   }
   
   /**
@@ -147,8 +202,9 @@ public class GrouperProvisioningValidation {
    * @param provisioningEntities
    * @param removeInvalid
    */
-  public void validateEntities(Collection<ProvisioningEntity> provisioningEntities, boolean removeInvalid, Boolean forMembershipAttribute) {
+  public Set<ProvisioningEntity> validateEntities(Collection<ProvisioningEntity> provisioningEntities, boolean removeInvalid, Boolean forMembershipAttribute, boolean forInsert) {
     
+    Set<ProvisioningEntity> invalidEntities = new LinkedHashSet<ProvisioningEntity>();
     String membershipAttributeName =  null;
     if (this.getGrouperProvisioner().retrieveGrouperProvisioningBehavior().getGrouperProvisioningBehaviorMembershipType() == GrouperProvisioningBehaviorMembershipType.entityAttributes) {
       membershipAttributeName =  this.getGrouperProvisioner().retrieveGrouperProvisioningConfiguration().getEntityMembershipAttributeName();
@@ -165,21 +221,17 @@ public class GrouperProvisioningValidation {
       GcGrouperSyncMember gcGrouperSyncMember = provisioningEntityWrapper == null ? null : provisioningEntityWrapper.getGcGrouperSyncMember();
 
       //if we're not provisioning this entity, maybe this is used in membership that needs to be removed so we shouldn't validate.  
-      if (gcGrouperSyncMember != null && !gcGrouperSyncMember.isProvisionable()) {
+      if (gcGrouperSyncMember != null && !gcGrouperSyncMember.isProvisionable() && !gcGrouperSyncMember.isInTarget()) {
         continue;
       }
       
-      // if a matching id is configured on groups even
-      if (this.getGrouperProvisioner().retrieveGrouperProvisioningTranslator().isHasMatchingIdStrategyForEntities()) {
-        if (!this.getGrouperProvisioner().retrieveGrouperProvisioningConfiguration().isAllowBlankMatchingIds()) {
-          // matching ID must be there
-          if (GrouperUtil.isBlank(provisioningEntityWrapper.getMatchingId())) {
-            this.assignEntityError(provisioningEntityWrapper, GcGrouperSyncErrorCode.REQ, "matching ID is required and missing");
-            if (removeInvalid) {
-              iterator.remove();
-              continue;
-            }
-          }
+      // matching ID must be there
+      if (!validateEntityHasMatchingId(provisioningEntity, forInsert)) {
+        this.assignEntityError(provisioningEntityWrapper, GcGrouperSyncErrorCode.MAT, "matching ID is required and missing");
+        invalidEntities.add(provisioningEntity);
+        if (removeInvalid) {
+          iterator.remove();
+          continue;
         }
       }
       
@@ -198,6 +250,9 @@ public class GrouperProvisioningValidation {
           }
           
           boolean hasError = assignErrorCodeToEntityWrapper(provisioningEntity, grouperProvisioningConfigurationAttribute, provisioningEntityWrapper);
+          if (hasError) {
+            invalidEntities.add(provisioningEntity);
+          }
           if (hasError && removeInvalid) {
             iterator.remove();
           }
@@ -215,7 +270,10 @@ public class GrouperProvisioningValidation {
     if (entitiesViolateValidExpression > 0) {
       GrouperUtil.mapAddValue(this.getGrouperProvisioner().getDebugMap(), "entitiesViolateValidExpression", entitiesViolateValidExpression);
     }
-
+    if (GrouperUtil.length(invalidEntities) > 0) {
+      this.getGrouperProvisioner().retrieveGrouperProvisioningObjectLog().debug(GrouperProvisioningObjectLogType.validateGrouperEntities, invalidEntities);
+    }
+    return invalidEntities;
   }
   
 /**
@@ -294,56 +352,69 @@ public class GrouperProvisioningValidation {
   /**
    * validate memberships based on attribute constraints and set the error code in the sync
    * object and the wrapper object
-   * @param provisioningEntities
+   * @param provisioningMemberships
    * @param removeInvalid
    */
-  public void validateMemberships(Collection<ProvisioningMembership> provisioningEntities, boolean removeInvalid) {
+  public Set<ProvisioningMembership> validateMemberships(Collection<ProvisioningMembership> provisioningMemberships, boolean removeInvalid) {
+
+    Set<ProvisioningMembership> invalidMemberships = new LinkedHashSet<ProvisioningMembership>();
     int membershipsMissingRequiredData = 0;
     int membershipsViolateMaxLength = 0;
     int membershipsViolateValidExpression = 0;
     //check for required attributes
-    Iterator<ProvisioningMembership> iterator = provisioningEntities.iterator();
+    Iterator<ProvisioningMembership> iterator = provisioningMemberships.iterator();
     MEMBERSHIPS: while (iterator.hasNext()) {
       ProvisioningMembership provisioningMembership = iterator.next();
       ProvisioningMembershipWrapper provisioningMembershipWrapper = provisioningMembership.getProvisioningMembershipWrapper();
       if (provisioningMembershipWrapper.getErrorCode() != null) {
         continue;
       }
-      GcGrouperSyncMembership gcGrouperSyncMembership = provisioningMembershipWrapper == null ? null : provisioningMembershipWrapper.getGcGrouperSyncMembership();
-      
-      for (Collection<GrouperProvisioningConfigurationAttribute> grouperProvisioningConfigurationAttributes : 
-        new Collection[] {
-          this.getGrouperProvisioner().retrieveGrouperProvisioningConfiguration().getTargetMembershipAttributeNameToConfig().values(),
-          this.getGrouperProvisioner().retrieveGrouperProvisioningConfiguration().getTargetMembershipAttributeNameToConfig().values()}) {
-        // look for required fields
-        for (GrouperProvisioningConfigurationAttribute grouperProvisioningConfigurationAttribute : 
-            grouperProvisioningConfigurationAttributes) {
-          MultiKey validationError = this.validFieldOrAttributeValue(provisioningMembership, grouperProvisioningConfigurationAttribute);
-          if (validationError != null) {
-            GcGrouperSyncErrorCode errorCode = (GcGrouperSyncErrorCode)validationError.getKey(0);
-            String errorMessage = (String)validationError.getKey(1);
-            this.assignMembershipError(provisioningMembershipWrapper, errorCode, errorMessage);
-            switch (errorCode) {
-              case INV:
-                membershipsViolateValidExpression++;
-                break;
-              case LEN:
-                membershipsViolateMaxLength++;
-                break;
-              case REQ:
-                membershipsMissingRequiredData++;
-                break;
-              default:
-                throw new RuntimeException("Not expecting error code: " + errorCode);
+      for (ProvisioningUpdatableAttributeAndValue provisioningUpdatableAttributeAndValue : provisioningMembership.getMatchingIdAttributeNameToValues()) {
+        Object matchingId = provisioningUpdatableAttributeAndValue.getAttributeValue();
+        if (matchingId instanceof MultiKey) {
+          MultiKey matchingIdMultiKey = (MultiKey)matchingId;
+          for (int i=0;i<matchingIdMultiKey.size();i++) {
+            if (matchingIdMultiKey.getKey(i) == null) {
+              GcGrouperSyncErrorCode errorCode = GcGrouperSyncErrorCode.REQ;
+              String errorMessage = "membership multiKey has blank value in index: " + i;
+              this.assignMembershipError(provisioningMembershipWrapper, errorCode, errorMessage);
+              invalidMemberships.add(provisioningMembership);
+              if (removeInvalid) {
+                iterator.remove();
+              }
+              continue MEMBERSHIPS;
             }
-            if (removeInvalid) {
-              iterator.remove();
-            }
-            continue MEMBERSHIPS;
           }
         }
-        
       }
+      for (GrouperProvisioningConfigurationAttribute grouperProvisioningConfigurationAttribute : 
+          this.getGrouperProvisioner().retrieveGrouperProvisioningConfiguration().getTargetMembershipAttributeNameToConfig().values()) {
+        MultiKey validationError = this.validFieldOrAttributeValue(provisioningMembership, grouperProvisioningConfigurationAttribute);
+        if (validationError != null) {
+          GcGrouperSyncErrorCode errorCode = (GcGrouperSyncErrorCode)validationError.getKey(0);
+          String errorMessage = (String)validationError.getKey(1);
+          this.assignMembershipError(provisioningMembershipWrapper, errorCode, errorMessage);
+          invalidMemberships.add(provisioningMembership);
+          switch (errorCode) {
+            case INV:
+              membershipsViolateValidExpression++;
+              break;
+            case LEN:
+              membershipsViolateMaxLength++;
+              break;
+            case REQ:
+              membershipsMissingRequiredData++;
+              break;
+            default:
+              throw new RuntimeException("Not expecting error code: " + errorCode);
+          }
+          if (removeInvalid) {
+            iterator.remove();
+          }
+          continue MEMBERSHIPS;
+        }
+      }
+      
     }
       
     if (membershipsMissingRequiredData > 0) {
@@ -355,6 +426,10 @@ public class GrouperProvisioningValidation {
     if (membershipsViolateValidExpression > 0) {
       GrouperUtil.mapAddValue(this.getGrouperProvisioner().getDebugMap(), "membershipsViolateValidExpression", membershipsViolateValidExpression);
     }
+    if (GrouperUtil.length(invalidMemberships) > 0) {
+      this.getGrouperProvisioner().retrieveGrouperProvisioningObjectLog().debug(GrouperProvisioningObjectLogType.validateGrouperMemberships, invalidMemberships);
+    }
+    return invalidMemberships;
   }  
 
   /**
@@ -445,7 +520,7 @@ public class GrouperProvisioningValidation {
       wrapperKey = "provisioningEntityWrapper";
       wrapperValue = ((ProvisioningEntity)provisioningUpdatable).getProvisioningEntityWrapper();
     } else {
-      throw new RuntimeException("Not expecitng provisioningUpdatable type: " + (provisioningUpdatable == null ? null : provisioningUpdatable.getClass()));
+      throw new RuntimeException("Not expecting provisioningUpdatable type: " + (provisioningUpdatable == null ? null : provisioningUpdatable.getClass()));
     }
     Collection fieldOrAttributeValueCollection = null;
         
@@ -547,10 +622,12 @@ public class GrouperProvisioningValidation {
    * @param provisioningGroups
    * @param removeInvalid
    */
-  public void validateGroupsHaveMembers(Collection<ProvisioningGroup> provisioningGroups, boolean removeInvalid) {
+  public Set<ProvisioningGroup> validateGroupsHaveMembers(Collection<ProvisioningGroup> provisioningGroups, boolean removeInvalid) {
+
+    Set<ProvisioningGroup> invalidGroups = new LinkedHashSet<ProvisioningGroup>();
 
     if (!this.getGrouperProvisioner().retrieveGrouperProvisioningConfiguration().isGroupsRequireMembers()) {
-      return;
+      return invalidGroups;
     }
 
     Map<String, ProvisioningGroupWrapper> groupIdToGroupWrapperToCheck = new HashMap<String, ProvisioningGroupWrapper>();
@@ -575,7 +652,7 @@ public class GrouperProvisioningValidation {
     }      
 
     if (GrouperUtil.length(groupIdToGroupWrapperToCheck) == 0) {
-      return;
+      return invalidGroups;
     }
 
     List<String> groupIdsList = new ArrayList<String>(groupIdToGroupWrapperToCheck.keySet());
@@ -607,6 +684,7 @@ public class GrouperProvisioningValidation {
       if (count == null || count == 0) {
         groupsMissingMembers++;
         assignGroupError(provisioningGroupWrapper, GcGrouperSyncErrorCode.MEM, "Group has no members and members are required");
+        invalidGroups.add(provisioningGroup);
         if (removeInvalid) {
           iterator.remove();
         } else {
@@ -621,7 +699,10 @@ public class GrouperProvisioningValidation {
     if (groupsMissingMembers > 0) {
       GrouperUtil.mapAddValue(this.getGrouperProvisioner().getDebugMap(), "groupsMissingMembers", groupsMissingMembers);
     }
-  
+    if (GrouperUtil.length(invalidGroups) > 0) {
+      this.getGrouperProvisioner().retrieveGrouperProvisioningObjectLog().debug(GrouperProvisioningObjectLogType.validateGrouperGroups, invalidGroups);
+    }
+    return invalidGroups;
   }
 
   private int groupsMissingMembers = 0;

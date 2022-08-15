@@ -21,23 +21,41 @@
       <td style="vertical-align: top; white-space: nowrap; width: 30%;"><strong><label for="provisionerConfigTypeId">${textContainer.text['provisionerTypeLabel']}</label></strong></td>
       <td style="vertical-align: top; white-space: nowrap; width: 5%;">&nbsp;</td>
       <td>
-        <span style="white-space: nowrap">
-        <select name="provisionerConfigType" id="provisionerConfigTypeId" style="width: 30em"
-        onchange="ajax('../app/UiV2ProvisionerConfiguration.addProvisionerConfiguration?focusOnElementName=provisionerConfigType', {formIds: 'provisionerConfigDetails'}); return false;"
-        >
-         
-          <option value=""></option>
-          <c:forEach items="${grouperRequestContainer.provisionerConfigurationContainer.allProvisionerConfigurationTypes}" var="provisionerConfiguration">
-            <option value="${provisionerConfiguration['class'].name}"
-                ${guiProvisionerConfiguration.provisionerConfiguration['class'].name == provisionerConfiguration['class'].name ? 'selected="selected"' : '' }
-                >${provisionerConfiguration.title}</option>
-          </c:forEach>
-        </select>
-        <span class="requiredField" rel="tooltip" data-html="true" data-delay-show="200" data-placement="right" 
-        data-original-title="${textContainer.textEscapeDouble['grouperRequiredTooltip']}">*</span>
-        </span>
-        <br />
-        <span class="description">${textContainer.text['provisionerTypeHint']}</span>
+        <c:if test="${empty guiProvisionerConfiguration.provisionerConfiguration['class'].name}">
+          <span style="white-space: nowrap">
+          <select name="provisionerConfigType" id="provisionerConfigTypeId" style="width: 30em"
+          onchange="ajax('../app/UiV2ProvisionerConfiguration.addProvisionerConfiguration?focusOnElementName=provisionerConfigType', {formIds: 'provisionerConfigDetails'}); return false;"
+          >
+           
+            <option value=""></option>
+            <c:forEach items="${grouperRequestContainer.provisionerConfigurationContainer.allProvisionerConfigurationTypes}" var="provisionerConfiguration">
+              <option value="${provisionerConfiguration['class'].name}"
+                  ${guiProvisionerConfiguration.provisionerConfiguration['class'].name == provisionerConfiguration['class'].name ? 'selected="selected"' : '' }
+                  >${provisionerConfiguration.title}</option>
+            </c:forEach>
+          </select>
+          <span class="requiredField" rel="tooltip" data-html="true" data-delay-show="200" data-placement="right" 
+          data-original-title="${textContainer.textEscapeDouble['grouperRequiredTooltip']}">*</span>
+          </span>
+          <br />
+          <span class="description">${textContainer.text['provisionerTypeHint']}</span>
+        </c:if>
+        <c:if test="${not empty guiProvisionerConfiguration.provisionerConfiguration['class'].name}">
+         <span style="white-space: nowrap">
+          ${guiProvisionerConfiguration.provisionerConfiguration.title}
+          <select name="provisionerConfigType" id="provisionerConfigTypeId" style="width: 30em; display:none;"
+          onchange="ajax('../app/UiV2ProvisionerConfiguration.addProvisionerConfiguration?focusOnElementName=provisionerConfigType', {formIds: 'provisionerConfigDetails'}); return false;"
+          >
+           
+            <option value=""></option>
+            <c:forEach items="${grouperRequestContainer.provisionerConfigurationContainer.allProvisionerConfigurationTypes}" var="provisionerConfiguration">
+              <option value="${provisionerConfiguration['class'].name}"
+                  ${guiProvisionerConfiguration.provisionerConfiguration['class'].name == provisionerConfiguration['class'].name ? 'selected="selected"' : '' }
+                  >${provisionerConfiguration.title}</option>
+            </c:forEach>
+          </select>
+         </span>
+        </c:if>
       </td>
     </tr>
     
@@ -124,6 +142,14 @@
   </c:if>
   
   <c:if test="${grouperRequestContainer.provisionerConfigurationContainer.showStartWithSection == false}">
+  
+  <c:forEach items="${grouperRequestContainer.provisionerConfigurationContainer.guiProvisionerConfiguration.provisionerConfiguration.subSections}" var="subSection">
+      <ul>
+        <c:if test="${!grouper:isBlank(subSection.label) and subSection.show}">
+        <li><a href="#subsection_${subSection.label}">${subSection.title}</a></li>
+        </c:if>
+      </ul>
+   </c:forEach>
       
     <c:forEach items="${guiProvisionerConfiguration.provisionerConfiguration.subSections}" var="subSection">
     		<tbody>
@@ -134,6 +160,7 @@
                 <c:set target="${grouperRequestContainer.provisionerConfigurationContainer}"
                         property="currentConfigSuffix"
                         value="${subSection.label}.header" />
+                <a id="subsection_${subSection.label}" href="#">${textContainer.text['backToTop'] }</a> 
   	  					<h4>${subSection.title}</h4>
   	  					<p style="font-weight: normal;">${subSection.description} </p>
   	  					<p style="font-weight: normal;">${subSection.documentation} </p>

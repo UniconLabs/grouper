@@ -20,9 +20,94 @@ import com.fasterxml.jackson.databind.node.NullNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 
 import edu.internet2.middleware.grouper.util.GrouperUtil;
+import edu.internet2.middleware.grouperClient.jdbc.tableSync.GcGrouperSyncErrorCode;
 
 public abstract class ProvisioningUpdatable {
 
+  /**
+   * if this is the grouper translated object
+   * @return true if grouper target side
+   */
+  public boolean isGrouperTargetObject() {
+    if (this instanceof ProvisioningGroup) {
+      ProvisioningGroup provisioningGroup = (ProvisioningGroup)this;
+      ProvisioningGroupWrapper provisioningGroupWrapper = provisioningGroup.getProvisioningGroupWrapper();
+      if (provisioningGroupWrapper == null) {
+        return false;
+      }
+      return provisioningGroupWrapper.getGrouperTargetGroup() == this;
+    }
+    if (this instanceof ProvisioningEntity) {
+      ProvisioningEntity provisioningEntity = (ProvisioningEntity)this;
+      ProvisioningEntityWrapper provisioningEntityWrapper = provisioningEntity.getProvisioningEntityWrapper();
+      if (provisioningEntityWrapper == null) {
+        return false;
+      }
+      return provisioningEntityWrapper.getGrouperTargetEntity() == this;
+    }
+    if (this instanceof ProvisioningMembership) {
+      ProvisioningMembership provisioningMembership = (ProvisioningMembership)this;
+      ProvisioningMembershipWrapper provisioningMembershipWrapper = provisioningMembership.getProvisioningMembershipWrapper();
+      if (provisioningMembershipWrapper == null) {
+        return false;
+      }
+      return provisioningMembershipWrapper.getGrouperTargetMembership() == this;
+    }
+    throw new RuntimeException("Not expecting object of type: " + this.getClass().getName());
+  }
+  
+
+  /**
+   * matching ids
+   */
+  private Set<ProvisioningUpdatableAttributeAndValue> matchingIdAttributeNameToValues = null;
+
+  /**
+   * matching ids
+   * @return
+   */
+  public Set<ProvisioningUpdatableAttributeAndValue> getMatchingIdAttributeNameToValues() {
+    return matchingIdAttributeNameToValues;
+  }
+
+  /**
+   * matching ids
+   * @param matchingIdAttributeNameToValues
+   */
+  public void setMatchingIdAttributeNameToValues(
+      Set<ProvisioningUpdatableAttributeAndValue> matchingIdAttributeNameToValues) {
+    this.matchingIdAttributeNameToValues = matchingIdAttributeNameToValues;
+  }
+
+  /**
+   * search ids
+   */
+  private Set<ProvisioningUpdatableAttributeAndValue> searchIdAttributeNameToValues = null;
+
+  /**
+   * search ids
+   * @return
+   */
+  public Set<ProvisioningUpdatableAttributeAndValue> getSearchIdAttributeNameToValues() {
+    return searchIdAttributeNameToValues;
+  }
+
+  /**
+   * search ids
+   * @param searchIdAttributeNameToValues
+   */
+  public void setSearchIdAttributeNameToValues(
+      Set<ProvisioningUpdatableAttributeAndValue> searchIdAttributeNameToValues) {
+    this.searchIdAttributeNameToValues = searchIdAttributeNameToValues;
+  }
+
+
+  /**
+   * get the object type name, e.g. group, entity, membership
+   * @return the object type name
+   */
+  public abstract String objectTypeName();
+  
   private static final String TRUNC_ATTRS = "trunc_attrs";
 
   /**
@@ -48,24 +133,26 @@ public abstract class ProvisioningUpdatable {
     throw new RuntimeException("Not expecting object of type: " + this.getClass());
   }
   
+  public ProvisioningUpdatableWrapper getProvisioningWrapper() {
+    if (this instanceof ProvisioningGroup) {
+      return ((ProvisioningGroup)this).getProvisioningGroupWrapper();
+    }
+    if (this instanceof ProvisioningEntity) {
+      return ((ProvisioningEntity)this).getProvisioningEntityWrapper();
+    }
+    if (this instanceof ProvisioningMembership) {
+      return ((ProvisioningMembership)this).getProvisioningMembershipWrapper();
+    }
+    throw new RuntimeException("Not expecting object type: " + this.getClass().getName());
+  }
+  
   /**
    * if this object is hooked up to a wrapper and hooked up to a provisioner, then return that provisioner
    * @return the provisioner
    */
   public GrouperProvisioner getGrouperProvisioner() {
-    if (this instanceof ProvisioningGroup) {
-      ProvisioningGroupWrapper provisioningGroupWrapper = ((ProvisioningGroup)this).getProvisioningGroupWrapper();
-      return provisioningGroupWrapper == null ? null : provisioningGroupWrapper.getGrouperProvisioner();
-    }
-    if (this instanceof ProvisioningEntity) {
-      ProvisioningEntityWrapper provisioningEntityWrapper = ((ProvisioningEntity)this).getProvisioningEntityWrapper();
-      return provisioningEntityWrapper == null ? null : provisioningEntityWrapper.getGrouperProvisioner();
-    }
-    if (this instanceof ProvisioningMembership) {
-      ProvisioningMembershipWrapper provisioningMembershipWrapper = ((ProvisioningMembership)this).getProvisioningMembershipWrapper();
-      return provisioningMembershipWrapper == null ? null : provisioningMembershipWrapper.getGrouperProvisioner();
-    }
-    return null;
+    ProvisioningUpdatableWrapper provisioningUpdatableWrapper = this.getProvisioningWrapper();
+    return provisioningUpdatableWrapper == null ? null : provisioningUpdatableWrapper.getGrouperProvisioner();
   }
   
   /**
@@ -409,15 +496,24 @@ public abstract class ProvisioningUpdatable {
     throw new RuntimeException("Not expecting provisioning updatable: " + this.getClass());
   }
 
-  public boolean isRecalc() {
+  public boolean isRecalcObject() {
     if (this instanceof ProvisioningGroup) {
-      return ((ProvisioningGroup)this).getProvisioningGroupWrapper().isRecalc();
+      return ((ProvisioningGroup)this).getProvisioningGroupWrapper().isRecalcObject();
     }
     if (this instanceof ProvisioningEntity) {
-      return ((ProvisioningEntity)this).getProvisioningEntityWrapper().isRecalc();
+      return ((ProvisioningEntity)this).getProvisioningEntityWrapper().isRecalcObject();
     }
     if (this instanceof ProvisioningMembership) {
-      return ((ProvisioningMembership)this).getProvisioningMembershipWrapper().isRecalc();
+      return ((ProvisioningMembership)this).getProvisioningMembershipWrapper().isRecalcObject();
+    }
+    throw new RuntimeException("Not expecting type: " + this.getClass().getName());
+  }
+  public boolean isRecalcObjectMemberships() {
+    if (this instanceof ProvisioningGroup) {
+      return ((ProvisioningGroup)this).getProvisioningGroupWrapper().isRecalcGroupMemberships();
+    }
+    if (this instanceof ProvisioningEntity) {
+      return ((ProvisioningEntity)this).getProvisioningEntityWrapper().isRecalcEntityMemberships();
     }
     throw new RuntimeException("Not expecting type: " + this.getClass().getName());
   }
@@ -428,40 +524,16 @@ public abstract class ProvisioningUpdatable {
   public abstract boolean canDeleteAttributeValue(String name, Object deleteValue);
 
   /**
-   * if searching for this object, this is the search filter, translated and ready to use
-   */
-  private String searchFilter;
-  
-  /**
    * see if this object is empty e.g. after translating if empty then dont keep track of group
    * since the translation might have affected another object
    * @return true if empty
    */
   public boolean isEmpty() {
-    if (this.matchingId == null && GrouperUtil.length(this.attributes) == 0) {
+    if (GrouperUtil.length(this.matchingIdAttributeNameToValues) == 0 && GrouperUtil.length(this.attributes) == 0) {
       return true;
     }
     return false;
   }
-
-
-  /**
-   * 
-   * @return
-   */
-  public String getSearchFilter() {
-    return searchFilter;
-  }
-
-  /**
-   * 
-   * @param searchFilter
-   */
-  public void setSearchFilter(String searchFilter) {
-    this.searchFilter = searchFilter;
-  }
-
-
 
   /**
    * if this object has been provisioned or deprovisioned successfully, set this to true. 
@@ -513,28 +585,6 @@ public abstract class ProvisioningUpdatable {
 
 
   
-  /**
-   * string, number, or multikey of strings and numbers
-   */
-  private Object matchingId;
-  
-
-  /**
-   * string, number, or multikey of strings and numbers
-   * @return
-   */
-  public Object getMatchingId() {
-    return matchingId;
-  }
-
-  /**
-   * string, number, or multikey of strings and numbers
-   * @param matchingId
-   */
-  public void setMatchingId(Object matchingId) {
-    this.matchingId = matchingId;
-  }
-
   /**
    * 
    * @param action insert or delete
@@ -835,16 +885,35 @@ public abstract class ProvisioningUpdatable {
    */
   public void setException(Exception internal_exception) {
     this.exception = internal_exception;
+    ProvisioningUpdatableWrapper provisioningUpdatableWrapper = this.getProvisioningWrapper();
+    if (internal_exception != null && provisioningUpdatableWrapper != null) {
+      if (provisioningUpdatableWrapper.getErrorCode() == null) {
+        provisioningUpdatableWrapper.setErrorCode(GcGrouperSyncErrorCode.ERR);
+      }
+    }
   }
  
   protected boolean toStringProvisioningUpdatable(StringBuilder result, boolean firstField) {
-    firstField = toStringAppendField(result, firstField, "matchingId", this.matchingId);
+    firstField = toStringAppendField(result, firstField, "matchingAttrs", this.matchingIdAttributeNameToValues);
+    
+    // generally we dont need to print these...
+    boolean printSearchAttrs = true;
+    if (this instanceof ProvisioningGroup && this.getGrouperProvisioner()!=null && this.getGrouperProvisioner().retrieveGrouperProvisioningConfiguration().isGroupMatchingAttributeSameAsSearchAttribute()) { 
+      printSearchAttrs = false;
+    }
+    if (this instanceof ProvisioningEntity && this.getGrouperProvisioner()!=null && this.getGrouperProvisioner().retrieveGrouperProvisioningConfiguration().isEntityMatchingAttributeSameAsSearchAttribute()) { 
+      printSearchAttrs = false;
+    }
+    if (printSearchAttrs) {
+      firstField = toStringAppendField(result, firstField, "searchAttrs", this.searchIdAttributeNameToValues);
+    }
+    
     firstField = toStringAppendField(result, firstField, "exception", this.exception);
     firstField = toStringAppendField(result, firstField, "provisioned", this.provisioned);
     if (this.removeFromList) {
       firstField = toStringAppendField(result, firstField, "removeFromList", this.removeFromList);
     }
-    firstField = toStringAppendField(result, firstField, "searchFilter", this.searchFilter);
+
     if (GrouperUtil.length(this.attributes) > 0) {
       int attrCount = 0;
       // order these
@@ -986,8 +1055,8 @@ public abstract class ProvisioningUpdatable {
     provisioningUpdatable.exception = exception;
     provisioningUpdatable.provisioned = provisioned;
     provisioningUpdatable.removeFromList = removeFromList;
-    provisioningUpdatable.searchFilter = searchFilter;
-    provisioningUpdatable.matchingId = matchingId;
+    provisioningUpdatable.matchingIdAttributeNameToValues = GrouperUtil.cloneValue(matchingIdAttributeNameToValues);
+    provisioningUpdatable.searchIdAttributeNameToValues = GrouperUtil.cloneValue(searchIdAttributeNameToValues);
     
     
     

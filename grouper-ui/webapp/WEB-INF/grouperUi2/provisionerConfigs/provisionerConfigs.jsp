@@ -11,13 +11,14 @@
               
                 <div class="row-fluid">
                   <div class="lead span9 pull-left"><h1>${textContainer.text['miscellaneousProvisionerConfigurationsMainDescription'] }</h1></div>
-                  <div class="span2 pull-right">
+                  <div class="span3 pull-right">
                   
+                  <c:if test="${grouperRequestContainer.provisionerConfigurationContainer.canEditProvisionerConfiguration}">
                     <div class="btn-group btn-block">
                     
                       <a data-toggle="dropdown" href="#" aria-label="${textContainer.text['ariaLabelGuiMoreProvisionerConfigsActions']}" id="more-action-button" class="btn btn-medium btn-block dropdown-toggle" 
                         aria-haspopup="true" aria-expanded="false" role="menu" onclick="$('#provisioner-configs-more-options').is(':visible') === true ? $(this).attr('aria-expanded','false') : $(this).attr('aria-expanded',function(index, currentValue) { $('#provisioner-configs-more-options li').first().focus();return true;});">
-                          ${textContainer.text['provisionerConfigsMoreActionsButton'] } <span class="caret"></span></a>
+                          ${textContainer.text['provisionerConfigsMainScreenMoreActionsButton'] } <span class="caret"></span></a>
 
                       <ul class="dropdown-menu dropdown-menu-right" id="provisioner-configs-more-options">
                         <li><a href="#" onclick="return guiV2link('operation=UiV2ProvisionerConfiguration.addProvisionerConfiguration'); return false;"
@@ -25,6 +26,7 @@
                       </ul>
 
                     </div>
+                  </c:if>
                   
                   
                   </div>
@@ -46,7 +48,7 @@
 			              <th>${textContainer.text['provisionerConfigsTableHeaderIncrementalSyncLastRunTimestamp']}</th>
 			              <th>${textContainer.text['provisionerConfigsTableHeaderGroupCount']}</th>
 			              <th>${textContainer.text['provisionerConfigsTableHeaderUserCount']}</th>
-			              <th>${textContainer.text['provisionerConfigsTableHeaderRecordsCount']}</th>
+			              <th>${textContainer.text['provisionerConfigsTableHeaderMembershipCount']}</th>
 			              <th>${textContainer.text['provisionerConfigsTableHeaderActions']}</th>
 			            </tr>
 			            </thead>
@@ -82,7 +84,7 @@
 			                   </td>
 			                   
 			                   <td style="white-space: nowrap;">
-			                    ${guiProvisionerConfiguration.provisionerConfiguration.syncDetails.recordsCount}
+			                    ${guiProvisionerConfiguration.provisionerConfiguration.syncDetails.membershipCount}
 			                   </td>
 			                   
 			                   <td>

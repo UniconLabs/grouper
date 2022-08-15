@@ -1,50 +1,28 @@
 package edu.internet2.middleware.grouper.app.provisioning;
 
-import edu.internet2.middleware.grouperClient.jdbc.tableSync.GcGrouperSyncErrorCode;
 import edu.internet2.middleware.grouperClient.jdbc.tableSync.GcGrouperSyncMember;
 
-public class ProvisioningEntityWrapper {
+public class ProvisioningEntityWrapper extends ProvisioningUpdatableWrapper {
 
   /**
-   * if this object should not be provisioned because there is an error, list it here
+   * if recalcing the entity memberships 
    */
-  private GcGrouperSyncErrorCode errorCode;
+  private boolean recalcEntityMemberships;
   
   /**
-   * if this object should not be provisioned because there is an error, list it here
+   * if recalcing the entity memberships 
    * @return
    */
-  public GcGrouperSyncErrorCode getErrorCode() {
-    return errorCode;
+  public boolean isRecalcEntityMemberships() {
+    return recalcEntityMemberships;
   }
-
-  /**
-   * if this object should not be provisioned because there is an error, list it here
-   * @param errorCode
-   */
-  public void setErrorCode(GcGrouperSyncErrorCode errorCode) {
-    this.errorCode = errorCode;
-  }
-
-  /**
-   * if incremental and recalc
-   */
-  private boolean recalc;
   
   /**
-   * if incremental and recalc
-   * @return
+   * if recalcing the entity memberships 
+   * @param recalcEntityMemberships1
    */
-  public boolean isRecalc() {
-    return recalc;
-  }
-
-  /**
-   * if incremental and recalc
-   * @param recalc
-   */
-  public void setRecalc(boolean recalc) {
-    this.recalc = recalc;
+  public void setRecalcEntityMemberships(boolean recalcEntityMemberships1) {
+    this.recalcEntityMemberships = recalcEntityMemberships1;
   }
 
   /**
@@ -68,20 +46,6 @@ public class ProvisioningEntityWrapper {
     this.incrementalSyncMemberships = incrementalSyncMemberships1;
   }
 
-
-  private Object matchingId = null;
-  
-  
-  public Object getMatchingId() {
-    return matchingId;
-  }
-
-
-
-  
-  public void setMatchingId(Object matchingId) {
-    this.matchingId = matchingId;
-  }
 
   /**
    * grouper member id
@@ -137,16 +101,6 @@ public class ProvisioningEntityWrapper {
     super();
   }
 
-  private GrouperProvisioner grouperProvisioner;
-  
-  public GrouperProvisioner getGrouperProvisioner() {
-    return grouperProvisioner;
-  }
-  
-  public void setGrouperProvisioner(GrouperProvisioner grouperProvisioner) {
-    this.grouperProvisioner = grouperProvisioner;
-  }
-
   public String toString() {
     return "EntityWrapper@" + Integer.toHexString(hashCode());
   }
@@ -180,33 +134,63 @@ public class ProvisioningEntityWrapper {
   }
 
   
+  
   public void setGrouperProvisioningEntity(ProvisioningEntity grouperProvisioningEntity) {
+    ProvisioningEntity oldGrouperProvisioningEntity = this.grouperProvisioningEntity;
+    ProvisioningEntityWrapper oldProvisioningEntityWrapper = oldGrouperProvisioningEntity == null ? null : oldGrouperProvisioningEntity.getProvisioningEntityWrapper();
+
     this.grouperProvisioningEntity = grouperProvisioningEntity;
-    if (this.grouperProvisioningEntity!=null) {
-      this.memberId = this.grouperProvisioningEntity.getId();
-      if (this != this.grouperProvisioningEntity.getProvisioningEntityWrapper()) {
-        if (this.grouperProvisioningEntity.getProvisioningEntityWrapper() != null) {
-          this.grouperProvisioner.retrieveGrouperProvisioningData().getProvisioningEntityWrappers().remove(this.grouperProvisioningEntity.getProvisioningEntityWrapper());
-        }
-        this.grouperProvisioningEntity.setProvisioningEntityWrapper(this);
-      }
+    
+    if (this.grouperProvisioningEntity != null) {
+      this.grouperProvisioningEntity.setProvisioningEntityWrapper(this);
     }
+
+    if (oldGrouperProvisioningEntity != null) {
+      oldGrouperProvisioningEntity.setProvisioningEntityWrapper(null);
+    }
+    if (oldProvisioningEntityWrapper != null) {
+      oldProvisioningEntityWrapper.grouperProvisioningEntity = null;
+    }
+    this.calculateMemberId();
+
   }
 
   
+  private void calculateMemberId() {
+    this.memberId = null;
+    if (this.grouperProvisioningEntity != null) {
+      this.memberId = this.grouperProvisioningEntity.getId();
+    } else if (this.gcGrouperSyncMember != null) {
+      this.memberId = this.gcGrouperSyncMember.getMemberId();
+    }
+  }
+
   public ProvisioningEntity getTargetProvisioningEntity() {
     return targetProvisioningEntity;
   }
 
   
   public void setTargetProvisioningEntity(ProvisioningEntity targetProvisioningEntity) {
+    if (this.targetProvisioningEntity == targetProvisioningEntity) {
+      return;
+    }
+    
+    ProvisioningEntity oldTargetProvisioningEntity = this.targetProvisioningEntity;
+    ProvisioningEntityWrapper oldProvisioningEntityWrapper = oldTargetProvisioningEntity == null ? null : oldTargetProvisioningEntity.getProvisioningEntityWrapper();
+
     this.targetProvisioningEntity = targetProvisioningEntity;
-    if (this.targetProvisioningEntity != null && this != this.targetProvisioningEntity.getProvisioningEntityWrapper()) {
-      if (this.targetProvisioningEntity.getProvisioningEntityWrapper() != null) {
-        this.grouperProvisioner.retrieveGrouperProvisioningData().getProvisioningEntityWrappers().remove(this.targetProvisioningEntity.getProvisioningEntityWrapper());
-      }
+    
+    if (this.targetProvisioningEntity != null) {
       this.targetProvisioningEntity.setProvisioningEntityWrapper(this);
     }
+
+    if (oldTargetProvisioningEntity != null) {
+      oldTargetProvisioningEntity.setProvisioningEntityWrapper(null);
+    }
+    if (oldProvisioningEntityWrapper != null && oldProvisioningEntityWrapper != this) {
+      oldProvisioningEntityWrapper.targetProvisioningEntity = null;
+    }
+
   }
 
   
@@ -216,12 +200,23 @@ public class ProvisioningEntityWrapper {
 
   
   public void setGrouperTargetEntity(ProvisioningEntity grouperTargetEntity) {
+    if (this.grouperTargetEntity == grouperTargetEntity) {
+      return;
+    }
+    ProvisioningEntity oldGrouperTargetEntity = this.grouperTargetEntity;
+    ProvisioningEntityWrapper oldProvisioningEntityWrapper = oldGrouperTargetEntity == null ? null : oldGrouperTargetEntity.getProvisioningEntityWrapper();
+
     this.grouperTargetEntity = grouperTargetEntity;
-    if (this.grouperTargetEntity != null && this != this.grouperTargetEntity.getProvisioningEntityWrapper()) {
-      if (this.grouperTargetEntity.getProvisioningEntityWrapper() != null) {
-        this.grouperProvisioner.retrieveGrouperProvisioningData().getProvisioningEntityWrappers().remove(this.grouperTargetEntity.getProvisioningEntityWrapper());
-      }
+    
+    if (this.grouperTargetEntity != null) {
       this.grouperTargetEntity.setProvisioningEntityWrapper(this);
+    }
+
+    if (oldGrouperTargetEntity != null) {
+      oldGrouperTargetEntity.setProvisioningEntityWrapper(null);
+    }
+    if (oldProvisioningEntityWrapper != null && oldProvisioningEntityWrapper != this) {
+      oldProvisioningEntityWrapper.grouperTargetEntity = null;
     }
   }
 
@@ -246,6 +241,7 @@ public class ProvisioningEntityWrapper {
     if (this.gcGrouperSyncMember != null) {
       this.syncMemberId = this.getGcGrouperSyncMember().getId();
     }
+    this.calculateMemberId();
   }
 
   /**
@@ -283,7 +279,29 @@ public class ProvisioningEntityWrapper {
   public void setDelete(boolean delete) {
     this.delete = delete;
   }
+
+  @Override
+  public String objectTypeName() {
+    return "entity";
+  }
   
-  
+  public String toStringForError() {
+    
+    if (this.grouperTargetEntity != null) {
+      return "grouperTargetEntity: " + this.grouperTargetEntity;
+    }
+
+    if (this.grouperProvisioningEntity != null) {
+      return "grouperProvisioningEntity: " + this.grouperProvisioningEntity;
+    }
+
+    if (this.targetProvisioningEntity != null) {
+      return "targetProvisioningEntity: " + this.targetProvisioningEntity;
+    }
+    
+    return this.toString();
+  }
+
+
 
 }

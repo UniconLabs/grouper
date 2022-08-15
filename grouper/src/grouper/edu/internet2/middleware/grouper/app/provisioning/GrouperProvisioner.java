@@ -11,6 +11,7 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 import org.apache.commons.lang.StringUtils;
+import org.apache.commons.logging.Log;
 
 import edu.internet2.middleware.grouper.app.loader.GrouperLoaderConfig;
 import edu.internet2.middleware.grouper.app.loader.GrouperLoaderStatus;
@@ -37,6 +38,9 @@ import edu.internet2.middleware.grouperClientExt.org.apache.commons.lang3.time.D
  *
  */
 public abstract class GrouperProvisioner {
+
+  /** logger */
+  private static final Log LOG = GrouperUtil.getLog(GrouperProvisioner.class);
 
   /**
    * job name from full or incremental
@@ -159,12 +163,6 @@ public abstract class GrouperProvisioner {
     if (!(this.retrieveGrouperProvisioningDataChanges().getClass().equals(GrouperProvisioningDataChanges.class))) {
       result.append(", DataChanges: ").append(this.retrieveGrouperProvisioningDataChanges().getClass().getName());
     }
-    if (!(this.retrieveGrouperProvisioningDataGrouper().getClass().equals(GrouperProvisioningDataGrouper.class))) {
-      result.append(", DataGrouper: ").append(this.retrieveGrouperProvisioningDataGrouper().getClass().getName());
-    }
-    if (!(this.retrieveGrouperProvisioningDataGrouperTarget().getClass().equals(GrouperProvisioningDataGrouperTarget.class))) {
-      result.append(", DataGrouperTarget: ").append(this.retrieveGrouperProvisioningDataGrouperTarget().getClass().getName());
-    }
     if (!(this.retrieveGrouperProvisioningDataIncrementalInput().getClass().equals(GrouperProvisioningDataIncrementalInput.class))) {
       result.append(", DataIncrementalInput: ").append(this.retrieveGrouperProvisioningDataIncrementalInput().getClass().getName());
     }
@@ -173,9 +171,6 @@ public abstract class GrouperProvisioner {
     }
     if (!(this.retrieveGrouperProvisioningDataSync().getClass().equals(GrouperProvisioningDataSync.class))) {
       result.append(", DataSync: ").append(this.retrieveGrouperProvisioningDataSync().getClass().getName());
-    }
-    if (!(this.retrieveGrouperProvisioningDataTarget().getClass().equals(GrouperProvisioningDataTarget.class))) {
-      result.append(", DataTarget: ").append(this.retrieveGrouperProvisioningDataTarget().getClass().getName());
     }
     if (!(this.retrieveGrouperProvisioningDiagnosticsContainer().getClass().equals(GrouperProvisioningDiagnosticsContainer.class))) {
       result.append(", DiagnosticsContainer: ").append(this.retrieveGrouperProvisioningDiagnosticsContainer().getClass().getName());
@@ -260,13 +255,7 @@ public abstract class GrouperProvisioner {
 
   private GrouperProvisioningData grouperProvisioningData;
 
-  private GrouperProvisioningDataGrouper grouperProvisioningDataGrouper;
-
-  private GrouperProvisioningDataGrouperTarget grouperProvisioningDataGrouperTarget;
-
   private GrouperProvisioningDataSync grouperProvisioningDataSync;
-
-  private GrouperProvisioningDataTarget grouperProvisioningDataTarget;
 
   private GrouperProvisioningDataIncrementalInput grouperProvisioningDataIncrementalInput ;
 
@@ -609,7 +598,13 @@ public abstract class GrouperProvisioner {
     if (System.currentTimeMillis() - this.lastLog > (1000 * 60) - 10) {
     
       String debugString = GrouperClientUtils.mapToString(debugMap);
-      grouperProvisioningOutput.setMessage(debugString);
+      String theMessage = debugString;
+      StringBuilder objectLog = this.retrieveGrouperProvisioningObjectLog().getObjectLog();
+      if (objectLog.length() > 0) {
+        theMessage = objectLog + "\n\n" + debugString;
+      }
+
+      grouperProvisioningOutput.setMessage(theMessage);
       GrouperProvisioningLog.debugLog(debugString);
       this.lastLog = System.currentTimeMillis();
 
@@ -641,7 +636,10 @@ public abstract class GrouperProvisioner {
           );
 
       this.retrieveGrouperProvisioningObjectMetadata().initBuiltInMetadata();
+      this.retrieveGrouperProvisioningObjectMetadata().indexBuiltInMetadata();
 
+      this.retrieveGrouperProvisioningConfiguration().configureAfterMetadata();
+      
       // let the provisioner tell the framework how the provisioner should behave with respect to the target
       this.registerProvisioningBehaviors(this.retrieveGrouperProvisioningBehavior());
 
@@ -668,7 +666,9 @@ public abstract class GrouperProvisioner {
     try {
 
       debugMap.put("finalLog", false);
-      
+
+      debugMap.put("runId", this.getInstanceId());
+
       debugMap.put("state", "init");
       this.initialize(grouperProvisioningType1);
       
@@ -719,6 +719,8 @@ public abstract class GrouperProvisioner {
           
       return this.retrieveGrouperProvisioningOutput();
     } catch (RuntimeException re) {
+      LOG.error(this.retrieveGrouperProvisioningLog().prefixLogLinesWithInstanceId(
+          "Error"), re);
       if (gcGrouperSyncLog != null) {
         if (gcGrouperSyncLog.getStatus() == null || !gcGrouperSyncLog.getStatus().isError()) {
           gcGrouperSyncLog.setStatus(GcGrouperSyncLogState.ERROR);
@@ -750,6 +752,8 @@ public abstract class GrouperProvisioner {
           this.gcGrouperSyncJob.assignHeartbeatAndEndJob();
         }
       } catch (RuntimeException re2) {
+        LOG.error(this.retrieveGrouperProvisioningLog().prefixLogLinesWithInstanceId(
+            "Error2"), re2);
         if (this.gcGrouperSyncLog != null) {
           if (gcGrouperSyncLog.getStatus() == null || !gcGrouperSyncLog.getStatus().isError()) {
             this.gcGrouperSyncLog.setStatus(GcGrouperSyncLogState.ERROR);
@@ -776,6 +780,9 @@ public abstract class GrouperProvisioner {
         gcGrouperSync.getGcGrouperSyncLogDao().internal_logStore(gcGrouperSyncLog);
       }
     } catch (RuntimeException re3) {
+      LOG.error(this.retrieveGrouperProvisioningLog().prefixLogLinesWithInstanceId(
+          "Error3"), re3);
+
       debugMap.put("exception3", GrouperClientUtils.getFullStackTrace(re3));
       debugString = GrouperClientUtils.mapToString(debugMap);
     }
@@ -784,11 +791,17 @@ public abstract class GrouperProvisioner {
       GrouperProvisioningLog.debugLog(debugString);
     }
     
+    this.retrieveGrouperProvisioningObjectLog().debug(GrouperProvisioningObjectLogType.end);
+
     // already set total
     //gcTableSyncOutput.setTotal();
-    this.retrieveGrouperProvisioningOutput().setMessage(debugString);
-
-    this.retrieveGrouperProvisioningObjectLog().debug(GrouperProvisioningObjectLogType.end);
+    String theMessage = debugString;
+    StringBuilder objectLog = this.retrieveGrouperProvisioningObjectLog().getObjectLog();
+    if (objectLog.length() > 0) {
+      theMessage = objectLog + "\n\n" + debugString;
+    }
+    
+    this.retrieveGrouperProvisioningOutput().setMessage(theMessage);
 
     // this isnt good
     if (debugMap.containsKey("exception") || debugMap.containsKey("exception2") || debugMap.containsKey("exception3")) {
@@ -886,14 +899,6 @@ public abstract class GrouperProvisioner {
   }
 
   
-  public GrouperProvisioningDataGrouper retrieveGrouperProvisioningDataGrouper() {
-    if (this.grouperProvisioningDataGrouper == null) {
-      this.grouperProvisioningDataGrouper = new GrouperProvisioningDataGrouper();
-      this.grouperProvisioningDataGrouper.setGrouperProvisioner(this);
-    }
-    return grouperProvisioningDataGrouper;
-  }
-  
   public GrouperProvisioningDataSync retrieveGrouperProvisioningDataSync() {
     if (this.grouperProvisioningDataSync == null) {
       this.grouperProvisioningDataSync = new GrouperProvisioningDataSync();
@@ -910,23 +915,6 @@ public abstract class GrouperProvisioner {
     return grouperProvisioningData;
   }
 
-  public GrouperProvisioningDataGrouperTarget retrieveGrouperProvisioningDataGrouperTarget() {
-    if (this.grouperProvisioningDataGrouperTarget == null) {
-      this.grouperProvisioningDataGrouperTarget = new GrouperProvisioningDataGrouperTarget();
-      this.grouperProvisioningDataGrouperTarget.setGrouperProvisioner(this);
-    }
-    return grouperProvisioningDataGrouperTarget;
-  }
-
-  public GrouperProvisioningDataTarget retrieveGrouperProvisioningDataTarget() {
-    if (this.grouperProvisioningDataTarget == null) {
-      this.grouperProvisioningDataTarget = new GrouperProvisioningDataTarget();
-      this.grouperProvisioningDataTarget.setGrouperProvisioner(this);
-    }
-    return grouperProvisioningDataTarget;
-  }
-
-  
   public GrouperProvisioningDataIncrementalInput retrieveGrouperProvisioningDataIncrementalInput() {
     if (this.grouperProvisioningDataIncrementalInput == null) {
       this.grouperProvisioningDataIncrementalInput = new GrouperProvisioningDataIncrementalInput();
@@ -1052,6 +1040,7 @@ public abstract class GrouperProvisioner {
 
   private GrouperProvisioningFailsafe grouperProvisioningFailsafe;
 
+  private GrouperProvisioningLogCommands grouperProvisioningLogCommands;
 
 
   
@@ -1161,6 +1150,24 @@ public abstract class GrouperProvisioner {
       this.grouperProvisioningFailsafe.setGrouperProvisioner(this);
     }
     return this.grouperProvisioningFailsafe;
+    
+  }
+  
+  protected Class<? extends GrouperProvisioningLogCommands> grouperProvisioningLogCommandsClass() {
+    return GrouperProvisioningLogCommands.class;
+  }
+
+  /**
+   * return the instance of the LogCommands logic
+   * @return the logic
+   */
+  public GrouperProvisioningLogCommands retrieveGrouperProvisioningLogCommands() {
+    if (this.grouperProvisioningLogCommands == null) {
+      Class<? extends GrouperProvisioningLogCommands> grouperProvisioningLogicClass = this.grouperProvisioningLogCommandsClass();
+      this.grouperProvisioningLogCommands = GrouperUtil.newInstance(grouperProvisioningLogicClass);
+      this.grouperProvisioningLogCommands.setGrouperProvisioner(this);
+    }
+    return this.grouperProvisioningLogCommands;
     
   }
   

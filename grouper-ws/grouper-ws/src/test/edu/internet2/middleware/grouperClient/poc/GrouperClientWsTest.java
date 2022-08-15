@@ -118,7 +118,7 @@ public class GrouperClientWsTest extends GrouperTest {
    * @param args
    */
   public static void main(String[] args) {
-    TestRunner.run(new GrouperClientWsTest("testGetAuditEntries"));
+    TestRunner.run(new GrouperClientWsTest("testAddMember"));
     //TestRunner.run(new GrouperClientWsTest("testGroupSaveLookupNameSame"));
     //TestRunner.run(new GrouperClientWsTest("testGroupSaveNoLookup"));
 
@@ -726,7 +726,7 @@ public class GrouperClientWsTest extends GrouperTest {
       assertTrue(outputLines[1], outputLines[1]
           .contains("my name is test.subject.1"));
 
-      assertTrue(GrouperClientWs.mostRecentRequest.contains(">name<"));
+      assertTrue(GrouperClientWs.mostRecentRequest.contains("\"name\""));
       assertTrue(GrouperClientWs.mostRecentResponse
           .contains("my name is test.subject.0"));
 
@@ -864,7 +864,7 @@ public class GrouperClientWsTest extends GrouperTest {
         assertTrue(outputLines[0], matcher.matches());
 
         assertEquals("0", matcher.group(1));
-        assertEquals("SUCCESS_CREATED", matcher.group(2));
+        assertEquals(output, "SUCCESS_CREATED", matcher.group(2));
         //cant do that since not the id... its the identifier
         //assertEquals("a@b.c", matcher.group(3));
 
@@ -1302,7 +1302,7 @@ public class GrouperClientWsTest extends GrouperTest {
       assertTrue(outputLines[1], outputLines[1]
           .contains("my name is test.subject.0"));
 
-      assertTrue(GrouperClientWs.mostRecentRequest.contains(">name<"));
+      assertTrue(GrouperClientWs.mostRecentRequest.contains("\"name\""));
       assertTrue(GrouperClientWs.mostRecentResponse
           .contains("my name is test.subject.0"));
 
@@ -1563,7 +1563,7 @@ public class GrouperClientWsTest extends GrouperTest {
       assertTrue(outputLines[0], outputLines[0]
           .contains("my name is test.subject.0"));
 
-      assertTrue(GrouperClientWs.mostRecentRequest.contains(">name<"));
+      assertTrue(GrouperClientWs.mostRecentRequest.contains("\"name\""));
       assertTrue(GrouperClientWs.mostRecentResponse
           .contains("my name is test.subject.0"));
 
@@ -2391,6 +2391,12 @@ public class GrouperClientWsTest extends GrouperTest {
       baos = new ByteArrayOutputStream();
       System.setOut(new PrintStream(baos));
 
+      // THIS WORKS IF WS HAS THIS IN grouper.properties
+      //  group.validateExtensionByDefault = true
+      //  stem.validateExtensionByDefault = true
+      //  attributeDef.validateExtensionByDefault = true
+      //  attributeDefName.validateExtensionByDefault = true
+          
       GrouperClient.main(GrouperClientUtils.splitTrim(
           "--operation=groupSaveWs --name=aStem:newGroup0/1", " "));
       System.out.flush();
@@ -2872,7 +2878,7 @@ public class GrouperClientWsTest extends GrouperTest {
         assertEquals("SUCCESS_INSERTED", matcher.group(1));
         assertEquals("aStem:newGroup4", matcher.group(2));
 
-        assertTrue(GrouperClientWs.mostRecentRequest, GrouperClientWs.mostRecentRequest.contains("<typeOfGroup>entity</typeOfGroup>"));
+        assertTrue(GrouperClientWs.mostRecentRequest, GrouperClientWs.mostRecentRequest.contains("typeOfGroup\":\"entity"));
 
 
         // #####################################################
@@ -2899,8 +2905,8 @@ public class GrouperClientWsTest extends GrouperTest {
         assertEquals("SUCCESS_INSERTED", matcher.group(1));
         assertEquals("aStem:newGroup5", matcher.group(2));
 
-        assertTrue(GrouperClientWs.mostRecentRequest, GrouperClientWs.mostRecentRequest.contains("<idIndex>12345</idIndex>"));
-        assertTrue(GrouperClientWs.mostRecentResponse, GrouperClientWs.mostRecentResponse.contains("<idIndex>12345</idIndex>"));
+        assertTrue(GrouperClientWs.mostRecentRequest, GrouperClientWs.mostRecentRequest.contains("idIndex\":\"12345"));
+        assertTrue(GrouperClientWs.mostRecentResponse, GrouperClientWs.mostRecentResponse.contains("idIndex\":\"12345"));
 
         // #####################################################
         // run again, with idIndex
@@ -2926,8 +2932,8 @@ public class GrouperClientWsTest extends GrouperTest {
         assertEquals("SUCCESS_UPDATED", matcher.group(1));
         assertEquals("aStem:newGroup5", matcher.group(2));
 
-        assertTrue(GrouperClientWs.mostRecentRequest, GrouperClientWs.mostRecentRequest.contains("<idIndex>12345</idIndex>"));
-        assertTrue(GrouperClientWs.mostRecentResponse, GrouperClientWs.mostRecentResponse.contains("<idIndex>12345</idIndex>"));
+        assertTrue(GrouperClientWs.mostRecentRequest, GrouperClientWs.mostRecentRequest.contains("idIndex\":\"12345"));
+        assertTrue(GrouperClientWs.mostRecentResponse, GrouperClientWs.mostRecentResponse.contains("idIndex\":\"12345"));
 
 
       } finally {
@@ -3674,7 +3680,7 @@ public class GrouperClientWsTest extends GrouperTest {
 
       assertTrue(output, outputLines[2].contains("my name is test.subject.1"));
 
-      assertTrue(GrouperClientWs.mostRecentRequest.contains(">name<"));
+      assertTrue(GrouperClientWs.mostRecentRequest.contains("\"name\""));
       assertTrue(GrouperClientWs.mostRecentResponse
           .contains("my name is test.subject.0"));
 
@@ -4262,7 +4268,7 @@ public class GrouperClientWsTest extends GrouperTest {
       assertTrue(outputLines[1], outputLines[1]
           .contains("my name is test.subject.1"));
 
-      assertTrue(GrouperClientWs.mostRecentRequest.contains(">name<"));
+      assertTrue(GrouperClientWs.mostRecentRequest.contains("\"name\""));
       assertTrue(GrouperClientWs.mostRecentResponse
           .contains("my name is test.subject.0"));
 
@@ -4835,7 +4841,7 @@ public class GrouperClientWsTest extends GrouperTest {
       assertTrue(outputLines[1], outputLines[1]
           .contains("my name is test.subject.1"));
 
-      assertTrue(GrouperClientWs.mostRecentRequest.contains(">name<"));
+      assertTrue(GrouperClientWs.mostRecentRequest.contains("\"name\""));
       assertTrue(GrouperClientWs.mostRecentResponse
           .contains("my name is test.subject.0"));
 
@@ -5132,7 +5138,7 @@ public class GrouperClientWsTest extends GrouperTest {
       assertTrue(outputLines[0], outputLines[0]
           .contains("my name is test.subject.0"));
 
-      assertTrue(GrouperClientWs.mostRecentRequest.contains(">name<"));
+      assertTrue(GrouperClientWs.mostRecentRequest.contains("\"name\""));
       assertTrue(GrouperClientWs.mostRecentResponse
           .contains("my name is test.subject.0"));
 
@@ -5185,11 +5191,10 @@ public class GrouperClientWsTest extends GrouperTest {
     file.deleteOnExit();
 
     try {
-      String contents = "<WsRestAddMemberRequest>"
-          + "<wsGroupLookup><groupName>aStem:aGroup</groupName></wsGroupLookup>"
-          + "<subjectLookups><WsSubjectLookup>"
-          + "<subjectId>test.subject.0</subjectId></WsSubjectLookup>"
-          + "</subjectLookups></WsRestAddMemberRequest>";
+      String contents = "{\"WsRestAddMemberRequest\":"
+          + "\"wsGroupLookup\":{\"groupName\":\"aStem:aGroup\"},"
+          + "\"subjectLookups\":{\"WsSubjectLookup\":"
+          + "{\"subjectId\":\"test.subject.0\"}}}";
       GrouperClientUtils.saveStringIntoFile(file, contents);
 
       GrouperClient
@@ -5202,7 +5207,7 @@ public class GrouperClientWsTest extends GrouperTest {
 
       System.setOut(systemOut);
 
-      assertTrue(output.contains("<resultCode>SUCCESS</resultCode>")
+      assertTrue(output.contains("resultCode\":\"SUCCESS")
           && output.contains("        "));
 
       // #####################################################
@@ -5223,7 +5228,7 @@ public class GrouperClientWsTest extends GrouperTest {
 
       System.setOut(systemOut);
 
-      assertTrue(output.contains("<resultCode>SUCCESS</resultCode>")
+      assertTrue(output.contains("resultCode\":\"SUCCESS")
           && !output.contains("        "));
 
     } finally {
@@ -5448,7 +5453,7 @@ public class GrouperClientWsTest extends GrouperTest {
       assertEquals(output, "aStem:aGroup", matcher.group(3));
 
       assertTrue(GrouperClientWs.mostRecentRequest.contains("stemName")
-          && GrouperClientWs.mostRecentRequest.contains(">aStem<"));
+          && GrouperClientWs.mostRecentRequest.contains("\"aStem\""));
 
       // #####################################################
       // run again, with group type
@@ -5784,7 +5789,7 @@ public class GrouperClientWsTest extends GrouperTest {
       assertEquals(output, "aStem:aGroup2", matcher.group(3));
 
       assertTrue(GrouperClientWs.mostRecentRequest.contains("typeOfGroups")
-          && GrouperClientWs.mostRecentRequest.contains(">group<"));
+          && GrouperClientWs.mostRecentRequest.contains("\"group\""));
 
       // #####################################################
       // run again, with typeOfGroup = role
@@ -5806,7 +5811,7 @@ public class GrouperClientWsTest extends GrouperTest {
       assertEquals(output, 0, GrouperUtil.length(outputLines));
 
       assertTrue(GrouperClientWs.mostRecentRequest.contains("typeOfGroups")
-          && GrouperClientWs.mostRecentRequest.contains(">role<"));
+          && GrouperClientWs.mostRecentRequest.contains("\"role\""));
 
 
 
@@ -7029,7 +7034,7 @@ public class GrouperClientWsTest extends GrouperTest {
     Group           i2sub    = eduSub.addChildGroup("i2sub", "i2sub");
     Group           edu2i2sub    = edu2.addChildGroup("edu2i2sub", "edu2i2sub");
     Group           comp1    = edu.addChildGroup("comp1", "comp1");
-    Group           compLeft    = edu.addChildGroup("compLeft", "compRight");
+    Group           compLeft    = edu.addChildGroup("compLeft", "compLeft");
     Group           compRight    = edu.addChildGroup("compRight", "compRight");
 
     comp1.addCompositeMember(CompositeType.INTERSECTION, compLeft, compRight);
@@ -7723,9 +7728,9 @@ public class GrouperClientWsTest extends GrouperTest {
       assertTrue(GrouperClientWs.mostRecentRequest,
           GrouperClientWs.mostRecentRequest.contains("serviceRole"));
       assertTrue(GrouperClientWs.mostRecentRequest,
-          GrouperClientWs.mostRecentRequest.contains("<serviceLookup><uuid>"));
+          GrouperClientWs.mostRecentRequest.contains("serviceLookup\":{\"uuid"));
       assertTrue(GrouperClientWs.mostRecentRequest,
-          !GrouperClientWs.mostRecentRequest.contains("<serviceLookup><name>"));
+          !GrouperClientWs.mostRecentRequest.contains("\"serviceLookup\":{\"name\""));
 
       // ##################### subject 7 and 8 is admin of the confluence service...
 
@@ -7788,9 +7793,9 @@ public class GrouperClientWsTest extends GrouperTest {
       assertTrue(GrouperClientWs.mostRecentRequest,
           GrouperClientWs.mostRecentRequest.contains("serviceRole"));
       assertTrue(GrouperClientWs.mostRecentRequest,
-          GrouperClientWs.mostRecentRequest.contains("<serviceLookup><name>"));
+          GrouperClientWs.mostRecentRequest.contains("\"serviceLookup\":{\"name\""));
       assertTrue(GrouperClientWs.mostRecentRequest,
-          !GrouperClientWs.mostRecentRequest.contains("<serviceLookup><uuid>"));
+          !GrouperClientWs.mostRecentRequest.contains("serviceLookup\":{\"uuid"));
 
     } finally {
       System.setOut(systemOut);
@@ -7953,7 +7958,7 @@ public class GrouperClientWsTest extends GrouperTest {
       assertTrue(GrouperClientWs.mostRecentRequest,
           !GrouperClientWs.mostRecentRequest.contains("serviceRole"));
       assertTrue(GrouperClientWs.mostRecentRequest,
-          !GrouperClientWs.mostRecentRequest.contains("<serviceLookup><uuid>"));
+          !GrouperClientWs.mostRecentRequest.contains("serviceLookup\":{\"uuid"));
 
       // ######################################################
       // Try a sourceId
@@ -9494,7 +9499,7 @@ public class GrouperClientWsTest extends GrouperTest {
       assertTrue(GrouperClientWs.mostRecentRequest,
           !GrouperClientWs.mostRecentRequest.contains("actAsSubject"));
       assertTrue(GrouperClientWs.mostRecentRequest,
-          GrouperClientWs.mostRecentRequest.contains("<wsGroupLookup><uuid>"));
+          GrouperClientWs.mostRecentRequest.contains("wsGroupLookup\":\"uuid"));
 
       // ######################################################
       // Try filter by group, success
@@ -9540,7 +9545,7 @@ public class GrouperClientWsTest extends GrouperTest {
       assertTrue(GrouperClientWs.mostRecentRequest,
           !GrouperClientWs.mostRecentRequest.contains("actAsSubject"));
       assertTrue(GrouperClientWs.mostRecentRequest,
-          GrouperClientWs.mostRecentRequest.contains("<wsGroupLookup><idIndex>"));
+          GrouperClientWs.mostRecentRequest.contains("wsGroupLookup\":\"idIndex"));
 
       // ######################################################
       // Try filter by group, success
@@ -9586,7 +9591,7 @@ public class GrouperClientWsTest extends GrouperTest {
       assertTrue(GrouperClientWs.mostRecentRequest,
           !GrouperClientWs.mostRecentRequest.contains("actAsSubject"));
       assertTrue(GrouperClientWs.mostRecentRequest,
-          GrouperClientWs.mostRecentRequest.contains("<wsGroupLookup><groupName>"));
+          GrouperClientWs.mostRecentRequest.contains("wsGroupLookup\":{\"groupName"));
 
       // ######################################################
       // Try a subject attribute name with custom template
@@ -10275,7 +10280,7 @@ public class GrouperClientWsTest extends GrouperTest {
       assertTrue(outputLines[0], outputLines[0]
           .contains("my name is test.subject.0"));
 
-      assertTrue(GrouperClientWs.mostRecentRequest.contains(">name<"));
+      assertTrue(GrouperClientWs.mostRecentRequest.contains("\"name\""));
       assertTrue(GrouperClientWs.mostRecentResponse
           .contains("my name is test.subject.0"));
 
@@ -10456,7 +10461,7 @@ public class GrouperClientWsTest extends GrouperTest {
       assertTrue(GrouperClientWs.mostRecentRequest,
           !GrouperClientWs.mostRecentRequest.contains("wsAttributeAssignLookups"));
       assertTrue(GrouperClientWs.mostRecentRequest,
-          GrouperClientWs.mostRecentRequest.contains("wsAttributeDefLookups") && GrouperClientWs.mostRecentRequest.contains("<name>"));
+          GrouperClientWs.mostRecentRequest.contains("wsAttributeDefLookups") && GrouperClientWs.mostRecentRequest.contains("\"name\""));
       assertTrue(GrouperClientWs.mostRecentRequest,
           !GrouperClientWs.mostRecentRequest.contains("wsAttributeDefNameLookups"));
       assertTrue(GrouperClientWs.mostRecentRequest,
@@ -10527,7 +10532,7 @@ public class GrouperClientWsTest extends GrouperTest {
       assertTrue(GrouperClientWs.mostRecentRequest,
           !GrouperClientWs.mostRecentRequest.contains("wsAttributeAssignLookups"));
       assertTrue(GrouperClientWs.mostRecentRequest,
-          GrouperClientWs.mostRecentRequest.contains("wsAttributeDefLookups") && GrouperClientWs.mostRecentRequest.contains("<uuid>"));
+          GrouperClientWs.mostRecentRequest.contains("wsAttributeDefLookups") && GrouperClientWs.mostRecentRequest.contains("uuid"));
       assertTrue(GrouperClientWs.mostRecentRequest,
           !GrouperClientWs.mostRecentRequest.contains("wsAttributeDefNameLookups"));
       assertTrue(GrouperClientWs.mostRecentRequest,
@@ -10599,7 +10604,7 @@ public class GrouperClientWsTest extends GrouperTest {
       assertTrue(GrouperClientWs.mostRecentRequest,
           !GrouperClientWs.mostRecentRequest.contains("wsAttributeAssignLookups"));
       assertTrue(GrouperClientWs.mostRecentRequest,
-          GrouperClientWs.mostRecentRequest.contains("wsAttributeDefLookups") && GrouperClientWs.mostRecentRequest.contains("<idIndex>"));
+          GrouperClientWs.mostRecentRequest.contains("wsAttributeDefLookups") && GrouperClientWs.mostRecentRequest.contains("\"idIndex\""));
       assertTrue(GrouperClientWs.mostRecentRequest,
           !GrouperClientWs.mostRecentRequest.contains("wsAttributeDefNameLookups"));
       assertTrue(GrouperClientWs.mostRecentRequest,
@@ -10673,7 +10678,7 @@ public class GrouperClientWsTest extends GrouperTest {
       assertTrue(GrouperClientWs.mostRecentRequest,
           !GrouperClientWs.mostRecentRequest.contains("wsAttributeDefLookups"));
       assertTrue(GrouperClientWs.mostRecentRequest,
-          GrouperClientWs.mostRecentRequest.contains("wsAttributeDefNameLookups") && GrouperClientWs.mostRecentRequest.contains("<name>"));
+          GrouperClientWs.mostRecentRequest.contains("wsAttributeDefNameLookups") && GrouperClientWs.mostRecentRequest.contains("\"name\""));
       assertTrue(GrouperClientWs.mostRecentRequest,
           !GrouperClientWs.mostRecentRequest.contains("wsOwnerAttributeDefLookups"));
       assertTrue(GrouperClientWs.mostRecentRequest,
@@ -10746,7 +10751,7 @@ public class GrouperClientWsTest extends GrouperTest {
       assertTrue(GrouperClientWs.mostRecentRequest,
           !GrouperClientWs.mostRecentRequest.contains("wsAttributeDefLookups"));
       assertTrue(GrouperClientWs.mostRecentRequest,
-          GrouperClientWs.mostRecentRequest.contains("wsAttributeDefNameLookups") && GrouperClientWs.mostRecentRequest.contains("<uuid>"));
+          GrouperClientWs.mostRecentRequest.contains("wsAttributeDefNameLookups") && GrouperClientWs.mostRecentRequest.contains("uuid"));
       assertTrue(GrouperClientWs.mostRecentRequest,
           !GrouperClientWs.mostRecentRequest.contains("wsOwnerAttributeDefLookups"));
       assertTrue(GrouperClientWs.mostRecentRequest,
@@ -10817,7 +10822,7 @@ public class GrouperClientWsTest extends GrouperTest {
       assertTrue(GrouperClientWs.mostRecentRequest,
           !GrouperClientWs.mostRecentRequest.contains("wsAttributeDefLookups"));
       assertTrue(GrouperClientWs.mostRecentRequest,
-          GrouperClientWs.mostRecentRequest.contains("wsAttributeDefNameLookups") && GrouperClientWs.mostRecentRequest.contains("<idIndex>"));
+          GrouperClientWs.mostRecentRequest.contains("wsAttributeDefNameLookups") && GrouperClientWs.mostRecentRequest.contains("\"idIndex\""));
       assertTrue(GrouperClientWs.mostRecentRequest,
           !GrouperClientWs.mostRecentRequest.contains("wsOwnerAttributeDefLookups"));
       assertTrue(GrouperClientWs.mostRecentRequest,
@@ -11844,7 +11849,7 @@ public class GrouperClientWsTest extends GrouperTest {
       assertTrue(GrouperClientWs.mostRecentRequest,
           !GrouperClientWs.mostRecentRequest.contains("params"));
       assertTrue(GrouperClientWs.mostRecentRequest,
-          GrouperClientWs.mostRecentRequest.contains("wsAttributeDefLookups") && GrouperClientWs.mostRecentRequest.contains("<name>"));
+          GrouperClientWs.mostRecentRequest.contains("wsAttributeDefLookups") && GrouperClientWs.mostRecentRequest.contains("\"name\""));
       assertTrue(GrouperClientWs.mostRecentRequest,
           !GrouperClientWs.mostRecentRequest.contains("wsAttributeDefNameLookups"));
 
@@ -11892,7 +11897,7 @@ public class GrouperClientWsTest extends GrouperTest {
       assertTrue(GrouperClientWs.mostRecentRequest,
           !GrouperClientWs.mostRecentRequest.contains("params"));
       assertTrue(GrouperClientWs.mostRecentRequest,
-          GrouperClientWs.mostRecentRequest.contains("wsAttributeDefLookups") && GrouperClientWs.mostRecentRequest.contains("<uuid>"));
+          GrouperClientWs.mostRecentRequest.contains("wsAttributeDefLookups") && GrouperClientWs.mostRecentRequest.contains("uuid"));
 
       // ######################################################
       // Try attributeDefIdIndex
@@ -11938,7 +11943,7 @@ public class GrouperClientWsTest extends GrouperTest {
       assertTrue(GrouperClientWs.mostRecentRequest,
           !GrouperClientWs.mostRecentRequest.contains("params"));
       assertTrue(GrouperClientWs.mostRecentRequest,
-          GrouperClientWs.mostRecentRequest.contains("wsAttributeDefLookups") && GrouperClientWs.mostRecentRequest.contains("<idIndex>"));
+          GrouperClientWs.mostRecentRequest.contains("wsAttributeDefLookups") && GrouperClientWs.mostRecentRequest.contains("\"idIndex\""));
 
       // ######################################################
       // Try actions
@@ -12127,7 +12132,7 @@ public class GrouperClientWsTest extends GrouperTest {
           !GrouperClientWs.mostRecentRequest.contains("params"));
       assertTrue(GrouperClientWs.mostRecentRequest,
           GrouperClientWs.mostRecentRequest.contains("wsAttributeDefLookup")
-              && GrouperClientWs.mostRecentRequest.contains("<name>"));
+              && GrouperClientWs.mostRecentRequest.contains("\"name\""));
 
       // ######################################################
       // Try attributeDefId
@@ -12176,7 +12181,7 @@ public class GrouperClientWsTest extends GrouperTest {
           !GrouperClientWs.mostRecentRequest.contains("params"));
       assertTrue(GrouperClientWs.mostRecentRequest,
           GrouperClientWs.mostRecentRequest.contains("wsAttributeDefLookup")
-              && GrouperClientWs.mostRecentRequest.contains("<uuid>"));
+              && GrouperClientWs.mostRecentRequest.contains("uuid"));
 
       // ######################################################
       // Try attributeDefIdIndex
@@ -12225,7 +12230,7 @@ public class GrouperClientWsTest extends GrouperTest {
           !GrouperClientWs.mostRecentRequest.contains("params"));
       assertTrue(GrouperClientWs.mostRecentRequest,
           GrouperClientWs.mostRecentRequest.contains("wsAttributeDefLookup")
-              && GrouperClientWs.mostRecentRequest.contains("<idIndex>"));
+              && GrouperClientWs.mostRecentRequest.contains("\"idIndex\""));
 
       // ######################################################
       // Try replacing actions
@@ -12298,7 +12303,7 @@ public class GrouperClientWsTest extends GrouperTest {
           !GrouperClientWs.mostRecentRequest.contains("params"));
       assertTrue(GrouperClientWs.mostRecentRequest,
           GrouperClientWs.mostRecentRequest.contains("wsAttributeDefLookup")
-              && GrouperClientWs.mostRecentRequest.contains("<idIndex>"));
+              && GrouperClientWs.mostRecentRequest.contains("\"idIndex\""));
 
       // ######################################################
       // Try removing actions
@@ -12338,7 +12343,7 @@ public class GrouperClientWsTest extends GrouperTest {
           !GrouperClientWs.mostRecentRequest.contains("params"));
       assertTrue(GrouperClientWs.mostRecentRequest,
           GrouperClientWs.mostRecentRequest.contains("wsAttributeDefLookup")
-              && GrouperClientWs.mostRecentRequest.contains("<idIndex>"));
+              && GrouperClientWs.mostRecentRequest.contains("\"idIndex\""));
 
       // ######################################################
       // Try params
@@ -12379,7 +12384,7 @@ public class GrouperClientWsTest extends GrouperTest {
           GrouperClientWs.mostRecentRequest.contains("params"));
       assertTrue(GrouperClientWs.mostRecentRequest,
           GrouperClientWs.mostRecentRequest.contains("wsAttributeDefLookup")
-              && GrouperClientWs.mostRecentRequest.contains("<idIndex>"));
+              && GrouperClientWs.mostRecentRequest.contains("\"idIndex\""));
 
       // ######################################################
       // Try actAs
@@ -12420,7 +12425,7 @@ public class GrouperClientWsTest extends GrouperTest {
           !GrouperClientWs.mostRecentRequest.contains("params"));
       assertTrue(GrouperClientWs.mostRecentRequest,
           GrouperClientWs.mostRecentRequest.contains("wsAttributeDefLookup")
-              && GrouperClientWs.mostRecentRequest.contains("<idIndex>"));
+              && GrouperClientWs.mostRecentRequest.contains("\"idIndex\""));
 
     } finally {
       System.setOut(systemOut);
@@ -12507,7 +12512,7 @@ public class GrouperClientWsTest extends GrouperTest {
       assertTrue(GrouperClientWs.mostRecentRequest,
           !GrouperClientWs.mostRecentRequest.contains("wsAttributeAssignLookups"));
       assertTrue(GrouperClientWs.mostRecentRequest,
-          GrouperClientWs.mostRecentRequest.contains("wsAttributeDefLookups") && GrouperClientWs.mostRecentRequest.contains("<name>"));
+          GrouperClientWs.mostRecentRequest.contains("wsAttributeDefLookups") && GrouperClientWs.mostRecentRequest.contains("\"name\""));
       assertTrue(GrouperClientWs.mostRecentRequest,
           !GrouperClientWs.mostRecentRequest.contains("wsAttributeDefNameLookups"));
       assertTrue(GrouperClientWs.mostRecentRequest,
@@ -12754,7 +12759,7 @@ public class GrouperClientWsTest extends GrouperTest {
       assertTrue(GrouperClientWs.mostRecentRequest,
           !GrouperClientWs.mostRecentRequest.contains("wsAttributeAssignLookups"));
       assertTrue(GrouperClientWs.mostRecentRequest,
-          GrouperClientWs.mostRecentRequest.contains("wsAttributeDefLookups") && GrouperClientWs.mostRecentRequest.contains("<name>"));
+          GrouperClientWs.mostRecentRequest.contains("wsAttributeDefLookups") && GrouperClientWs.mostRecentRequest.contains("\"name\""));
       assertTrue(GrouperClientWs.mostRecentRequest,
           !GrouperClientWs.mostRecentRequest.contains("wsAttributeDefNameLookups"));
       assertTrue(GrouperClientWs.mostRecentRequest,
@@ -13006,7 +13011,7 @@ public class GrouperClientWsTest extends GrouperTest {
       assertTrue(GrouperClientWs.mostRecentRequest,
           !GrouperClientWs.mostRecentRequest.contains("wsAttributeAssignLookups"));
       assertTrue(GrouperClientWs.mostRecentRequest,
-          GrouperClientWs.mostRecentRequest.contains("wsAttributeDefLookups") && GrouperClientWs.mostRecentRequest.contains("<name>"));
+          GrouperClientWs.mostRecentRequest.contains("wsAttributeDefLookups") && GrouperClientWs.mostRecentRequest.contains("\"name\""));
       assertTrue(GrouperClientWs.mostRecentRequest,
           !GrouperClientWs.mostRecentRequest.contains("wsAttributeDefNameLookups"));
       assertTrue(GrouperClientWs.mostRecentRequest,
@@ -13446,7 +13451,7 @@ public class GrouperClientWsTest extends GrouperTest {
           !GrouperClientWs.mostRecentRequest.contains("wsAttributeAssignLookups"));
       assertTrue(GrouperClientWs.mostRecentRequest,
           GrouperClientWs.mostRecentRequest.contains("wsAttributeDefLookups")
-              && GrouperClientWs.mostRecentRequest.contains("<name>"));
+              && GrouperClientWs.mostRecentRequest.contains("\"name\""));
       assertTrue(GrouperClientWs.mostRecentRequest,
           !GrouperClientWs.mostRecentRequest.contains("wsAttributeDefNameLookups"));
       assertTrue(GrouperClientWs.mostRecentRequest,
@@ -14536,9 +14541,9 @@ public class GrouperClientWsTest extends GrouperTest {
           !GrouperClientWs.mostRecentRequest.contains("subjectAttributeNames"));
       assertTrue(GrouperClientWs.mostRecentRequest,
           GrouperClientWs.mostRecentRequest.contains("values")
-          && GrouperClientWs.mostRecentRequest.contains(">3<")
-          && GrouperClientWs.mostRecentRequest.contains(">4<")
-          && GrouperClientWs.mostRecentRequest.contains(">5<"));
+          && GrouperClientWs.mostRecentRequest.contains("\"3\"")
+          && GrouperClientWs.mostRecentRequest.contains("\"4\"")
+          && GrouperClientWs.mostRecentRequest.contains("\"5\""));
       assertTrue(GrouperClientWs.mostRecentRequest,
           !GrouperClientWs.mostRecentRequest.contains("wsAttributeAssignLookups"));
       assertTrue(GrouperClientWs.mostRecentRequest,
@@ -16400,7 +16405,7 @@ public class GrouperClientWsTest extends GrouperTest {
         assertTrue(GrouperClientWs.mostRecentRequest,
             !GrouperClientWs.mostRecentRequest.contains("wsAttributeAssignLookups"));
         assertTrue(GrouperClientWs.mostRecentRequest,
-            GrouperClientWs.mostRecentRequest.contains("wsAttributeDefLookups") && GrouperClientWs.mostRecentRequest.contains("<name>"));
+            GrouperClientWs.mostRecentRequest.contains("wsAttributeDefLookups") && GrouperClientWs.mostRecentRequest.contains("\"name\""));
         assertTrue(GrouperClientWs.mostRecentRequest,
             !GrouperClientWs.mostRecentRequest.contains("wsAttributeDefNameLookups"));
         assertTrue(GrouperClientWs.mostRecentRequest,
@@ -16486,7 +16491,7 @@ public class GrouperClientWsTest extends GrouperTest {
         assertTrue(GrouperClientWs.mostRecentRequest,
             !GrouperClientWs.mostRecentRequest.contains("wsAttributeAssignLookups"));
         assertTrue(GrouperClientWs.mostRecentRequest,
-            GrouperClientWs.mostRecentRequest.contains("wsAttributeDefLookups") && GrouperClientWs.mostRecentRequest.contains("<uuid>"));
+            GrouperClientWs.mostRecentRequest.contains("wsAttributeDefLookups") && GrouperClientWs.mostRecentRequest.contains("uuid"));
         assertTrue(GrouperClientWs.mostRecentRequest,
             !GrouperClientWs.mostRecentRequest.contains("wsAttributeDefNameLookups"));
         assertTrue(GrouperClientWs.mostRecentRequest,
@@ -16569,7 +16574,7 @@ public class GrouperClientWsTest extends GrouperTest {
         assertTrue(GrouperClientWs.mostRecentRequest,
             !GrouperClientWs.mostRecentRequest.contains("wsAttributeAssignLookups"));
         assertTrue(GrouperClientWs.mostRecentRequest,
-            GrouperClientWs.mostRecentRequest.contains("wsAttributeDefLookups") && GrouperClientWs.mostRecentRequest.contains("<idIndex>"));
+            GrouperClientWs.mostRecentRequest.contains("wsAttributeDefLookups") && GrouperClientWs.mostRecentRequest.contains("\"idIndex\""));
         assertTrue(GrouperClientWs.mostRecentRequest,
             !GrouperClientWs.mostRecentRequest.contains("wsAttributeDefNameLookups"));
         assertTrue(GrouperClientWs.mostRecentRequest,
@@ -16642,7 +16647,7 @@ public class GrouperClientWsTest extends GrouperTest {
         assertTrue(GrouperClientWs.mostRecentRequest,
             !GrouperClientWs.mostRecentRequest.contains("wsAttributeDefLookups"));
         assertTrue(GrouperClientWs.mostRecentRequest,
-            GrouperClientWs.mostRecentRequest.contains("wsAttributeDefNameLookups") && GrouperClientWs.mostRecentRequest.contains("<name>"));
+            GrouperClientWs.mostRecentRequest.contains("wsAttributeDefNameLookups") && GrouperClientWs.mostRecentRequest.contains("\"name\""));
         assertTrue(GrouperClientWs.mostRecentRequest,
             !GrouperClientWs.mostRecentRequest.contains("roleLookups"));
         assertTrue(GrouperClientWs.mostRecentRequest,
@@ -16712,7 +16717,7 @@ public class GrouperClientWsTest extends GrouperTest {
         assertTrue(GrouperClientWs.mostRecentRequest,
             !GrouperClientWs.mostRecentRequest.contains("wsAttributeDefLookups"));
         assertTrue(GrouperClientWs.mostRecentRequest,
-            GrouperClientWs.mostRecentRequest.contains("wsAttributeDefNameLookups") && GrouperClientWs.mostRecentRequest.contains("<uuid>"));
+            GrouperClientWs.mostRecentRequest.contains("wsAttributeDefNameLookups") && GrouperClientWs.mostRecentRequest.contains("uuid"));
         assertTrue(GrouperClientWs.mostRecentRequest,
             !GrouperClientWs.mostRecentRequest.contains("roleLookups"));
         assertTrue(GrouperClientWs.mostRecentRequest,
@@ -16781,7 +16786,7 @@ public class GrouperClientWsTest extends GrouperTest {
         assertTrue(GrouperClientWs.mostRecentRequest,
             !GrouperClientWs.mostRecentRequest.contains("wsAttributeDefLookups"));
         assertTrue(GrouperClientWs.mostRecentRequest,
-            GrouperClientWs.mostRecentRequest.contains("wsAttributeDefNameLookups") && GrouperClientWs.mostRecentRequest.contains("<idIndex>"));
+            GrouperClientWs.mostRecentRequest.contains("wsAttributeDefNameLookups") && GrouperClientWs.mostRecentRequest.contains("\"idIndex\""));
         assertTrue(GrouperClientWs.mostRecentRequest,
             !GrouperClientWs.mostRecentRequest.contains("roleLookups"));
         assertTrue(GrouperClientWs.mostRecentRequest,
@@ -16853,7 +16858,7 @@ public class GrouperClientWsTest extends GrouperTest {
         assertTrue(GrouperClientWs.mostRecentRequest,
             !GrouperClientWs.mostRecentRequest.contains("wsAttributeDefNameLookups"));
         assertTrue(GrouperClientWs.mostRecentRequest,
-            GrouperClientWs.mostRecentRequest.contains("roleLookups") && GrouperClientWs.mostRecentRequest.contains("<groupName>"));
+            GrouperClientWs.mostRecentRequest.contains("roleLookups") && GrouperClientWs.mostRecentRequest.contains("\"groupName\""));
         assertTrue(GrouperClientWs.mostRecentRequest,
             !GrouperClientWs.mostRecentRequest.contains("wsSubjectLookups"));
 
@@ -16923,7 +16928,7 @@ public class GrouperClientWsTest extends GrouperTest {
         assertTrue(GrouperClientWs.mostRecentRequest,
             !GrouperClientWs.mostRecentRequest.contains("wsAttributeDefNameLookups"));
         assertTrue(GrouperClientWs.mostRecentRequest,
-            GrouperClientWs.mostRecentRequest.contains("roleLookups") && GrouperClientWs.mostRecentRequest.contains("<uuid>"));
+            GrouperClientWs.mostRecentRequest.contains("roleLookups") && GrouperClientWs.mostRecentRequest.contains("uuid"));
         assertTrue(GrouperClientWs.mostRecentRequest,
             !GrouperClientWs.mostRecentRequest.contains("wsSubjectLookups"));
 
@@ -16994,7 +16999,7 @@ public class GrouperClientWsTest extends GrouperTest {
         assertTrue(GrouperClientWs.mostRecentRequest,
             !GrouperClientWs.mostRecentRequest.contains("wsAttributeDefNameLookups"));
         assertTrue(GrouperClientWs.mostRecentRequest,
-            GrouperClientWs.mostRecentRequest.contains("roleLookups") && GrouperClientWs.mostRecentRequest.contains("<idIndex>"));
+            GrouperClientWs.mostRecentRequest.contains("roleLookups") && GrouperClientWs.mostRecentRequest.contains("\"idIndex\""));
         assertTrue(GrouperClientWs.mostRecentRequest,
             !GrouperClientWs.mostRecentRequest.contains("wsSubjectLookups"));
 
@@ -17049,7 +17054,7 @@ public class GrouperClientWsTest extends GrouperTest {
         assertTrue(GrouperClientWs.mostRecentRequest,
             !GrouperClientWs.mostRecentRequest.contains("wsAttributeDefNameLookups"));
         assertTrue(GrouperClientWs.mostRecentRequest,
-            GrouperClientWs.mostRecentRequest.contains("roleLookups") && GrouperClientWs.mostRecentRequest.contains("<groupName>"));
+            GrouperClientWs.mostRecentRequest.contains("roleLookups") && GrouperClientWs.mostRecentRequest.contains("\"groupName\""));
         assertTrue(GrouperClientWs.mostRecentRequest,
             !GrouperClientWs.mostRecentRequest.contains("wsSubjectLookups"));
 
@@ -17104,7 +17109,7 @@ public class GrouperClientWsTest extends GrouperTest {
         assertTrue(GrouperClientWs.mostRecentRequest,
             !GrouperClientWs.mostRecentRequest.contains("wsAttributeDefNameLookups"));
         assertTrue(GrouperClientWs.mostRecentRequest,
-            GrouperClientWs.mostRecentRequest.contains("roleLookups") && GrouperClientWs.mostRecentRequest.contains("<groupName>"));
+            GrouperClientWs.mostRecentRequest.contains("roleLookups") && GrouperClientWs.mostRecentRequest.contains("\"groupName\""));
         assertTrue(GrouperClientWs.mostRecentRequest,
             !GrouperClientWs.mostRecentRequest.contains("wsSubjectLookups"));
 
@@ -17157,7 +17162,7 @@ public class GrouperClientWsTest extends GrouperTest {
         assertTrue(GrouperClientWs.mostRecentRequest,
             GrouperClientWs.mostRecentRequest.contains("includeAttributeAssignments"));
         assertTrue(GrouperClientWs.mostRecentResponse,
-            GrouperClientWs.mostRecentResponse.contains("</WsAttributeAssign>"));
+            GrouperClientWs.mostRecentResponse.contains("WsAttributeAssign"));
         assertTrue(GrouperClientWs.mostRecentRequest,
             !GrouperClientWs.mostRecentRequest.contains("includePermissionAssignDetail"));
         assertTrue(GrouperClientWs.mostRecentRequest,
@@ -17175,7 +17180,7 @@ public class GrouperClientWsTest extends GrouperTest {
         assertTrue(GrouperClientWs.mostRecentRequest,
             !GrouperClientWs.mostRecentRequest.contains("wsAttributeDefNameLookups"));
         assertTrue(GrouperClientWs.mostRecentRequest,
-            GrouperClientWs.mostRecentRequest.contains("roleLookups") && GrouperClientWs.mostRecentRequest.contains("<groupName>"));
+            GrouperClientWs.mostRecentRequest.contains("roleLookups") && GrouperClientWs.mostRecentRequest.contains("\"groupName\""));
         assertTrue(GrouperClientWs.mostRecentRequest,
             !GrouperClientWs.mostRecentRequest.contains("wsSubjectLookups"));
 
@@ -17228,7 +17233,7 @@ public class GrouperClientWsTest extends GrouperTest {
         assertTrue(GrouperClientWs.mostRecentRequest,
             GrouperClientWs.mostRecentRequest.contains("includeAttributeAssignments"));
         assertTrue(GrouperClientWs.mostRecentResponse,
-            GrouperClientWs.mostRecentResponse.contains("</WsAttributeAssign>"));
+            GrouperClientWs.mostRecentResponse.contains("WsAttributeAssign"));
         assertTrue(GrouperClientWs.mostRecentRequest,
             !GrouperClientWs.mostRecentRequest.contains("includePermissionAssignDetail"));
         assertTrue(GrouperClientWs.mostRecentRequest,
@@ -17246,11 +17251,11 @@ public class GrouperClientWsTest extends GrouperTest {
         assertTrue(GrouperClientWs.mostRecentRequest,
             !GrouperClientWs.mostRecentRequest.contains("wsAttributeDefNameLookups"));
         assertTrue(GrouperClientWs.mostRecentRequest,
-            GrouperClientWs.mostRecentRequest.contains("roleLookups") && GrouperClientWs.mostRecentRequest.contains("<groupName>"));
+            GrouperClientWs.mostRecentRequest.contains("roleLookups") && GrouperClientWs.mostRecentRequest.contains("\"groupName\""));
         assertTrue(GrouperClientWs.mostRecentRequest,
             !GrouperClientWs.mostRecentRequest.contains("wsSubjectLookups"));
         assertTrue(GrouperClientWs.mostRecentResponse,
-            !GrouperClientWs.mostRecentResponse.contains("<attributeDefNameSetDepth>"));
+            !GrouperClientWs.mostRecentResponse.contains("attributeDefNameSetDepth"));
 
         // ######################################################
         // Try roleName and includePermissionAssignDetail
@@ -17301,7 +17306,7 @@ public class GrouperClientWsTest extends GrouperTest {
         assertTrue(GrouperClientWs.mostRecentRequest,
             !GrouperClientWs.mostRecentRequest.contains("includeAttributeAssignments"));
         assertTrue(GrouperClientWs.mostRecentResponse,
-            GrouperClientWs.mostRecentResponse.contains("<attributeDefNameSetDepth>"));
+            GrouperClientWs.mostRecentResponse.contains("attributeDefNameSetDepth"));
         assertTrue(GrouperClientWs.mostRecentRequest,
             GrouperClientWs.mostRecentRequest.contains("includePermissionAssignDetail"));
         assertTrue(GrouperClientWs.mostRecentRequest,
@@ -17319,11 +17324,11 @@ public class GrouperClientWsTest extends GrouperTest {
         assertTrue(GrouperClientWs.mostRecentRequest,
             !GrouperClientWs.mostRecentRequest.contains("wsAttributeDefNameLookups"));
         assertTrue(GrouperClientWs.mostRecentRequest,
-            GrouperClientWs.mostRecentRequest.contains("roleLookups") && GrouperClientWs.mostRecentRequest.contains("<groupName>"));
+            GrouperClientWs.mostRecentRequest.contains("roleLookups") && GrouperClientWs.mostRecentRequest.contains("\"groupName\""));
         assertTrue(GrouperClientWs.mostRecentRequest,
             !GrouperClientWs.mostRecentRequest.contains("wsSubjectLookups"));
         assertTrue(GrouperClientWs.mostRecentResponse,
-            !GrouperClientWs.mostRecentResponse.contains("<WsAttributeDefName>"));
+            !GrouperClientWs.mostRecentResponse.contains("WsAttributeDefName"));
 
         // ######################################################
         // Try roleName and includeAttributeDefNames
@@ -17374,7 +17379,7 @@ public class GrouperClientWsTest extends GrouperTest {
         assertTrue(GrouperClientWs.mostRecentRequest,
             !GrouperClientWs.mostRecentRequest.contains("includeAttributeAssignments"));
         assertTrue(GrouperClientWs.mostRecentResponse,
-            GrouperClientWs.mostRecentResponse.contains("<WsAttributeDefName>"));
+            GrouperClientWs.mostRecentResponse.contains("WsAttributeDefName"));
         assertTrue(GrouperClientWs.mostRecentRequest,
             !GrouperClientWs.mostRecentRequest.contains("includePermissionAssignDetail"));
         assertTrue(GrouperClientWs.mostRecentRequest,
@@ -17392,7 +17397,7 @@ public class GrouperClientWsTest extends GrouperTest {
         assertTrue(GrouperClientWs.mostRecentRequest,
             !GrouperClientWs.mostRecentRequest.contains("wsAttributeDefNameLookups"));
         assertTrue(GrouperClientWs.mostRecentRequest,
-            GrouperClientWs.mostRecentRequest.contains("roleLookups") && GrouperClientWs.mostRecentRequest.contains("<groupName>"));
+            GrouperClientWs.mostRecentRequest.contains("roleLookups") && GrouperClientWs.mostRecentRequest.contains("\"groupName\""));
         assertTrue(GrouperClientWs.mostRecentRequest,
             !GrouperClientWs.mostRecentRequest.contains("wsSubjectLookups"));
 
@@ -17445,7 +17450,7 @@ public class GrouperClientWsTest extends GrouperTest {
         assertTrue(GrouperClientWs.mostRecentRequest,
             !GrouperClientWs.mostRecentRequest.contains("includeAttributeAssignments"));
         assertTrue(GrouperClientWs.mostRecentResponse,
-            GrouperClientWs.mostRecentResponse.contains("<hasComposite>"));
+            GrouperClientWs.mostRecentResponse.contains("hasComposite"));
         assertTrue(GrouperClientWs.mostRecentRequest,
             !GrouperClientWs.mostRecentRequest.contains("includePermissionAssignDetail"));
         assertTrue(GrouperClientWs.mostRecentRequest,
@@ -17463,7 +17468,7 @@ public class GrouperClientWsTest extends GrouperTest {
         assertTrue(GrouperClientWs.mostRecentRequest,
             !GrouperClientWs.mostRecentRequest.contains("wsAttributeDefNameLookups"));
         assertTrue(GrouperClientWs.mostRecentRequest,
-            GrouperClientWs.mostRecentRequest.contains("roleLookups") && GrouperClientWs.mostRecentRequest.contains("<groupName>"));
+            GrouperClientWs.mostRecentRequest.contains("roleLookups") && GrouperClientWs.mostRecentRequest.contains("\"groupName\""));
         assertTrue(GrouperClientWs.mostRecentRequest,
             !GrouperClientWs.mostRecentRequest.contains("wsSubjectLookups"));
 
@@ -17516,7 +17521,7 @@ public class GrouperClientWsTest extends GrouperTest {
         assertTrue(GrouperClientWs.mostRecentRequest,
             !GrouperClientWs.mostRecentRequest.contains("includeAttributeAssignments"));
         assertTrue(GrouperClientWs.mostRecentResponse,
-            !GrouperClientWs.mostRecentResponse.contains("<hasComposite>"));
+            !GrouperClientWs.mostRecentResponse.contains("hasComposite"));
         assertTrue(GrouperClientWs.mostRecentRequest,
             !GrouperClientWs.mostRecentRequest.contains("includePermissionAssignDetail"));
         assertTrue(GrouperClientWs.mostRecentRequest,
@@ -17534,7 +17539,7 @@ public class GrouperClientWsTest extends GrouperTest {
         assertTrue(GrouperClientWs.mostRecentRequest,
             !GrouperClientWs.mostRecentRequest.contains("wsAttributeDefNameLookups"));
         assertTrue(GrouperClientWs.mostRecentRequest,
-            GrouperClientWs.mostRecentRequest.contains("roleLookups") && GrouperClientWs.mostRecentRequest.contains("<groupName>"));
+            GrouperClientWs.mostRecentRequest.contains("roleLookups") && GrouperClientWs.mostRecentRequest.contains("\"groupName\""));
         assertTrue(GrouperClientWs.mostRecentRequest,
             !GrouperClientWs.mostRecentRequest.contains("wsSubjectLookups"));
 
@@ -17587,7 +17592,7 @@ public class GrouperClientWsTest extends GrouperTest {
         assertTrue(GrouperClientWs.mostRecentRequest,
             !GrouperClientWs.mostRecentRequest.contains("includeAttributeAssignments"));
         assertTrue(GrouperClientWs.mostRecentResponse,
-            !GrouperClientWs.mostRecentResponse.contains("<hasComposite>"));
+            !GrouperClientWs.mostRecentResponse.contains("hasComposite"));
         assertTrue(GrouperClientWs.mostRecentRequest,
             !GrouperClientWs.mostRecentRequest.contains("includePermissionAssignDetail"));
         assertTrue(GrouperClientWs.mostRecentRequest,
@@ -17605,7 +17610,7 @@ public class GrouperClientWsTest extends GrouperTest {
         assertTrue(GrouperClientWs.mostRecentRequest,
             !GrouperClientWs.mostRecentRequest.contains("wsAttributeDefNameLookups"));
         assertTrue(GrouperClientWs.mostRecentRequest,
-            GrouperClientWs.mostRecentRequest.contains("roleLookups") && GrouperClientWs.mostRecentRequest.contains("<groupName>"));
+            GrouperClientWs.mostRecentRequest.contains("roleLookups") && GrouperClientWs.mostRecentRequest.contains("\"groupName\""));
         assertTrue(GrouperClientWs.mostRecentRequest,
             !GrouperClientWs.mostRecentRequest.contains("wsSubjectLookups"));
 
@@ -17658,7 +17663,7 @@ public class GrouperClientWsTest extends GrouperTest {
         assertTrue(GrouperClientWs.mostRecentRequest,
             !GrouperClientWs.mostRecentRequest.contains("includeAttributeAssignments"));
         assertTrue(GrouperClientWs.mostRecentResponse,
-            !GrouperClientWs.mostRecentResponse.contains("<hasComposite>"));
+            !GrouperClientWs.mostRecentResponse.contains("hasComposite"));
         assertTrue(GrouperClientWs.mostRecentRequest,
             !GrouperClientWs.mostRecentRequest.contains("includePermissionAssignDetail"));
         assertTrue(GrouperClientWs.mostRecentRequest,
@@ -17676,7 +17681,7 @@ public class GrouperClientWsTest extends GrouperTest {
         assertTrue(GrouperClientWs.mostRecentRequest,
             !GrouperClientWs.mostRecentRequest.contains("wsAttributeDefNameLookups"));
         assertTrue(GrouperClientWs.mostRecentRequest,
-            GrouperClientWs.mostRecentRequest.contains("roleLookups") && GrouperClientWs.mostRecentRequest.contains("<groupName>"));
+            GrouperClientWs.mostRecentRequest.contains("roleLookups") && GrouperClientWs.mostRecentRequest.contains("\"groupName\""));
         assertTrue(GrouperClientWs.mostRecentRequest,
             !GrouperClientWs.mostRecentRequest.contains("wsSubjectLookups"));
 
@@ -17719,7 +17724,7 @@ public class GrouperClientWsTest extends GrouperTest {
         assertTrue(GrouperClientWs.mostRecentRequest,
             !GrouperClientWs.mostRecentRequest.contains("includeAttributeAssignments"));
         assertTrue(GrouperClientWs.mostRecentResponse,
-            !GrouperClientWs.mostRecentResponse.contains("<hasComposite>"));
+            !GrouperClientWs.mostRecentResponse.contains("hasComposite"));
         assertTrue(GrouperClientWs.mostRecentRequest,
             !GrouperClientWs.mostRecentRequest.contains("includePermissionAssignDetail"));
         assertTrue(GrouperClientWs.mostRecentRequest,
@@ -17737,7 +17742,7 @@ public class GrouperClientWsTest extends GrouperTest {
         assertTrue(GrouperClientWs.mostRecentRequest,
             !GrouperClientWs.mostRecentRequest.contains("wsAttributeDefNameLookups"));
         assertTrue(GrouperClientWs.mostRecentRequest,
-            GrouperClientWs.mostRecentRequest.contains("roleLookups") && GrouperClientWs.mostRecentRequest.contains("<groupName>"));
+            GrouperClientWs.mostRecentRequest.contains("roleLookups") && GrouperClientWs.mostRecentRequest.contains("\"groupName\""));
         assertTrue(GrouperClientWs.mostRecentRequest,
             !GrouperClientWs.mostRecentRequest.contains("wsSubjectLookups"));
 
@@ -17797,7 +17802,7 @@ public class GrouperClientWsTest extends GrouperTest {
         assertTrue(GrouperClientWs.mostRecentRequest,
             !GrouperClientWs.mostRecentRequest.contains("includeAttributeAssignments"));
         assertTrue(GrouperClientWs.mostRecentResponse,
-            !GrouperClientWs.mostRecentResponse.contains("<hasComposite>"));
+            !GrouperClientWs.mostRecentResponse.contains("hasComposite"));
         assertTrue(GrouperClientWs.mostRecentRequest,
             !GrouperClientWs.mostRecentRequest.contains("includePermissionAssignDetail"));
         assertTrue(GrouperClientWs.mostRecentRequest,
@@ -17815,11 +17820,11 @@ public class GrouperClientWsTest extends GrouperTest {
         assertTrue(GrouperClientWs.mostRecentRequest,
             !GrouperClientWs.mostRecentRequest.contains("wsAttributeDefNameLookups"));
         assertTrue(GrouperClientWs.mostRecentRequest,
-            GrouperClientWs.mostRecentRequest.contains("roleLookups") && GrouperClientWs.mostRecentRequest.contains("<groupName>"));
+            GrouperClientWs.mostRecentRequest.contains("roleLookups") && GrouperClientWs.mostRecentRequest.contains("\"groupName\""));
         assertTrue(GrouperClientWs.mostRecentRequest,
             !GrouperClientWs.mostRecentRequest.contains("wsSubjectLookups"));
         assertTrue(GrouperClientWs.mostRecentRequest,
-            GrouperClientWs.mostRecentRequest.contains("<immediateOnly>T</immediateOnly>"));
+            GrouperClientWs.mostRecentRequest.contains("immediateOnly\":\"T"));
 
         // ######################################################
         // Try roleName and permissionType
@@ -17857,7 +17862,7 @@ public class GrouperClientWsTest extends GrouperTest {
         assertTrue(GrouperClientWs.mostRecentRequest,
             !GrouperClientWs.mostRecentRequest.contains("includeAttributeAssignments"));
         assertTrue(GrouperClientWs.mostRecentResponse,
-            !GrouperClientWs.mostRecentResponse.contains("<hasComposite>"));
+            !GrouperClientWs.mostRecentResponse.contains("hasComposite"));
         assertTrue(GrouperClientWs.mostRecentRequest,
             !GrouperClientWs.mostRecentRequest.contains("includePermissionAssignDetail"));
         assertTrue(GrouperClientWs.mostRecentRequest,
@@ -17875,13 +17880,13 @@ public class GrouperClientWsTest extends GrouperTest {
         assertTrue(GrouperClientWs.mostRecentRequest,
             !GrouperClientWs.mostRecentRequest.contains("wsAttributeDefNameLookups"));
         assertTrue(GrouperClientWs.mostRecentRequest,
-            GrouperClientWs.mostRecentRequest.contains("roleLookups") && GrouperClientWs.mostRecentRequest.contains("<groupName>"));
+            GrouperClientWs.mostRecentRequest.contains("roleLookups") && GrouperClientWs.mostRecentRequest.contains("\"groupName\""));
         assertTrue(GrouperClientWs.mostRecentRequest,
             !GrouperClientWs.mostRecentRequest.contains("wsSubjectLookups"));
         assertTrue(GrouperClientWs.mostRecentRequest,
-            !GrouperClientWs.mostRecentRequest.contains("<immediateOnly>T</immediateOnly>"));
+            !GrouperClientWs.mostRecentRequest.contains("immediateOnly\":\"T"));
         assertTrue(GrouperClientWs.mostRecentRequest,
-            GrouperClientWs.mostRecentRequest.contains("<permissionType>role_subject</permissionType>"));
+            GrouperClientWs.mostRecentRequest.contains("permissionType\":\"role_subject"));
         assertTrue(GrouperClientWs.mostRecentRequest,
             !GrouperClientWs.mostRecentRequest.contains("<permissionProcessor>role_subject</permissionProcessor>"));
 
@@ -17921,7 +17926,7 @@ public class GrouperClientWsTest extends GrouperTest {
         assertTrue(GrouperClientWs.mostRecentRequest,
             !GrouperClientWs.mostRecentRequest.contains("includeAttributeAssignments"));
         assertTrue(GrouperClientWs.mostRecentResponse,
-            !GrouperClientWs.mostRecentResponse.contains("<hasComposite>"));
+            !GrouperClientWs.mostRecentResponse.contains("hasComposite"));
         assertTrue(GrouperClientWs.mostRecentRequest,
             !GrouperClientWs.mostRecentRequest.contains("includePermissionAssignDetail"));
         assertTrue(GrouperClientWs.mostRecentRequest,
@@ -17939,15 +17944,15 @@ public class GrouperClientWsTest extends GrouperTest {
         assertTrue(GrouperClientWs.mostRecentRequest,
             !GrouperClientWs.mostRecentRequest.contains("wsAttributeDefNameLookups"));
         assertTrue(GrouperClientWs.mostRecentRequest,
-            GrouperClientWs.mostRecentRequest.contains("roleLookups") && GrouperClientWs.mostRecentRequest.contains("<groupName>"));
+            GrouperClientWs.mostRecentRequest.contains("roleLookups") && GrouperClientWs.mostRecentRequest.contains("\"groupName\""));
         assertTrue(GrouperClientWs.mostRecentRequest,
             !GrouperClientWs.mostRecentRequest.contains("wsSubjectLookups"));
         assertTrue(GrouperClientWs.mostRecentRequest,
-            !GrouperClientWs.mostRecentRequest.contains("<immediateOnly>T</immediateOnly>"));
+            !GrouperClientWs.mostRecentRequest.contains("immediateOnly\":\"T"));
         assertTrue(GrouperClientWs.mostRecentRequest,
-            !GrouperClientWs.mostRecentRequest.contains("<permissionType>role_subject</permissionType>"));
+            !GrouperClientWs.mostRecentRequest.contains("permissionType\":\"role_subject"));
         assertTrue(GrouperClientWs.mostRecentRequest,
-            GrouperClientWs.mostRecentRequest.contains("<permissionProcessor>FILTER_REDUNDANT_PERMISSIONS</permissionProcessor>"));
+            GrouperClientWs.mostRecentRequest.contains("permissionProcessor\":\"FILTER_REDUNDANT_PERMISSIONS"));
 
       } finally {
         System.setOut(systemOut);
@@ -18085,7 +18090,7 @@ public class GrouperClientWsTest extends GrouperTest {
         assertTrue(GrouperClientWs.mostRecentRequest,
             !GrouperClientWs.mostRecentRequest.contains("wsAttributeAssignLookups"));
         assertTrue(GrouperClientWs.mostRecentRequest,
-            GrouperClientWs.mostRecentRequest.contains("wsAttributeDefLookups") && GrouperClientWs.mostRecentRequest.contains("<name>"));
+            GrouperClientWs.mostRecentRequest.contains("wsAttributeDefLookups") && GrouperClientWs.mostRecentRequest.contains("\"name\""));
         assertTrue(GrouperClientWs.mostRecentRequest,
             !GrouperClientWs.mostRecentRequest.contains("wsAttributeDefNameLookups"));
         assertTrue(GrouperClientWs.mostRecentRequest,
@@ -18169,7 +18174,7 @@ public class GrouperClientWsTest extends GrouperTest {
         assertTrue(GrouperClientWs.mostRecentRequest,
             !GrouperClientWs.mostRecentRequest.contains("wsAttributeAssignLookups"));
         assertTrue(GrouperClientWs.mostRecentRequest,
-            GrouperClientWs.mostRecentRequest.contains("wsAttributeDefLookups") && GrouperClientWs.mostRecentRequest.contains("<uuid>"));
+            GrouperClientWs.mostRecentRequest.contains("wsAttributeDefLookups") && GrouperClientWs.mostRecentRequest.contains("uuid"));
         assertTrue(GrouperClientWs.mostRecentRequest,
             !GrouperClientWs.mostRecentRequest.contains("wsAttributeDefNameLookups"));
         assertTrue(GrouperClientWs.mostRecentRequest,
@@ -18242,7 +18247,7 @@ public class GrouperClientWsTest extends GrouperTest {
         assertTrue(GrouperClientWs.mostRecentRequest,
             !GrouperClientWs.mostRecentRequest.contains("wsAttributeDefLookups"));
         assertTrue(GrouperClientWs.mostRecentRequest,
-            GrouperClientWs.mostRecentRequest.contains("wsAttributeDefNameLookups") && GrouperClientWs.mostRecentRequest.contains("<name>"));
+            GrouperClientWs.mostRecentRequest.contains("wsAttributeDefNameLookups") && GrouperClientWs.mostRecentRequest.contains("\"name\""));
         assertTrue(GrouperClientWs.mostRecentRequest,
             !GrouperClientWs.mostRecentRequest.contains("roleLookups"));
         assertTrue(GrouperClientWs.mostRecentRequest,
@@ -18312,7 +18317,7 @@ public class GrouperClientWsTest extends GrouperTest {
         assertTrue(GrouperClientWs.mostRecentRequest,
             !GrouperClientWs.mostRecentRequest.contains("wsAttributeDefLookups"));
         assertTrue(GrouperClientWs.mostRecentRequest,
-            GrouperClientWs.mostRecentRequest.contains("wsAttributeDefNameLookups") && GrouperClientWs.mostRecentRequest.contains("<uuid>"));
+            GrouperClientWs.mostRecentRequest.contains("wsAttributeDefNameLookups") && GrouperClientWs.mostRecentRequest.contains("uuid"));
         assertTrue(GrouperClientWs.mostRecentRequest,
             !GrouperClientWs.mostRecentRequest.contains("roleLookups"));
         assertTrue(GrouperClientWs.mostRecentRequest,
@@ -18384,7 +18389,7 @@ public class GrouperClientWsTest extends GrouperTest {
         assertTrue(GrouperClientWs.mostRecentRequest,
             !GrouperClientWs.mostRecentRequest.contains("wsAttributeDefNameLookups"));
         assertTrue(GrouperClientWs.mostRecentRequest,
-            GrouperClientWs.mostRecentRequest.contains("roleLookups") && GrouperClientWs.mostRecentRequest.contains("<groupName>"));
+            GrouperClientWs.mostRecentRequest.contains("roleLookups") && GrouperClientWs.mostRecentRequest.contains("\"groupName\""));
         assertTrue(GrouperClientWs.mostRecentRequest,
             !GrouperClientWs.mostRecentRequest.contains("wsSubjectLookups"));
 
@@ -18454,7 +18459,7 @@ public class GrouperClientWsTest extends GrouperTest {
         assertTrue(GrouperClientWs.mostRecentRequest,
             !GrouperClientWs.mostRecentRequest.contains("wsAttributeDefNameLookups"));
         assertTrue(GrouperClientWs.mostRecentRequest,
-            GrouperClientWs.mostRecentRequest.contains("roleLookups") && GrouperClientWs.mostRecentRequest.contains("<uuid>"));
+            GrouperClientWs.mostRecentRequest.contains("roleLookups") && GrouperClientWs.mostRecentRequest.contains("uuid"));
         assertTrue(GrouperClientWs.mostRecentRequest,
             !GrouperClientWs.mostRecentRequest.contains("wsSubjectLookups"));
 
@@ -18513,7 +18518,7 @@ public class GrouperClientWsTest extends GrouperTest {
         assertTrue(GrouperClientWs.mostRecentRequest,
             !GrouperClientWs.mostRecentRequest.contains("wsAttributeDefNameLookups"));
         assertTrue(GrouperClientWs.mostRecentRequest,
-            GrouperClientWs.mostRecentRequest.contains("roleLookups") && GrouperClientWs.mostRecentRequest.contains("<groupName>"));
+            GrouperClientWs.mostRecentRequest.contains("roleLookups") && GrouperClientWs.mostRecentRequest.contains("\"groupName\""));
         assertTrue(GrouperClientWs.mostRecentRequest,
             !GrouperClientWs.mostRecentRequest.contains("wsSubjectLookups"));
 
@@ -18568,7 +18573,7 @@ public class GrouperClientWsTest extends GrouperTest {
         assertTrue(GrouperClientWs.mostRecentRequest,
             GrouperClientWs.mostRecentRequest.contains("includeAttributeAssignments"));
         assertTrue(GrouperClientWs.mostRecentResponse,
-            GrouperClientWs.mostRecentResponse.contains("</WsAttributeAssign>"));
+            GrouperClientWs.mostRecentResponse.contains("WsAttributeAssign"));
         assertTrue(GrouperClientWs.mostRecentRequest,
             !GrouperClientWs.mostRecentRequest.contains("includePermissionAssignDetail"));
         assertTrue(GrouperClientWs.mostRecentRequest,
@@ -18586,7 +18591,7 @@ public class GrouperClientWsTest extends GrouperTest {
         assertTrue(GrouperClientWs.mostRecentRequest,
             !GrouperClientWs.mostRecentRequest.contains("wsAttributeDefNameLookups"));
         assertTrue(GrouperClientWs.mostRecentRequest,
-            GrouperClientWs.mostRecentRequest.contains("roleLookups") && GrouperClientWs.mostRecentRequest.contains("<groupName>"));
+            GrouperClientWs.mostRecentRequest.contains("roleLookups") && GrouperClientWs.mostRecentRequest.contains("\"groupName\""));
         assertTrue(GrouperClientWs.mostRecentRequest,
             !GrouperClientWs.mostRecentRequest.contains("wsSubjectLookups"));
 
@@ -18642,7 +18647,7 @@ public class GrouperClientWsTest extends GrouperTest {
         assertTrue(GrouperClientWs.mostRecentRequest,
             GrouperClientWs.mostRecentRequest.contains("includeAttributeAssignments"));
         assertTrue(GrouperClientWs.mostRecentResponse,
-            GrouperClientWs.mostRecentResponse.contains("</WsAttributeAssign>"));
+            GrouperClientWs.mostRecentResponse.contains("WsAttributeAssign"));
         assertTrue(GrouperClientWs.mostRecentRequest,
             !GrouperClientWs.mostRecentRequest.contains("includePermissionAssignDetail"));
         assertTrue(GrouperClientWs.mostRecentRequest,
@@ -18660,11 +18665,11 @@ public class GrouperClientWsTest extends GrouperTest {
         assertTrue(GrouperClientWs.mostRecentRequest,
             !GrouperClientWs.mostRecentRequest.contains("wsAttributeDefNameLookups"));
         assertTrue(GrouperClientWs.mostRecentRequest,
-            GrouperClientWs.mostRecentRequest.contains("roleLookups") && GrouperClientWs.mostRecentRequest.contains("<groupName>"));
+            GrouperClientWs.mostRecentRequest.contains("roleLookups") && GrouperClientWs.mostRecentRequest.contains("\"groupName\""));
         assertTrue(GrouperClientWs.mostRecentRequest,
             !GrouperClientWs.mostRecentRequest.contains("wsSubjectLookups"));
         assertTrue(GrouperClientWs.mostRecentResponse,
-            !GrouperClientWs.mostRecentResponse.contains("<attributeDefNameSetDepth>"));
+            !GrouperClientWs.mostRecentResponse.contains("attributeDefNameSetDepth"));
 
         // ######################################################
         // Try roleName and includePermissionAssignDetail
@@ -18717,7 +18722,7 @@ public class GrouperClientWsTest extends GrouperTest {
         assertTrue(GrouperClientWs.mostRecentRequest,
             !GrouperClientWs.mostRecentRequest.contains("includeAttributeAssignments"));
         assertTrue(GrouperClientWs.mostRecentResponse,
-            GrouperClientWs.mostRecentResponse.contains("<attributeDefNameSetDepth>"));
+            GrouperClientWs.mostRecentResponse.contains("attributeDefNameSetDepth"));
         assertTrue(GrouperClientWs.mostRecentRequest,
             GrouperClientWs.mostRecentRequest.contains("includePermissionAssignDetail"));
         assertTrue(GrouperClientWs.mostRecentRequest,
@@ -18735,11 +18740,11 @@ public class GrouperClientWsTest extends GrouperTest {
         assertTrue(GrouperClientWs.mostRecentRequest,
             !GrouperClientWs.mostRecentRequest.contains("wsAttributeDefNameLookups"));
         assertTrue(GrouperClientWs.mostRecentRequest,
-            GrouperClientWs.mostRecentRequest.contains("roleLookups") && GrouperClientWs.mostRecentRequest.contains("<groupName>"));
+            GrouperClientWs.mostRecentRequest.contains("roleLookups") && GrouperClientWs.mostRecentRequest.contains("\"groupName\""));
         assertTrue(GrouperClientWs.mostRecentRequest,
             !GrouperClientWs.mostRecentRequest.contains("wsSubjectLookups"));
         assertTrue(GrouperClientWs.mostRecentResponse,
-            !GrouperClientWs.mostRecentResponse.contains("<WsAttributeDefName>"));
+            !GrouperClientWs.mostRecentResponse.contains("WsAttributeDefName"));
 
         // ######################################################
         // Try roleName and includeAttributeDefNames
@@ -18792,7 +18797,7 @@ public class GrouperClientWsTest extends GrouperTest {
         assertTrue(GrouperClientWs.mostRecentRequest,
             !GrouperClientWs.mostRecentRequest.contains("includeAttributeAssignments"));
         assertTrue(GrouperClientWs.mostRecentResponse,
-            GrouperClientWs.mostRecentResponse.contains("<WsAttributeDefName>"));
+            GrouperClientWs.mostRecentResponse.contains("WsAttributeDefName"));
         assertTrue(GrouperClientWs.mostRecentRequest,
             !GrouperClientWs.mostRecentRequest.contains("includePermissionAssignDetail"));
         assertTrue(GrouperClientWs.mostRecentRequest,
@@ -18810,7 +18815,7 @@ public class GrouperClientWsTest extends GrouperTest {
         assertTrue(GrouperClientWs.mostRecentRequest,
             !GrouperClientWs.mostRecentRequest.contains("wsAttributeDefNameLookups"));
         assertTrue(GrouperClientWs.mostRecentRequest,
-            GrouperClientWs.mostRecentRequest.contains("roleLookups") && GrouperClientWs.mostRecentRequest.contains("<groupName>"));
+            GrouperClientWs.mostRecentRequest.contains("roleLookups") && GrouperClientWs.mostRecentRequest.contains("\"groupName\""));
         assertTrue(GrouperClientWs.mostRecentRequest,
             !GrouperClientWs.mostRecentRequest.contains("wsSubjectLookups"));
 
@@ -18865,7 +18870,7 @@ public class GrouperClientWsTest extends GrouperTest {
         assertTrue(GrouperClientWs.mostRecentRequest,
             !GrouperClientWs.mostRecentRequest.contains("includeAttributeAssignments"));
         assertTrue(GrouperClientWs.mostRecentResponse,
-            !GrouperClientWs.mostRecentResponse.contains("<hasComposite>"));
+            !GrouperClientWs.mostRecentResponse.contains("hasComposite"));
         assertTrue(GrouperClientWs.mostRecentRequest,
             !GrouperClientWs.mostRecentRequest.contains("includePermissionAssignDetail"));
         assertTrue(GrouperClientWs.mostRecentRequest,
@@ -18883,7 +18888,7 @@ public class GrouperClientWsTest extends GrouperTest {
         assertTrue(GrouperClientWs.mostRecentRequest,
             !GrouperClientWs.mostRecentRequest.contains("wsAttributeDefNameLookups"));
         assertTrue(GrouperClientWs.mostRecentRequest,
-            GrouperClientWs.mostRecentRequest.contains("roleLookups") && GrouperClientWs.mostRecentRequest.contains("<groupName>"));
+            GrouperClientWs.mostRecentRequest.contains("roleLookups") && GrouperClientWs.mostRecentRequest.contains("\"groupName\""));
         assertTrue(GrouperClientWs.mostRecentRequest,
             !GrouperClientWs.mostRecentRequest.contains("wsSubjectLookups"));
 
@@ -18938,7 +18943,7 @@ public class GrouperClientWsTest extends GrouperTest {
         assertTrue(GrouperClientWs.mostRecentRequest,
             !GrouperClientWs.mostRecentRequest.contains("includeAttributeAssignments"));
         assertTrue(GrouperClientWs.mostRecentResponse,
-            !GrouperClientWs.mostRecentResponse.contains("<hasComposite>"));
+            !GrouperClientWs.mostRecentResponse.contains("hasComposite"));
         assertTrue(GrouperClientWs.mostRecentRequest,
             !GrouperClientWs.mostRecentRequest.contains("includePermissionAssignDetail"));
         assertTrue(GrouperClientWs.mostRecentRequest,
@@ -18956,7 +18961,7 @@ public class GrouperClientWsTest extends GrouperTest {
         assertTrue(GrouperClientWs.mostRecentRequest,
             !GrouperClientWs.mostRecentRequest.contains("wsAttributeDefNameLookups"));
         assertTrue(GrouperClientWs.mostRecentRequest,
-            GrouperClientWs.mostRecentRequest.contains("roleLookups") && GrouperClientWs.mostRecentRequest.contains("<groupName>"));
+            GrouperClientWs.mostRecentRequest.contains("roleLookups") && GrouperClientWs.mostRecentRequest.contains("\"groupName\""));
         assertTrue(GrouperClientWs.mostRecentRequest,
             !GrouperClientWs.mostRecentRequest.contains("wsSubjectLookups"));
 
@@ -19012,7 +19017,7 @@ public class GrouperClientWsTest extends GrouperTest {
         assertTrue(GrouperClientWs.mostRecentRequest,
             !GrouperClientWs.mostRecentRequest.contains("includeAttributeAssignments"));
         assertTrue(GrouperClientWs.mostRecentResponse,
-            !GrouperClientWs.mostRecentResponse.contains("<hasComposite>"));
+            !GrouperClientWs.mostRecentResponse.contains("hasComposite"));
         assertTrue(GrouperClientWs.mostRecentRequest,
             !GrouperClientWs.mostRecentRequest.contains("includePermissionAssignDetail"));
         assertTrue(GrouperClientWs.mostRecentRequest,
@@ -19030,7 +19035,7 @@ public class GrouperClientWsTest extends GrouperTest {
         assertTrue(GrouperClientWs.mostRecentRequest,
             !GrouperClientWs.mostRecentRequest.contains("wsAttributeDefNameLookups"));
         assertTrue(GrouperClientWs.mostRecentRequest,
-            GrouperClientWs.mostRecentRequest.contains("roleLookups") && GrouperClientWs.mostRecentRequest.contains("<groupName>"));
+            GrouperClientWs.mostRecentRequest.contains("roleLookups") && GrouperClientWs.mostRecentRequest.contains("\"groupName\""));
         assertTrue(GrouperClientWs.mostRecentRequest,
             !GrouperClientWs.mostRecentRequest.contains("wsSubjectLookups"));
 
@@ -20885,7 +20890,7 @@ public class GrouperClientWsTest extends GrouperTest {
 
       assertTrue(GrouperClientWs.mostRecentRequest,
         GrouperClientWs.mostRecentRequest.contains("saveMode")
-            && GrouperClientWs.mostRecentRequest.contains(">UPDATE<"));
+            && GrouperClientWs.mostRecentRequest.contains("\"UPDATE\""));
       assertFalse(GrouperClientWs.mostRecentRequest,
           GrouperClientWs.mostRecentRequest.contains("wsAttributeDefNameLookup"));
 
@@ -20917,7 +20922,7 @@ public class GrouperClientWsTest extends GrouperTest {
       assertFalse(GrouperClientWs.mostRecentRequest,
         GrouperClientWs.mostRecentRequest.contains("saveMode"));
       assertTrue(GrouperClientWs.mostRecentRequest,
-          GrouperClientWs.mostRecentRequest.contains("<wsAttributeDefNameLookup>"));
+          GrouperClientWs.mostRecentRequest.contains("\"wsAttributeDefNameLookup\""));
 
 
       //########################################################
@@ -20950,7 +20955,7 @@ public class GrouperClientWsTest extends GrouperTest {
       assertFalse(GrouperClientWs.mostRecentRequest,
         GrouperClientWs.mostRecentRequest.contains("description"));
       assertTrue(GrouperClientWs.mostRecentRequest,
-          GrouperClientWs.mostRecentRequest.contains("<wsAttributeDefNameLookup>")
+          GrouperClientWs.mostRecentRequest.contains("\"wsAttributeDefNameLookup\"")
           && GrouperClientWs.mostRecentRequest.contains(newAttributeDefName.getId()));
 
       //########################################################
@@ -20981,7 +20986,7 @@ public class GrouperClientWsTest extends GrouperTest {
       assertFalse(GrouperClientWs.mostRecentRequest,
         GrouperClientWs.mostRecentRequest.contains("description"));
       assertTrue(GrouperClientWs.mostRecentRequest,
-          GrouperClientWs.mostRecentRequest.contains("<wsAttributeDefNameLookup>")
+          GrouperClientWs.mostRecentRequest.contains("\"wsAttributeDefNameLookup\"")
           && GrouperClientWs.mostRecentRequest.contains(newAttributeDefName.getIdIndex().toString()));
 
       //########################################################
@@ -21010,7 +21015,7 @@ public class GrouperClientWsTest extends GrouperTest {
       assertEquals(outputLines[0], "aStem:newAttributeDefName", matcher.group(3));
 
       assertTrue(GrouperClientWs.mostRecentRequest,
-          GrouperClientWs.mostRecentRequest.contains("<description>")
+          GrouperClientWs.mostRecentRequest.contains("\"description\"")
           && GrouperClientWs.mostRecentRequest.contains("theDescription"));
 
       //########################################################
@@ -21039,10 +21044,10 @@ public class GrouperClientWsTest extends GrouperTest {
       assertEquals(outputLines[0], "aStem:newAttributeDefName5", matcher.group(3));
 
       assertTrue(GrouperClientWs.mostRecentRequest,
-          GrouperClientWs.mostRecentRequest.contains("<idIndex>")
+          GrouperClientWs.mostRecentRequest.contains("\"idIndex\"")
           && GrouperClientWs.mostRecentRequest.contains("12345"));
       assertTrue(GrouperClientWs.mostRecentResponse,
-          GrouperClientWs.mostRecentResponse.contains("<idIndex>12345"));
+          GrouperClientWs.mostRecentResponse.contains("\"idIndex\"12345"));
 
       //########################################################
       // run again with --displayExtension=theDisplayExtension
@@ -21072,7 +21077,7 @@ public class GrouperClientWsTest extends GrouperTest {
       assertFalse(GrouperClientWs.mostRecentRequest,
           GrouperClientWs.mostRecentRequest.contains("createParentStemsIfNotExist"));
       assertTrue(GrouperClientWs.mostRecentRequest,
-          GrouperClientWs.mostRecentRequest.contains("<displayExtension>")
+          GrouperClientWs.mostRecentRequest.contains("displayExtension")
           && GrouperClientWs.mostRecentRequest.contains("theDisplayExtension"));
 
       //########################################################
@@ -21105,7 +21110,7 @@ public class GrouperClientWsTest extends GrouperTest {
       assertTrue(GrouperClientWs.mostRecentRequest,
           GrouperClientWs.mostRecentRequest.contains("createParentStemsIfNotExist"));
       assertTrue(GrouperClientWs.mostRecentRequest,
-          GrouperClientWs.mostRecentRequest.contains("<attributeDefName>"));
+          GrouperClientWs.mostRecentRequest.contains("attributeDefName"));
 
       //########################################################
       // run again with --uuidOfAttributeDef=abc
@@ -21135,7 +21140,7 @@ public class GrouperClientWsTest extends GrouperTest {
       assertFalse(GrouperClientWs.mostRecentRequest,
           GrouperClientWs.mostRecentRequest.contains("actAsSubjectLookup"));
       assertTrue(GrouperClientWs.mostRecentRequest,
-          GrouperClientWs.mostRecentRequest.contains("<attributeDefId>"));
+          GrouperClientWs.mostRecentRequest.contains("attributeDefId"));
 
 
       //########################################################
@@ -21166,7 +21171,7 @@ public class GrouperClientWsTest extends GrouperTest {
       assertFalse(GrouperClientWs.mostRecentRequest,
           GrouperClientWs.mostRecentRequest.contains("subjectIdentifier"));
       assertTrue(GrouperClientWs.mostRecentRequest,
-          GrouperClientWs.mostRecentRequest.contains("<actAsSubjectLookup><subjectId>"));
+          GrouperClientWs.mostRecentRequest.contains("actAsSubjectLookup\":\"subjectId"));
 
 
       //########################################################
@@ -21197,7 +21202,7 @@ public class GrouperClientWsTest extends GrouperTest {
       assertFalse(GrouperClientWs.mostRecentRequest,
           GrouperClientWs.mostRecentRequest.contains("sourceId"));
       assertTrue(GrouperClientWs.mostRecentRequest,
-          GrouperClientWs.mostRecentRequest.contains("<actAsSubjectLookup><subjectIdentifier>"));
+          GrouperClientWs.mostRecentRequest.contains("actAsSubjectLookup\":\"subjectIdentifier"));
 
 
       //########################################################
@@ -22106,7 +22111,7 @@ public class GrouperClientWsTest extends GrouperTest {
       assertTrue(GrouperClientWs.mostRecentRequest,
           !GrouperClientWs.mostRecentRequest.contains("wsAttributeAssignLookups"));
       assertTrue(GrouperClientWs.mostRecentRequest,
-          GrouperClientWs.mostRecentRequest.contains("wsAttributeDefLookups") && GrouperClientWs.mostRecentRequest.contains("<name>"));
+          GrouperClientWs.mostRecentRequest.contains("wsAttributeDefLookups") && GrouperClientWs.mostRecentRequest.contains("\"name\""));
       assertTrue(GrouperClientWs.mostRecentRequest,
           !GrouperClientWs.mostRecentRequest.contains("wsAttributeDefNameLookups"));
       assertTrue(GrouperClientWs.mostRecentRequest,
@@ -22192,7 +22197,7 @@ public class GrouperClientWsTest extends GrouperTest {
       assertTrue(GrouperClientWs.mostRecentRequest,
           !GrouperClientWs.mostRecentRequest.contains("wsAttributeAssignLookups"));
       assertTrue(GrouperClientWs.mostRecentRequest,
-          GrouperClientWs.mostRecentRequest.contains("wsAttributeDefLookups") && GrouperClientWs.mostRecentRequest.contains("<name>"));
+          GrouperClientWs.mostRecentRequest.contains("wsAttributeDefLookups") && GrouperClientWs.mostRecentRequest.contains("\"name\""));
       assertTrue(GrouperClientWs.mostRecentRequest,
           !GrouperClientWs.mostRecentRequest.contains("wsAttributeDefNameLookups"));
       assertTrue(GrouperClientWs.mostRecentRequest,
@@ -22212,7 +22217,7 @@ public class GrouperClientWsTest extends GrouperTest {
       assertTrue(GrouperClientWs.mostRecentRequest,
           GrouperClientWs.mostRecentRequest.contains("theValue"));
       assertTrue(GrouperClientWs.mostRecentRequest,
-          GrouperClientWs.mostRecentRequest.contains(">123<"));
+          GrouperClientWs.mostRecentRequest.contains("\"123\""));
       assertTrue(GrouperClientWs.mostRecentRequest,
           !GrouperClientWs.mostRecentRequest.contains("includeAssignmentsFromAssignments"));
       assertTrue(GrouperClientWs.mostRecentRequest,
@@ -22310,7 +22315,7 @@ public class GrouperClientWsTest extends GrouperTest {
       assertTrue(GrouperClientWs.mostRecentRequest,
           !GrouperClientWs.mostRecentRequest.contains("wsAttributeAssignLookups"));
       assertTrue(GrouperClientWs.mostRecentRequest,
-          GrouperClientWs.mostRecentRequest.contains("wsAttributeDefLookups") && GrouperClientWs.mostRecentRequest.contains("<uuid>"));
+          GrouperClientWs.mostRecentRequest.contains("wsAttributeDefLookups") && GrouperClientWs.mostRecentRequest.contains("uuid"));
       assertTrue(GrouperClientWs.mostRecentRequest,
           !GrouperClientWs.mostRecentRequest.contains("wsAttributeDefNameLookups"));
       assertTrue(GrouperClientWs.mostRecentRequest,
@@ -22396,7 +22401,7 @@ public class GrouperClientWsTest extends GrouperTest {
       assertTrue(GrouperClientWs.mostRecentRequest,
           !GrouperClientWs.mostRecentRequest.contains("wsAttributeAssignLookups"));
       assertTrue(GrouperClientWs.mostRecentRequest,
-          GrouperClientWs.mostRecentRequest.contains("wsAttributeDefLookups") && GrouperClientWs.mostRecentRequest.contains("<uuid>"));
+          GrouperClientWs.mostRecentRequest.contains("wsAttributeDefLookups") && GrouperClientWs.mostRecentRequest.contains("uuid"));
       assertTrue(GrouperClientWs.mostRecentRequest,
           !GrouperClientWs.mostRecentRequest.contains("wsAttributeDefNameLookups"));
       assertTrue(GrouperClientWs.mostRecentRequest,
@@ -22496,7 +22501,7 @@ public class GrouperClientWsTest extends GrouperTest {
       assertTrue(GrouperClientWs.mostRecentRequest,
           !GrouperClientWs.mostRecentRequest.contains("wsAttributeAssignLookups"));
       assertTrue(GrouperClientWs.mostRecentRequest,
-          GrouperClientWs.mostRecentRequest.contains("wsAttributeDefLookups") && GrouperClientWs.mostRecentRequest.contains("<uuid>"));
+          GrouperClientWs.mostRecentRequest.contains("wsAttributeDefLookups") && GrouperClientWs.mostRecentRequest.contains("uuid"));
       assertTrue(GrouperClientWs.mostRecentRequest,
           !GrouperClientWs.mostRecentRequest.contains("wsAttributeDefNameLookups"));
       assertTrue(GrouperClientWs.mostRecentRequest,
@@ -22516,7 +22521,7 @@ public class GrouperClientWsTest extends GrouperTest {
       assertFalse(GrouperClientWs.mostRecentRequest,
           GrouperClientWs.mostRecentRequest.contains("theValue"));
       assertFalse(GrouperClientWs.mostRecentRequest,
-          GrouperClientWs.mostRecentRequest.contains(">abc<"));
+          GrouperClientWs.mostRecentRequest.contains("\"abc\""));
       assertTrue(GrouperClientWs.mostRecentRequest,
           !GrouperClientWs.mostRecentRequest.contains("includeAssignmentsFromAssignments"));
       assertFalse(GrouperClientWs.mostRecentRequest,
@@ -22585,7 +22590,7 @@ public class GrouperClientWsTest extends GrouperTest {
       assertTrue(GrouperClientWs.mostRecentRequest,
           !GrouperClientWs.mostRecentRequest.contains("wsAttributeAssignLookups"));
       assertTrue(GrouperClientWs.mostRecentRequest,
-          GrouperClientWs.mostRecentRequest.contains("wsAttributeDefLookups") && GrouperClientWs.mostRecentRequest.contains("<uuid>"));
+          GrouperClientWs.mostRecentRequest.contains("wsAttributeDefLookups") && GrouperClientWs.mostRecentRequest.contains("uuid"));
       assertTrue(GrouperClientWs.mostRecentRequest,
           !GrouperClientWs.mostRecentRequest.contains("wsAttributeDefNameLookups"));
       assertTrue(GrouperClientWs.mostRecentRequest,
@@ -22685,7 +22690,7 @@ public class GrouperClientWsTest extends GrouperTest {
       assertTrue(GrouperClientWs.mostRecentRequest,
           !GrouperClientWs.mostRecentRequest.contains("wsAttributeAssignLookups"));
       assertTrue(GrouperClientWs.mostRecentRequest,
-          GrouperClientWs.mostRecentRequest.contains("wsAttributeDefLookups") && GrouperClientWs.mostRecentRequest.contains("<uuid>"));
+          GrouperClientWs.mostRecentRequest.contains("wsAttributeDefLookups") && GrouperClientWs.mostRecentRequest.contains("uuid"));
       assertTrue(GrouperClientWs.mostRecentRequest,
           !GrouperClientWs.mostRecentRequest.contains("wsAttributeDefNameLookups"));
       assertTrue(GrouperClientWs.mostRecentRequest,
@@ -22705,7 +22710,7 @@ public class GrouperClientWsTest extends GrouperTest {
       assertTrue(GrouperClientWs.mostRecentRequest,
           GrouperClientWs.mostRecentRequest.contains("theValue"));
       assertTrue(GrouperClientWs.mostRecentRequest,
-          GrouperClientWs.mostRecentRequest.contains(">123<"));
+          GrouperClientWs.mostRecentRequest.contains("\"123\""));
       assertTrue(GrouperClientWs.mostRecentRequest,
           !GrouperClientWs.mostRecentRequest.contains("includeAssignmentsFromAssignments"));
       assertFalse(GrouperClientWs.mostRecentRequest,
@@ -22772,7 +22777,7 @@ public class GrouperClientWsTest extends GrouperTest {
       assertTrue(GrouperClientWs.mostRecentRequest,
           !GrouperClientWs.mostRecentRequest.contains("wsAttributeAssignLookups"));
       assertTrue(GrouperClientWs.mostRecentRequest,
-          GrouperClientWs.mostRecentRequest.contains("wsAttributeDefLookups") && GrouperClientWs.mostRecentRequest.contains("<uuid>"));
+          GrouperClientWs.mostRecentRequest.contains("wsAttributeDefLookups") && GrouperClientWs.mostRecentRequest.contains("uuid"));
       assertTrue(GrouperClientWs.mostRecentRequest,
           !GrouperClientWs.mostRecentRequest.contains("wsAttributeDefNameLookups"));
       assertTrue(GrouperClientWs.mostRecentRequest,
@@ -22886,7 +22891,7 @@ public class GrouperClientWsTest extends GrouperTest {
       assertTrue(GrouperClientWs.mostRecentRequest,
           !GrouperClientWs.mostRecentRequest.contains("wsAttributeAssignLookups"));
       assertTrue(GrouperClientWs.mostRecentRequest,
-          GrouperClientWs.mostRecentRequest.contains("wsAttributeDefLookups") && GrouperClientWs.mostRecentRequest.contains("<uuid>"));
+          GrouperClientWs.mostRecentRequest.contains("wsAttributeDefLookups") && GrouperClientWs.mostRecentRequest.contains("uuid"));
       assertTrue(GrouperClientWs.mostRecentRequest,
           !GrouperClientWs.mostRecentRequest.contains("wsAttributeDefNameLookups"));
       assertTrue(GrouperClientWs.mostRecentRequest,
@@ -22906,7 +22911,7 @@ public class GrouperClientWsTest extends GrouperTest {
       assertFalse(GrouperClientWs.mostRecentRequest,
           GrouperClientWs.mostRecentRequest.contains("theValue"));
       assertFalse(GrouperClientWs.mostRecentRequest,
-          GrouperClientWs.mostRecentRequest.contains(">123<"));
+          GrouperClientWs.mostRecentRequest.contains("\"123\""));
       assertTrue(GrouperClientWs.mostRecentRequest,
           GrouperClientWs.mostRecentRequest.contains("includeAssignmentsFromAssignments"));
       assertFalse(GrouperClientWs.mostRecentRequest,
@@ -22983,7 +22988,7 @@ public class GrouperClientWsTest extends GrouperTest {
       assertFalse(GrouperClientWs.mostRecentRequest,
           GrouperClientWs.mostRecentRequest.contains("wsAttributeDefLookups"));
       assertTrue(GrouperClientWs.mostRecentRequest,
-          GrouperClientWs.mostRecentRequest.contains("<uuid>"));
+          GrouperClientWs.mostRecentRequest.contains("uuid"));
       assertTrue(GrouperClientWs.mostRecentRequest,
           !GrouperClientWs.mostRecentRequest.contains("wsAttributeDefNameLookups"));
       assertTrue(GrouperClientWs.mostRecentRequest,
@@ -23003,7 +23008,7 @@ public class GrouperClientWsTest extends GrouperTest {
       assertFalse(GrouperClientWs.mostRecentRequest,
           GrouperClientWs.mostRecentRequest.contains("theValue"));
       assertFalse(GrouperClientWs.mostRecentRequest,
-          GrouperClientWs.mostRecentRequest.contains(">123<"));
+          GrouperClientWs.mostRecentRequest.contains("\"123\""));
       assertFalse(GrouperClientWs.mostRecentRequest,
           GrouperClientWs.mostRecentRequest.contains("includeAssignmentsFromAssignments"));
       assertFalse(GrouperClientWs.mostRecentRequest,
@@ -23085,7 +23090,7 @@ public class GrouperClientWsTest extends GrouperTest {
       assertFalse(GrouperClientWs.mostRecentRequest,
           GrouperClientWs.mostRecentRequest.contains("wsAttributeDefLookups"));
       assertTrue(GrouperClientWs.mostRecentRequest,
-          GrouperClientWs.mostRecentRequest.contains("<uuid>"));
+          GrouperClientWs.mostRecentRequest.contains("uuid"));
       assertTrue(GrouperClientWs.mostRecentRequest,
           !GrouperClientWs.mostRecentRequest.contains("wsAttributeDefNameLookups"));
       assertTrue(GrouperClientWs.mostRecentRequest,
@@ -23105,7 +23110,7 @@ public class GrouperClientWsTest extends GrouperTest {
       assertFalse(GrouperClientWs.mostRecentRequest,
           GrouperClientWs.mostRecentRequest.contains("theValue"));
       assertFalse(GrouperClientWs.mostRecentRequest,
-          GrouperClientWs.mostRecentRequest.contains(">123<"));
+          GrouperClientWs.mostRecentRequest.contains("\"123\""));
       assertFalse(GrouperClientWs.mostRecentRequest,
           GrouperClientWs.mostRecentRequest.contains("includeAssignmentsFromAssignments"));
       assertFalse(GrouperClientWs.mostRecentRequest,
@@ -23188,7 +23193,7 @@ public class GrouperClientWsTest extends GrouperTest {
       assertFalse(GrouperClientWs.mostRecentRequest,
           GrouperClientWs.mostRecentRequest.contains("wsAttributeDefLookups"));
       assertFalse(GrouperClientWs.mostRecentRequest,
-          GrouperClientWs.mostRecentRequest.contains("<uuid>"));
+          GrouperClientWs.mostRecentRequest.contains("uuid"));
       assertTrue(GrouperClientWs.mostRecentRequest,
           !GrouperClientWs.mostRecentRequest.contains("wsAttributeDefNameLookups"));
       assertTrue(GrouperClientWs.mostRecentRequest,
@@ -23208,7 +23213,7 @@ public class GrouperClientWsTest extends GrouperTest {
       assertFalse(GrouperClientWs.mostRecentRequest,
           GrouperClientWs.mostRecentRequest.contains("theValue"));
       assertFalse(GrouperClientWs.mostRecentRequest,
-          GrouperClientWs.mostRecentRequest.contains(">123<"));
+          GrouperClientWs.mostRecentRequest.contains("\"123\""));
       assertFalse(GrouperClientWs.mostRecentRequest,
           GrouperClientWs.mostRecentRequest.contains("includeAssignmentsFromAssignments"));
       assertFalse(GrouperClientWs.mostRecentRequest,
@@ -23286,7 +23291,7 @@ public class GrouperClientWsTest extends GrouperTest {
       assertFalse(GrouperClientWs.mostRecentRequest,
           GrouperClientWs.mostRecentRequest.contains("wsAttributeDefLookups"));
       assertFalse(GrouperClientWs.mostRecentRequest,
-          GrouperClientWs.mostRecentRequest.contains("<uuid>"));
+          GrouperClientWs.mostRecentRequest.contains("uuid"));
       assertTrue(GrouperClientWs.mostRecentRequest,
           !GrouperClientWs.mostRecentRequest.contains("wsAttributeDefNameLookups"));
       assertTrue(GrouperClientWs.mostRecentRequest,
@@ -23306,7 +23311,7 @@ public class GrouperClientWsTest extends GrouperTest {
       assertFalse(GrouperClientWs.mostRecentRequest,
           GrouperClientWs.mostRecentRequest.contains("theValue"));
       assertFalse(GrouperClientWs.mostRecentRequest,
-          GrouperClientWs.mostRecentRequest.contains(">123<"));
+          GrouperClientWs.mostRecentRequest.contains("\"123\""));
       assertFalse(GrouperClientWs.mostRecentRequest,
           GrouperClientWs.mostRecentRequest.contains("includeAssignmentsFromAssignments"));
       assertFalse(GrouperClientWs.mostRecentRequest,
@@ -23389,7 +23394,7 @@ public class GrouperClientWsTest extends GrouperTest {
       assertFalse(GrouperClientWs.mostRecentRequest,
           GrouperClientWs.mostRecentRequest.contains("wsAttributeDefLookups"));
       assertTrue(GrouperClientWs.mostRecentRequest,
-          GrouperClientWs.mostRecentRequest.contains("<uuid>"));
+          GrouperClientWs.mostRecentRequest.contains("uuid"));
       assertTrue(GrouperClientWs.mostRecentRequest,
           !GrouperClientWs.mostRecentRequest.contains("wsAttributeDefNameLookups"));
       assertTrue(GrouperClientWs.mostRecentRequest,
@@ -23409,7 +23414,7 @@ public class GrouperClientWsTest extends GrouperTest {
       assertFalse(GrouperClientWs.mostRecentRequest,
           GrouperClientWs.mostRecentRequest.contains("theValue"));
       assertFalse(GrouperClientWs.mostRecentRequest,
-          GrouperClientWs.mostRecentRequest.contains(">123<"));
+          GrouperClientWs.mostRecentRequest.contains("\"123\""));
       assertFalse(GrouperClientWs.mostRecentRequest,
           GrouperClientWs.mostRecentRequest.contains("includeAssignmentsFromAssignments"));
       assertFalse(GrouperClientWs.mostRecentRequest,
@@ -23492,7 +23497,7 @@ public class GrouperClientWsTest extends GrouperTest {
       assertFalse(GrouperClientWs.mostRecentRequest,
           GrouperClientWs.mostRecentRequest.contains("wsAttributeDefLookups"));
       assertTrue(GrouperClientWs.mostRecentRequest,
-          GrouperClientWs.mostRecentRequest.contains("<uuid>"));
+          GrouperClientWs.mostRecentRequest.contains("uuid"));
       assertTrue(GrouperClientWs.mostRecentRequest,
           !GrouperClientWs.mostRecentRequest.contains("wsAttributeDefNameLookups"));
       assertTrue(GrouperClientWs.mostRecentRequest,
@@ -23512,7 +23517,7 @@ public class GrouperClientWsTest extends GrouperTest {
       assertFalse(GrouperClientWs.mostRecentRequest,
           GrouperClientWs.mostRecentRequest.contains("theValue"));
       assertFalse(GrouperClientWs.mostRecentRequest,
-          GrouperClientWs.mostRecentRequest.contains(">123<"));
+          GrouperClientWs.mostRecentRequest.contains("\"123\""));
       assertFalse(GrouperClientWs.mostRecentRequest,
           GrouperClientWs.mostRecentRequest.contains("includeAssignmentsFromAssignments"));
       assertFalse(GrouperClientWs.mostRecentRequest,
@@ -23591,7 +23596,7 @@ public class GrouperClientWsTest extends GrouperTest {
       assertFalse(GrouperClientWs.mostRecentRequest,
           GrouperClientWs.mostRecentRequest.contains("wsAttributeDefLookups"));
       assertTrue(GrouperClientWs.mostRecentRequest,
-          GrouperClientWs.mostRecentRequest.contains("<uuid>"));
+          GrouperClientWs.mostRecentRequest.contains("uuid"));
       assertTrue(GrouperClientWs.mostRecentRequest,
           !GrouperClientWs.mostRecentRequest.contains("wsAttributeDefNameLookups"));
       assertTrue(GrouperClientWs.mostRecentRequest,
@@ -23611,7 +23616,7 @@ public class GrouperClientWsTest extends GrouperTest {
       assertFalse(GrouperClientWs.mostRecentRequest,
           GrouperClientWs.mostRecentRequest.contains("theValue"));
       assertFalse(GrouperClientWs.mostRecentRequest,
-          GrouperClientWs.mostRecentRequest.contains(">123<"));
+          GrouperClientWs.mostRecentRequest.contains("\"123\""));
       assertFalse(GrouperClientWs.mostRecentRequest,
           GrouperClientWs.mostRecentRequest.contains("includeAssignmentsFromAssignments"));
       assertFalse(GrouperClientWs.mostRecentRequest,
@@ -23694,7 +23699,7 @@ public class GrouperClientWsTest extends GrouperTest {
       assertFalse(GrouperClientWs.mostRecentRequest,
           GrouperClientWs.mostRecentRequest.contains("wsAttributeDefLookups"));
       assertFalse(GrouperClientWs.mostRecentRequest,
-          GrouperClientWs.mostRecentRequest.contains("<uuid>"));
+          GrouperClientWs.mostRecentRequest.contains("uuid"));
       assertTrue(GrouperClientWs.mostRecentRequest,
           !GrouperClientWs.mostRecentRequest.contains("wsAttributeDefNameLookups"));
       assertTrue(GrouperClientWs.mostRecentRequest,
@@ -23714,7 +23719,7 @@ public class GrouperClientWsTest extends GrouperTest {
       assertFalse(GrouperClientWs.mostRecentRequest,
           GrouperClientWs.mostRecentRequest.contains("theValue"));
       assertFalse(GrouperClientWs.mostRecentRequest,
-          GrouperClientWs.mostRecentRequest.contains(">123<"));
+          GrouperClientWs.mostRecentRequest.contains("\"123\""));
       assertFalse(GrouperClientWs.mostRecentRequest,
           GrouperClientWs.mostRecentRequest.contains("includeAssignmentsFromAssignments"));
       assertFalse(GrouperClientWs.mostRecentRequest,
@@ -23790,7 +23795,7 @@ public class GrouperClientWsTest extends GrouperTest {
       assertFalse(GrouperClientWs.mostRecentRequest,
           GrouperClientWs.mostRecentRequest.contains("wsAttributeDefLookups"));
       assertFalse(GrouperClientWs.mostRecentRequest,
-          GrouperClientWs.mostRecentRequest.contains("<uuid>"));
+          GrouperClientWs.mostRecentRequest.contains("uuid"));
       assertTrue(GrouperClientWs.mostRecentRequest,
           !GrouperClientWs.mostRecentRequest.contains("wsAttributeDefNameLookups"));
       assertTrue(GrouperClientWs.mostRecentRequest,
@@ -23810,7 +23815,7 @@ public class GrouperClientWsTest extends GrouperTest {
       assertFalse(GrouperClientWs.mostRecentRequest,
           GrouperClientWs.mostRecentRequest.contains("theValue"));
       assertFalse(GrouperClientWs.mostRecentRequest,
-          GrouperClientWs.mostRecentRequest.contains(">123<"));
+          GrouperClientWs.mostRecentRequest.contains("\"123\""));
       assertFalse(GrouperClientWs.mostRecentRequest,
           GrouperClientWs.mostRecentRequest.contains("includeAssignmentsFromAssignments"));
       assertFalse(GrouperClientWs.mostRecentRequest,
@@ -23889,7 +23894,7 @@ public class GrouperClientWsTest extends GrouperTest {
       assertFalse(GrouperClientWs.mostRecentRequest,
           GrouperClientWs.mostRecentRequest.contains("wsAttributeDefLookups"));
       assertTrue(GrouperClientWs.mostRecentRequest,
-          GrouperClientWs.mostRecentRequest.contains("<uuid>"));
+          GrouperClientWs.mostRecentRequest.contains("uuid"));
       assertTrue(GrouperClientWs.mostRecentRequest,
           !GrouperClientWs.mostRecentRequest.contains("wsAttributeDefNameLookups"));
       assertTrue(GrouperClientWs.mostRecentRequest,
@@ -23909,7 +23914,7 @@ public class GrouperClientWsTest extends GrouperTest {
       assertFalse(GrouperClientWs.mostRecentRequest,
           GrouperClientWs.mostRecentRequest.contains("theValue"));
       assertFalse(GrouperClientWs.mostRecentRequest,
-          GrouperClientWs.mostRecentRequest.contains(">123<"));
+          GrouperClientWs.mostRecentRequest.contains("\"123\""));
       assertFalse(GrouperClientWs.mostRecentRequest,
           GrouperClientWs.mostRecentRequest.contains("includeAssignmentsFromAssignments"));
       assertFalse(GrouperClientWs.mostRecentRequest,
@@ -23984,7 +23989,7 @@ public class GrouperClientWsTest extends GrouperTest {
       assertFalse(GrouperClientWs.mostRecentRequest,
           GrouperClientWs.mostRecentRequest.contains("wsAttributeDefLookups"));
       assertTrue(GrouperClientWs.mostRecentRequest,
-          GrouperClientWs.mostRecentRequest.contains("<uuid>"));
+          GrouperClientWs.mostRecentRequest.contains("uuid"));
       assertTrue(GrouperClientWs.mostRecentRequest,
           !GrouperClientWs.mostRecentRequest.contains("wsAttributeDefNameLookups"));
       assertTrue(GrouperClientWs.mostRecentRequest,
@@ -24004,7 +24009,7 @@ public class GrouperClientWsTest extends GrouperTest {
       assertFalse(GrouperClientWs.mostRecentRequest,
           GrouperClientWs.mostRecentRequest.contains("theValue"));
       assertFalse(GrouperClientWs.mostRecentRequest,
-          GrouperClientWs.mostRecentRequest.contains(">123<"));
+          GrouperClientWs.mostRecentRequest.contains("\"123\""));
       assertFalse(GrouperClientWs.mostRecentRequest,
           GrouperClientWs.mostRecentRequest.contains("includeAssignmentsFromAssignments"));
       assertFalse(GrouperClientWs.mostRecentRequest,
@@ -24061,7 +24066,7 @@ public class GrouperClientWsTest extends GrouperTest {
       assertTrue(GrouperClientWs.mostRecentRequest,
           !GrouperClientWs.mostRecentRequest.contains("actAsSubjectLookup"));
       assertTrue(GrouperClientWs.mostRecentRequest,
-          !GrouperClientWs.mostRecentRequest.contains("<actions>"));
+          !GrouperClientWs.mostRecentRequest.contains("actions"));
       assertTrue(GrouperClientWs.mostRecentRequest,
           GrouperClientWs.mostRecentRequest.contains("attributeAssignType"));
       assertTrue(GrouperClientWs.mostRecentRequest,
@@ -24083,7 +24088,7 @@ public class GrouperClientWsTest extends GrouperTest {
       assertFalse(GrouperClientWs.mostRecentRequest,
           GrouperClientWs.mostRecentRequest.contains("wsAttributeDefLookups"));
       assertTrue(GrouperClientWs.mostRecentRequest,
-          GrouperClientWs.mostRecentRequest.contains("<uuid>"));
+          GrouperClientWs.mostRecentRequest.contains("uuid"));
       assertTrue(GrouperClientWs.mostRecentRequest,
           !GrouperClientWs.mostRecentRequest.contains("wsAttributeDefNameLookups"));
       assertTrue(GrouperClientWs.mostRecentRequest,
@@ -24103,7 +24108,7 @@ public class GrouperClientWsTest extends GrouperTest {
       assertFalse(GrouperClientWs.mostRecentRequest,
           GrouperClientWs.mostRecentRequest.contains("theValue"));
       assertFalse(GrouperClientWs.mostRecentRequest,
-          GrouperClientWs.mostRecentRequest.contains(">123<"));
+          GrouperClientWs.mostRecentRequest.contains("\"123\""));
       assertFalse(GrouperClientWs.mostRecentRequest,
           GrouperClientWs.mostRecentRequest.contains("includeAssignmentsFromAssignments"));
       assertFalse(GrouperClientWs.mostRecentRequest,
@@ -24146,7 +24151,7 @@ public class GrouperClientWsTest extends GrouperTest {
       assertTrue(GrouperClientWs.mostRecentRequest,
           !GrouperClientWs.mostRecentRequest.contains("actAsSubjectLookup"));
       assertTrue(GrouperClientWs.mostRecentRequest,
-          !GrouperClientWs.mostRecentRequest.contains("<actions>"));
+          !GrouperClientWs.mostRecentRequest.contains("actions"));
       assertTrue(GrouperClientWs.mostRecentRequest,
           GrouperClientWs.mostRecentRequest.contains("attributeAssignType"));
       assertTrue(GrouperClientWs.mostRecentRequest,
@@ -24168,7 +24173,7 @@ public class GrouperClientWsTest extends GrouperTest {
       assertFalse(GrouperClientWs.mostRecentRequest,
           GrouperClientWs.mostRecentRequest.contains("wsAttributeDefLookups"));
       assertTrue(GrouperClientWs.mostRecentRequest,
-          GrouperClientWs.mostRecentRequest.contains("<uuid>"));
+          GrouperClientWs.mostRecentRequest.contains("uuid"));
       assertTrue(GrouperClientWs.mostRecentRequest,
           !GrouperClientWs.mostRecentRequest.contains("wsAttributeDefNameLookups"));
       assertTrue(GrouperClientWs.mostRecentRequest,
@@ -24188,7 +24193,7 @@ public class GrouperClientWsTest extends GrouperTest {
       assertFalse(GrouperClientWs.mostRecentRequest,
           GrouperClientWs.mostRecentRequest.contains("theValue"));
       assertFalse(GrouperClientWs.mostRecentRequest,
-          GrouperClientWs.mostRecentRequest.contains(">123<"));
+          GrouperClientWs.mostRecentRequest.contains("\"123\""));
       assertFalse(GrouperClientWs.mostRecentRequest,
           GrouperClientWs.mostRecentRequest.contains("includeAssignmentsFromAssignments"));
       assertFalse(GrouperClientWs.mostRecentRequest,
@@ -24246,7 +24251,7 @@ public class GrouperClientWsTest extends GrouperTest {
       assertTrue(GrouperClientWs.mostRecentRequest,
           !GrouperClientWs.mostRecentRequest.contains("actAsSubjectLookup"));
       assertTrue(GrouperClientWs.mostRecentRequest,
-          !GrouperClientWs.mostRecentRequest.contains("<actions>"));
+          !GrouperClientWs.mostRecentRequest.contains("actions"));
       assertTrue(GrouperClientWs.mostRecentRequest,
           GrouperClientWs.mostRecentRequest.contains("attributeAssignType"));
       assertTrue(GrouperClientWs.mostRecentRequest,
@@ -24268,7 +24273,7 @@ public class GrouperClientWsTest extends GrouperTest {
       assertFalse(GrouperClientWs.mostRecentRequest,
           GrouperClientWs.mostRecentRequest.contains("wsAttributeDefLookups"));
       assertFalse(GrouperClientWs.mostRecentRequest,
-          GrouperClientWs.mostRecentRequest.contains("<uuid>"));
+          GrouperClientWs.mostRecentRequest.contains("uuid"));
       assertTrue(GrouperClientWs.mostRecentRequest,
           !GrouperClientWs.mostRecentRequest.contains("wsAttributeDefNameLookups"));
       assertTrue(GrouperClientWs.mostRecentRequest,
@@ -24288,7 +24293,7 @@ public class GrouperClientWsTest extends GrouperTest {
       assertFalse(GrouperClientWs.mostRecentRequest,
           GrouperClientWs.mostRecentRequest.contains("theValue"));
       assertFalse(GrouperClientWs.mostRecentRequest,
-          GrouperClientWs.mostRecentRequest.contains(">123<"));
+          GrouperClientWs.mostRecentRequest.contains("\"123\""));
       assertFalse(GrouperClientWs.mostRecentRequest,
           GrouperClientWs.mostRecentRequest.contains("includeAssignmentsFromAssignments"));
       assertFalse(GrouperClientWs.mostRecentRequest,
@@ -24404,7 +24409,7 @@ public class GrouperClientWsTest extends GrouperTest {
         assertTrue(GrouperClientWs.mostRecentRequest,
             !GrouperClientWs.mostRecentRequest.contains("wsAttributeAssignLookups"));
         assertTrue(GrouperClientWs.mostRecentRequest,
-            GrouperClientWs.mostRecentRequest.contains("wsAttributeDefLookups") && GrouperClientWs.mostRecentRequest.contains("<name>"));
+            GrouperClientWs.mostRecentRequest.contains("wsAttributeDefLookups") && GrouperClientWs.mostRecentRequest.contains("\"name\""));
         assertTrue(GrouperClientWs.mostRecentRequest,
             !GrouperClientWs.mostRecentRequest.contains("wsAttributeDefNameLookups"));
         assertTrue(GrouperClientWs.mostRecentRequest,
@@ -24490,7 +24495,7 @@ public class GrouperClientWsTest extends GrouperTest {
         assertTrue(GrouperClientWs.mostRecentRequest,
             !GrouperClientWs.mostRecentRequest.contains("wsAttributeAssignLookups"));
         assertTrue(GrouperClientWs.mostRecentRequest,
-            GrouperClientWs.mostRecentRequest.contains("wsAttributeDefLookups") && GrouperClientWs.mostRecentRequest.contains("<name>"));
+            GrouperClientWs.mostRecentRequest.contains("wsAttributeDefLookups") && GrouperClientWs.mostRecentRequest.contains("\"name\""));
         assertTrue(GrouperClientWs.mostRecentRequest,
             !GrouperClientWs.mostRecentRequest.contains("wsAttributeDefNameLookups"));
         assertTrue(GrouperClientWs.mostRecentRequest,
@@ -24510,7 +24515,7 @@ public class GrouperClientWsTest extends GrouperTest {
         assertTrue(GrouperClientWs.mostRecentRequest,
             GrouperClientWs.mostRecentRequest.contains("theValue"));
         assertTrue(GrouperClientWs.mostRecentRequest,
-            GrouperClientWs.mostRecentRequest.contains(">123<"));
+            GrouperClientWs.mostRecentRequest.contains("\"123\""));
         assertTrue(GrouperClientWs.mostRecentRequest,
             !GrouperClientWs.mostRecentRequest.contains("includeAssignmentsFromAssignments"));
         assertTrue(GrouperClientWs.mostRecentRequest,
@@ -24608,7 +24613,7 @@ public class GrouperClientWsTest extends GrouperTest {
         assertTrue(GrouperClientWs.mostRecentRequest,
             !GrouperClientWs.mostRecentRequest.contains("wsAttributeAssignLookups"));
         assertTrue(GrouperClientWs.mostRecentRequest,
-            GrouperClientWs.mostRecentRequest.contains("wsAttributeDefLookups") && GrouperClientWs.mostRecentRequest.contains("<uuid>"));
+            GrouperClientWs.mostRecentRequest.contains("wsAttributeDefLookups") && GrouperClientWs.mostRecentRequest.contains("uuid"));
         assertTrue(GrouperClientWs.mostRecentRequest,
             !GrouperClientWs.mostRecentRequest.contains("wsAttributeDefNameLookups"));
         assertTrue(GrouperClientWs.mostRecentRequest,
@@ -24694,7 +24699,7 @@ public class GrouperClientWsTest extends GrouperTest {
         assertTrue(GrouperClientWs.mostRecentRequest,
             !GrouperClientWs.mostRecentRequest.contains("wsAttributeAssignLookups"));
         assertTrue(GrouperClientWs.mostRecentRequest,
-            GrouperClientWs.mostRecentRequest.contains("wsAttributeDefLookups") && GrouperClientWs.mostRecentRequest.contains("<uuid>"));
+            GrouperClientWs.mostRecentRequest.contains("wsAttributeDefLookups") && GrouperClientWs.mostRecentRequest.contains("uuid"));
         assertTrue(GrouperClientWs.mostRecentRequest,
             !GrouperClientWs.mostRecentRequest.contains("wsAttributeDefNameLookups"));
         assertTrue(GrouperClientWs.mostRecentRequest,
@@ -24794,7 +24799,7 @@ public class GrouperClientWsTest extends GrouperTest {
         assertTrue(GrouperClientWs.mostRecentRequest,
             !GrouperClientWs.mostRecentRequest.contains("wsAttributeAssignLookups"));
         assertTrue(GrouperClientWs.mostRecentRequest,
-            GrouperClientWs.mostRecentRequest.contains("wsAttributeDefLookups") && GrouperClientWs.mostRecentRequest.contains("<uuid>"));
+            GrouperClientWs.mostRecentRequest.contains("wsAttributeDefLookups") && GrouperClientWs.mostRecentRequest.contains("uuid"));
         assertTrue(GrouperClientWs.mostRecentRequest,
             !GrouperClientWs.mostRecentRequest.contains("wsAttributeDefNameLookups"));
         assertTrue(GrouperClientWs.mostRecentRequest,
@@ -24814,7 +24819,7 @@ public class GrouperClientWsTest extends GrouperTest {
         assertFalse(GrouperClientWs.mostRecentRequest,
             GrouperClientWs.mostRecentRequest.contains("theValue"));
         assertFalse(GrouperClientWs.mostRecentRequest,
-            GrouperClientWs.mostRecentRequest.contains(">abc<"));
+            GrouperClientWs.mostRecentRequest.contains("\"abc\""));
         assertTrue(GrouperClientWs.mostRecentRequest,
             !GrouperClientWs.mostRecentRequest.contains("includeAssignmentsFromAssignments"));
         assertFalse(GrouperClientWs.mostRecentRequest,
@@ -24883,7 +24888,7 @@ public class GrouperClientWsTest extends GrouperTest {
         assertTrue(GrouperClientWs.mostRecentRequest,
             !GrouperClientWs.mostRecentRequest.contains("wsAttributeAssignLookups"));
         assertTrue(GrouperClientWs.mostRecentRequest,
-            GrouperClientWs.mostRecentRequest.contains("wsAttributeDefLookups") && GrouperClientWs.mostRecentRequest.contains("<uuid>"));
+            GrouperClientWs.mostRecentRequest.contains("wsAttributeDefLookups") && GrouperClientWs.mostRecentRequest.contains("uuid"));
         assertTrue(GrouperClientWs.mostRecentRequest,
             !GrouperClientWs.mostRecentRequest.contains("wsAttributeDefNameLookups"));
         assertTrue(GrouperClientWs.mostRecentRequest,
@@ -24983,7 +24988,7 @@ public class GrouperClientWsTest extends GrouperTest {
         assertTrue(GrouperClientWs.mostRecentRequest,
             !GrouperClientWs.mostRecentRequest.contains("wsAttributeAssignLookups"));
         assertTrue(GrouperClientWs.mostRecentRequest,
-            GrouperClientWs.mostRecentRequest.contains("wsAttributeDefLookups") && GrouperClientWs.mostRecentRequest.contains("<uuid>"));
+            GrouperClientWs.mostRecentRequest.contains("wsAttributeDefLookups") && GrouperClientWs.mostRecentRequest.contains("uuid"));
         assertTrue(GrouperClientWs.mostRecentRequest,
             !GrouperClientWs.mostRecentRequest.contains("wsAttributeDefNameLookups"));
         assertTrue(GrouperClientWs.mostRecentRequest,
@@ -25003,7 +25008,7 @@ public class GrouperClientWsTest extends GrouperTest {
         assertTrue(GrouperClientWs.mostRecentRequest,
             GrouperClientWs.mostRecentRequest.contains("theValue"));
         assertTrue(GrouperClientWs.mostRecentRequest,
-            GrouperClientWs.mostRecentRequest.contains(">123<"));
+            GrouperClientWs.mostRecentRequest.contains("\"123\""));
         assertTrue(GrouperClientWs.mostRecentRequest,
             !GrouperClientWs.mostRecentRequest.contains("includeAssignmentsFromAssignments"));
         assertFalse(GrouperClientWs.mostRecentRequest,
@@ -25070,7 +25075,7 @@ public class GrouperClientWsTest extends GrouperTest {
         assertTrue(GrouperClientWs.mostRecentRequest,
             !GrouperClientWs.mostRecentRequest.contains("wsAttributeAssignLookups"));
         assertTrue(GrouperClientWs.mostRecentRequest,
-            GrouperClientWs.mostRecentRequest.contains("wsAttributeDefLookups") && GrouperClientWs.mostRecentRequest.contains("<uuid>"));
+            GrouperClientWs.mostRecentRequest.contains("wsAttributeDefLookups") && GrouperClientWs.mostRecentRequest.contains("uuid"));
         assertTrue(GrouperClientWs.mostRecentRequest,
             !GrouperClientWs.mostRecentRequest.contains("wsAttributeDefNameLookups"));
         assertTrue(GrouperClientWs.mostRecentRequest,
@@ -25184,7 +25189,7 @@ public class GrouperClientWsTest extends GrouperTest {
         assertTrue(GrouperClientWs.mostRecentRequest,
             !GrouperClientWs.mostRecentRequest.contains("wsAttributeAssignLookups"));
         assertTrue(GrouperClientWs.mostRecentRequest,
-            GrouperClientWs.mostRecentRequest.contains("wsAttributeDefLookups") && GrouperClientWs.mostRecentRequest.contains("<uuid>"));
+            GrouperClientWs.mostRecentRequest.contains("wsAttributeDefLookups") && GrouperClientWs.mostRecentRequest.contains("uuid"));
         assertTrue(GrouperClientWs.mostRecentRequest,
             !GrouperClientWs.mostRecentRequest.contains("wsAttributeDefNameLookups"));
         assertTrue(GrouperClientWs.mostRecentRequest,
@@ -25204,7 +25209,7 @@ public class GrouperClientWsTest extends GrouperTest {
         assertFalse(GrouperClientWs.mostRecentRequest,
             GrouperClientWs.mostRecentRequest.contains("theValue"));
         assertFalse(GrouperClientWs.mostRecentRequest,
-            GrouperClientWs.mostRecentRequest.contains(">123<"));
+            GrouperClientWs.mostRecentRequest.contains("\"123\""));
         assertTrue(GrouperClientWs.mostRecentRequest,
             GrouperClientWs.mostRecentRequest.contains("includeAssignmentsFromAssignments"));
         assertFalse(GrouperClientWs.mostRecentRequest,
@@ -25281,7 +25286,7 @@ public class GrouperClientWsTest extends GrouperTest {
         assertFalse(GrouperClientWs.mostRecentRequest,
             GrouperClientWs.mostRecentRequest.contains("wsAttributeDefLookups"));
         assertTrue(GrouperClientWs.mostRecentRequest,
-            GrouperClientWs.mostRecentRequest.contains("<uuid>"));
+            GrouperClientWs.mostRecentRequest.contains("uuid"));
         assertTrue(GrouperClientWs.mostRecentRequest,
             !GrouperClientWs.mostRecentRequest.contains("wsAttributeDefNameLookups"));
         assertTrue(GrouperClientWs.mostRecentRequest,
@@ -25301,7 +25306,7 @@ public class GrouperClientWsTest extends GrouperTest {
         assertFalse(GrouperClientWs.mostRecentRequest,
             GrouperClientWs.mostRecentRequest.contains("theValue"));
         assertFalse(GrouperClientWs.mostRecentRequest,
-            GrouperClientWs.mostRecentRequest.contains(">123<"));
+            GrouperClientWs.mostRecentRequest.contains("\"123\""));
         assertFalse(GrouperClientWs.mostRecentRequest,
             GrouperClientWs.mostRecentRequest.contains("includeAssignmentsFromAssignments"));
         assertFalse(GrouperClientWs.mostRecentRequest,
@@ -25383,7 +25388,7 @@ public class GrouperClientWsTest extends GrouperTest {
         assertFalse(GrouperClientWs.mostRecentRequest,
             GrouperClientWs.mostRecentRequest.contains("wsAttributeDefLookups"));
         assertTrue(GrouperClientWs.mostRecentRequest,
-            GrouperClientWs.mostRecentRequest.contains("<uuid>"));
+            GrouperClientWs.mostRecentRequest.contains("uuid"));
         assertTrue(GrouperClientWs.mostRecentRequest,
             !GrouperClientWs.mostRecentRequest.contains("wsAttributeDefNameLookups"));
         assertTrue(GrouperClientWs.mostRecentRequest,
@@ -25403,7 +25408,7 @@ public class GrouperClientWsTest extends GrouperTest {
         assertFalse(GrouperClientWs.mostRecentRequest,
             GrouperClientWs.mostRecentRequest.contains("theValue"));
         assertFalse(GrouperClientWs.mostRecentRequest,
-            GrouperClientWs.mostRecentRequest.contains(">123<"));
+            GrouperClientWs.mostRecentRequest.contains("\"123\""));
         assertFalse(GrouperClientWs.mostRecentRequest,
             GrouperClientWs.mostRecentRequest.contains("includeAssignmentsFromAssignments"));
         assertFalse(GrouperClientWs.mostRecentRequest,
@@ -25486,7 +25491,7 @@ public class GrouperClientWsTest extends GrouperTest {
         assertFalse(GrouperClientWs.mostRecentRequest,
             GrouperClientWs.mostRecentRequest.contains("wsAttributeDefLookups"));
         assertFalse(GrouperClientWs.mostRecentRequest,
-            GrouperClientWs.mostRecentRequest.contains("<uuid>"));
+            GrouperClientWs.mostRecentRequest.contains("uuid"));
         assertTrue(GrouperClientWs.mostRecentRequest,
             !GrouperClientWs.mostRecentRequest.contains("wsAttributeDefNameLookups"));
         assertTrue(GrouperClientWs.mostRecentRequest,
@@ -25506,7 +25511,7 @@ public class GrouperClientWsTest extends GrouperTest {
         assertFalse(GrouperClientWs.mostRecentRequest,
             GrouperClientWs.mostRecentRequest.contains("theValue"));
         assertFalse(GrouperClientWs.mostRecentRequest,
-            GrouperClientWs.mostRecentRequest.contains(">123<"));
+            GrouperClientWs.mostRecentRequest.contains("\"123\""));
         assertFalse(GrouperClientWs.mostRecentRequest,
             GrouperClientWs.mostRecentRequest.contains("includeAssignmentsFromAssignments"));
         assertFalse(GrouperClientWs.mostRecentRequest,
@@ -25584,7 +25589,7 @@ public class GrouperClientWsTest extends GrouperTest {
         assertFalse(GrouperClientWs.mostRecentRequest,
             GrouperClientWs.mostRecentRequest.contains("wsAttributeDefLookups"));
         assertFalse(GrouperClientWs.mostRecentRequest,
-            GrouperClientWs.mostRecentRequest.contains("<uuid>"));
+            GrouperClientWs.mostRecentRequest.contains("uuid"));
         assertTrue(GrouperClientWs.mostRecentRequest,
             !GrouperClientWs.mostRecentRequest.contains("wsAttributeDefNameLookups"));
         assertTrue(GrouperClientWs.mostRecentRequest,
@@ -25604,7 +25609,7 @@ public class GrouperClientWsTest extends GrouperTest {
         assertFalse(GrouperClientWs.mostRecentRequest,
             GrouperClientWs.mostRecentRequest.contains("theValue"));
         assertFalse(GrouperClientWs.mostRecentRequest,
-            GrouperClientWs.mostRecentRequest.contains(">123<"));
+            GrouperClientWs.mostRecentRequest.contains("\"123\""));
         assertFalse(GrouperClientWs.mostRecentRequest,
             GrouperClientWs.mostRecentRequest.contains("includeAssignmentsFromAssignments"));
         assertFalse(GrouperClientWs.mostRecentRequest,
@@ -25687,7 +25692,7 @@ public class GrouperClientWsTest extends GrouperTest {
         assertFalse(GrouperClientWs.mostRecentRequest,
             GrouperClientWs.mostRecentRequest.contains("wsAttributeDefLookups"));
         assertTrue(GrouperClientWs.mostRecentRequest,
-            GrouperClientWs.mostRecentRequest.contains("<uuid>"));
+            GrouperClientWs.mostRecentRequest.contains("uuid"));
         assertTrue(GrouperClientWs.mostRecentRequest,
             !GrouperClientWs.mostRecentRequest.contains("wsAttributeDefNameLookups"));
         assertTrue(GrouperClientWs.mostRecentRequest,
@@ -25707,7 +25712,7 @@ public class GrouperClientWsTest extends GrouperTest {
         assertFalse(GrouperClientWs.mostRecentRequest,
             GrouperClientWs.mostRecentRequest.contains("theValue"));
         assertFalse(GrouperClientWs.mostRecentRequest,
-            GrouperClientWs.mostRecentRequest.contains(">123<"));
+            GrouperClientWs.mostRecentRequest.contains("\"123\""));
         assertFalse(GrouperClientWs.mostRecentRequest,
             GrouperClientWs.mostRecentRequest.contains("includeAssignmentsFromAssignments"));
         assertFalse(GrouperClientWs.mostRecentRequest,
@@ -25790,7 +25795,7 @@ public class GrouperClientWsTest extends GrouperTest {
         assertFalse(GrouperClientWs.mostRecentRequest,
             GrouperClientWs.mostRecentRequest.contains("wsAttributeDefLookups"));
         assertTrue(GrouperClientWs.mostRecentRequest,
-            GrouperClientWs.mostRecentRequest.contains("<uuid>"));
+            GrouperClientWs.mostRecentRequest.contains("uuid"));
         assertTrue(GrouperClientWs.mostRecentRequest,
             !GrouperClientWs.mostRecentRequest.contains("wsAttributeDefNameLookups"));
         assertTrue(GrouperClientWs.mostRecentRequest,
@@ -25810,7 +25815,7 @@ public class GrouperClientWsTest extends GrouperTest {
         assertFalse(GrouperClientWs.mostRecentRequest,
             GrouperClientWs.mostRecentRequest.contains("theValue"));
         assertFalse(GrouperClientWs.mostRecentRequest,
-            GrouperClientWs.mostRecentRequest.contains(">123<"));
+            GrouperClientWs.mostRecentRequest.contains("\"123\""));
         assertFalse(GrouperClientWs.mostRecentRequest,
             GrouperClientWs.mostRecentRequest.contains("includeAssignmentsFromAssignments"));
         assertFalse(GrouperClientWs.mostRecentRequest,
@@ -25889,7 +25894,7 @@ public class GrouperClientWsTest extends GrouperTest {
         assertFalse(GrouperClientWs.mostRecentRequest,
             GrouperClientWs.mostRecentRequest.contains("wsAttributeDefLookups"));
         assertTrue(GrouperClientWs.mostRecentRequest,
-            GrouperClientWs.mostRecentRequest.contains("<uuid>"));
+            GrouperClientWs.mostRecentRequest.contains("uuid"));
         assertTrue(GrouperClientWs.mostRecentRequest,
             !GrouperClientWs.mostRecentRequest.contains("wsAttributeDefNameLookups"));
         assertTrue(GrouperClientWs.mostRecentRequest,
@@ -25909,7 +25914,7 @@ public class GrouperClientWsTest extends GrouperTest {
         assertFalse(GrouperClientWs.mostRecentRequest,
             GrouperClientWs.mostRecentRequest.contains("theValue"));
         assertFalse(GrouperClientWs.mostRecentRequest,
-            GrouperClientWs.mostRecentRequest.contains(">123<"));
+            GrouperClientWs.mostRecentRequest.contains("\"123\""));
         assertFalse(GrouperClientWs.mostRecentRequest,
             GrouperClientWs.mostRecentRequest.contains("includeAssignmentsFromAssignments"));
         assertFalse(GrouperClientWs.mostRecentRequest,
@@ -25992,7 +25997,7 @@ public class GrouperClientWsTest extends GrouperTest {
         assertFalse(GrouperClientWs.mostRecentRequest,
             GrouperClientWs.mostRecentRequest.contains("wsAttributeDefLookups"));
         assertFalse(GrouperClientWs.mostRecentRequest,
-            GrouperClientWs.mostRecentRequest.contains("<uuid>"));
+            GrouperClientWs.mostRecentRequest.contains("uuid"));
         assertTrue(GrouperClientWs.mostRecentRequest,
             !GrouperClientWs.mostRecentRequest.contains("wsAttributeDefNameLookups"));
         assertTrue(GrouperClientWs.mostRecentRequest,
@@ -26012,7 +26017,7 @@ public class GrouperClientWsTest extends GrouperTest {
         assertFalse(GrouperClientWs.mostRecentRequest,
             GrouperClientWs.mostRecentRequest.contains("theValue"));
         assertFalse(GrouperClientWs.mostRecentRequest,
-            GrouperClientWs.mostRecentRequest.contains(">123<"));
+            GrouperClientWs.mostRecentRequest.contains("\"123\""));
         assertFalse(GrouperClientWs.mostRecentRequest,
             GrouperClientWs.mostRecentRequest.contains("includeAssignmentsFromAssignments"));
         assertFalse(GrouperClientWs.mostRecentRequest,
@@ -26088,7 +26093,7 @@ public class GrouperClientWsTest extends GrouperTest {
         assertFalse(GrouperClientWs.mostRecentRequest,
             GrouperClientWs.mostRecentRequest.contains("wsAttributeDefLookups"));
         assertFalse(GrouperClientWs.mostRecentRequest,
-            GrouperClientWs.mostRecentRequest.contains("<uuid>"));
+            GrouperClientWs.mostRecentRequest.contains("uuid"));
         assertTrue(GrouperClientWs.mostRecentRequest,
             !GrouperClientWs.mostRecentRequest.contains("wsAttributeDefNameLookups"));
         assertTrue(GrouperClientWs.mostRecentRequest,
@@ -26108,7 +26113,7 @@ public class GrouperClientWsTest extends GrouperTest {
         assertFalse(GrouperClientWs.mostRecentRequest,
             GrouperClientWs.mostRecentRequest.contains("theValue"));
         assertFalse(GrouperClientWs.mostRecentRequest,
-            GrouperClientWs.mostRecentRequest.contains(">123<"));
+            GrouperClientWs.mostRecentRequest.contains("\"123\""));
         assertFalse(GrouperClientWs.mostRecentRequest,
             GrouperClientWs.mostRecentRequest.contains("includeAssignmentsFromAssignments"));
         assertFalse(GrouperClientWs.mostRecentRequest,
@@ -26187,7 +26192,7 @@ public class GrouperClientWsTest extends GrouperTest {
         assertFalse(GrouperClientWs.mostRecentRequest,
             GrouperClientWs.mostRecentRequest.contains("wsAttributeDefLookups"));
         assertTrue(GrouperClientWs.mostRecentRequest,
-            GrouperClientWs.mostRecentRequest.contains("<uuid>"));
+            GrouperClientWs.mostRecentRequest.contains("uuid"));
         assertTrue(GrouperClientWs.mostRecentRequest,
             !GrouperClientWs.mostRecentRequest.contains("wsAttributeDefNameLookups"));
         assertTrue(GrouperClientWs.mostRecentRequest,
@@ -26207,7 +26212,7 @@ public class GrouperClientWsTest extends GrouperTest {
         assertFalse(GrouperClientWs.mostRecentRequest,
             GrouperClientWs.mostRecentRequest.contains("theValue"));
         assertFalse(GrouperClientWs.mostRecentRequest,
-            GrouperClientWs.mostRecentRequest.contains(">123<"));
+            GrouperClientWs.mostRecentRequest.contains("\"123\""));
         assertFalse(GrouperClientWs.mostRecentRequest,
             GrouperClientWs.mostRecentRequest.contains("includeAssignmentsFromAssignments"));
         assertFalse(GrouperClientWs.mostRecentRequest,
@@ -26282,7 +26287,7 @@ public class GrouperClientWsTest extends GrouperTest {
         assertFalse(GrouperClientWs.mostRecentRequest,
             GrouperClientWs.mostRecentRequest.contains("wsAttributeDefLookups"));
         assertTrue(GrouperClientWs.mostRecentRequest,
-            GrouperClientWs.mostRecentRequest.contains("<uuid>"));
+            GrouperClientWs.mostRecentRequest.contains("uuid"));
         assertTrue(GrouperClientWs.mostRecentRequest,
             !GrouperClientWs.mostRecentRequest.contains("wsAttributeDefNameLookups"));
         assertTrue(GrouperClientWs.mostRecentRequest,
@@ -26302,7 +26307,7 @@ public class GrouperClientWsTest extends GrouperTest {
         assertFalse(GrouperClientWs.mostRecentRequest,
             GrouperClientWs.mostRecentRequest.contains("theValue"));
         assertFalse(GrouperClientWs.mostRecentRequest,
-            GrouperClientWs.mostRecentRequest.contains(">123<"));
+            GrouperClientWs.mostRecentRequest.contains("\"123\""));
         assertFalse(GrouperClientWs.mostRecentRequest,
             GrouperClientWs.mostRecentRequest.contains("includeAssignmentsFromAssignments"));
         assertFalse(GrouperClientWs.mostRecentRequest,
@@ -26359,7 +26364,7 @@ public class GrouperClientWsTest extends GrouperTest {
         assertTrue(GrouperClientWs.mostRecentRequest,
             !GrouperClientWs.mostRecentRequest.contains("actAsSubjectLookup"));
         assertTrue(GrouperClientWs.mostRecentRequest,
-            !GrouperClientWs.mostRecentRequest.contains("<actions>"));
+            !GrouperClientWs.mostRecentRequest.contains("actions"));
         assertTrue(GrouperClientWs.mostRecentRequest,
             GrouperClientWs.mostRecentRequest.contains("attributeAssignType"));
         assertTrue(GrouperClientWs.mostRecentRequest,
@@ -26381,7 +26386,7 @@ public class GrouperClientWsTest extends GrouperTest {
         assertFalse(GrouperClientWs.mostRecentRequest,
             GrouperClientWs.mostRecentRequest.contains("wsAttributeDefLookups"));
         assertTrue(GrouperClientWs.mostRecentRequest,
-            GrouperClientWs.mostRecentRequest.contains("<uuid>"));
+            GrouperClientWs.mostRecentRequest.contains("uuid"));
         assertTrue(GrouperClientWs.mostRecentRequest,
             !GrouperClientWs.mostRecentRequest.contains("wsAttributeDefNameLookups"));
         assertTrue(GrouperClientWs.mostRecentRequest,
@@ -26401,7 +26406,7 @@ public class GrouperClientWsTest extends GrouperTest {
         assertFalse(GrouperClientWs.mostRecentRequest,
             GrouperClientWs.mostRecentRequest.contains("theValue"));
         assertFalse(GrouperClientWs.mostRecentRequest,
-            GrouperClientWs.mostRecentRequest.contains(">123<"));
+            GrouperClientWs.mostRecentRequest.contains("\"123\""));
         assertFalse(GrouperClientWs.mostRecentRequest,
             GrouperClientWs.mostRecentRequest.contains("includeAssignmentsFromAssignments"));
         assertFalse(GrouperClientWs.mostRecentRequest,
@@ -26444,7 +26449,7 @@ public class GrouperClientWsTest extends GrouperTest {
         assertTrue(GrouperClientWs.mostRecentRequest,
             !GrouperClientWs.mostRecentRequest.contains("actAsSubjectLookup"));
         assertTrue(GrouperClientWs.mostRecentRequest,
-            !GrouperClientWs.mostRecentRequest.contains("<actions>"));
+            !GrouperClientWs.mostRecentRequest.contains("actions"));
         assertTrue(GrouperClientWs.mostRecentRequest,
             GrouperClientWs.mostRecentRequest.contains("attributeAssignType"));
         assertTrue(GrouperClientWs.mostRecentRequest,
@@ -26466,7 +26471,7 @@ public class GrouperClientWsTest extends GrouperTest {
         assertFalse(GrouperClientWs.mostRecentRequest,
             GrouperClientWs.mostRecentRequest.contains("wsAttributeDefLookups"));
         assertTrue(GrouperClientWs.mostRecentRequest,
-            GrouperClientWs.mostRecentRequest.contains("<uuid>"));
+            GrouperClientWs.mostRecentRequest.contains("uuid"));
         assertTrue(GrouperClientWs.mostRecentRequest,
             !GrouperClientWs.mostRecentRequest.contains("wsAttributeDefNameLookups"));
         assertTrue(GrouperClientWs.mostRecentRequest,
@@ -26486,7 +26491,7 @@ public class GrouperClientWsTest extends GrouperTest {
         assertFalse(GrouperClientWs.mostRecentRequest,
             GrouperClientWs.mostRecentRequest.contains("theValue"));
         assertFalse(GrouperClientWs.mostRecentRequest,
-            GrouperClientWs.mostRecentRequest.contains(">123<"));
+            GrouperClientWs.mostRecentRequest.contains("\"123\""));
         assertFalse(GrouperClientWs.mostRecentRequest,
             GrouperClientWs.mostRecentRequest.contains("includeAssignmentsFromAssignments"));
         assertFalse(GrouperClientWs.mostRecentRequest,
@@ -26544,7 +26549,7 @@ public class GrouperClientWsTest extends GrouperTest {
         assertTrue(GrouperClientWs.mostRecentRequest,
             !GrouperClientWs.mostRecentRequest.contains("actAsSubjectLookup"));
         assertTrue(GrouperClientWs.mostRecentRequest,
-            !GrouperClientWs.mostRecentRequest.contains("<actions>"));
+            !GrouperClientWs.mostRecentRequest.contains("actions"));
         assertTrue(GrouperClientWs.mostRecentRequest,
             GrouperClientWs.mostRecentRequest.contains("attributeAssignType"));
         assertTrue(GrouperClientWs.mostRecentRequest,
@@ -26566,7 +26571,7 @@ public class GrouperClientWsTest extends GrouperTest {
         assertFalse(GrouperClientWs.mostRecentRequest,
             GrouperClientWs.mostRecentRequest.contains("wsAttributeDefLookups"));
         assertFalse(GrouperClientWs.mostRecentRequest,
-            GrouperClientWs.mostRecentRequest.contains("<uuid>"));
+            GrouperClientWs.mostRecentRequest.contains("uuid"));
         assertTrue(GrouperClientWs.mostRecentRequest,
             !GrouperClientWs.mostRecentRequest.contains("wsAttributeDefNameLookups"));
         assertTrue(GrouperClientWs.mostRecentRequest,
@@ -26586,7 +26591,7 @@ public class GrouperClientWsTest extends GrouperTest {
         assertFalse(GrouperClientWs.mostRecentRequest,
             GrouperClientWs.mostRecentRequest.contains("theValue"));
         assertFalse(GrouperClientWs.mostRecentRequest,
-            GrouperClientWs.mostRecentRequest.contains(">123<"));
+            GrouperClientWs.mostRecentRequest.contains("\"123\""));
         assertFalse(GrouperClientWs.mostRecentRequest,
             GrouperClientWs.mostRecentRequest.contains("includeAssignmentsFromAssignments"));
         assertFalse(GrouperClientWs.mostRecentRequest,
@@ -26700,7 +26705,7 @@ public class GrouperClientWsTest extends GrouperTest {
         assertTrue(GrouperClientWs.mostRecentRequest,
             !GrouperClientWs.mostRecentRequest.contains("wsAttributeAssignLookups"));
         assertTrue(GrouperClientWs.mostRecentRequest,
-            GrouperClientWs.mostRecentRequest.contains("wsAttributeDefLookups") && GrouperClientWs.mostRecentRequest.contains("<name>"));
+            GrouperClientWs.mostRecentRequest.contains("wsAttributeDefLookups") && GrouperClientWs.mostRecentRequest.contains("\"name\""));
         assertTrue(GrouperClientWs.mostRecentRequest,
             !GrouperClientWs.mostRecentRequest.contains("wsAttributeDefNameLookups"));
         assertTrue(GrouperClientWs.mostRecentRequest,
@@ -26786,7 +26791,7 @@ public class GrouperClientWsTest extends GrouperTest {
         assertTrue(GrouperClientWs.mostRecentRequest,
             !GrouperClientWs.mostRecentRequest.contains("wsAttributeAssignLookups"));
         assertTrue(GrouperClientWs.mostRecentRequest,
-            GrouperClientWs.mostRecentRequest.contains("wsAttributeDefLookups") && GrouperClientWs.mostRecentRequest.contains("<name>"));
+            GrouperClientWs.mostRecentRequest.contains("wsAttributeDefLookups") && GrouperClientWs.mostRecentRequest.contains("\"name\""));
         assertTrue(GrouperClientWs.mostRecentRequest,
             !GrouperClientWs.mostRecentRequest.contains("wsAttributeDefNameLookups"));
         assertTrue(GrouperClientWs.mostRecentRequest,
@@ -26806,7 +26811,7 @@ public class GrouperClientWsTest extends GrouperTest {
         assertTrue(GrouperClientWs.mostRecentRequest,
             GrouperClientWs.mostRecentRequest.contains("theValue"));
         assertTrue(GrouperClientWs.mostRecentRequest,
-            GrouperClientWs.mostRecentRequest.contains(">123<"));
+            GrouperClientWs.mostRecentRequest.contains("\"123\""));
         assertTrue(GrouperClientWs.mostRecentRequest,
             !GrouperClientWs.mostRecentRequest.contains("includeAssignmentsFromAssignments"));
         assertTrue(GrouperClientWs.mostRecentRequest,
@@ -26904,7 +26909,7 @@ public class GrouperClientWsTest extends GrouperTest {
         assertTrue(GrouperClientWs.mostRecentRequest,
             !GrouperClientWs.mostRecentRequest.contains("wsAttributeAssignLookups"));
         assertTrue(GrouperClientWs.mostRecentRequest,
-            GrouperClientWs.mostRecentRequest.contains("wsAttributeDefLookups") && GrouperClientWs.mostRecentRequest.contains("<uuid>"));
+            GrouperClientWs.mostRecentRequest.contains("wsAttributeDefLookups") && GrouperClientWs.mostRecentRequest.contains("uuid"));
         assertTrue(GrouperClientWs.mostRecentRequest,
             !GrouperClientWs.mostRecentRequest.contains("wsAttributeDefNameLookups"));
         assertTrue(GrouperClientWs.mostRecentRequest,
@@ -26990,7 +26995,7 @@ public class GrouperClientWsTest extends GrouperTest {
         assertTrue(GrouperClientWs.mostRecentRequest,
             !GrouperClientWs.mostRecentRequest.contains("wsAttributeAssignLookups"));
         assertTrue(GrouperClientWs.mostRecentRequest,
-            GrouperClientWs.mostRecentRequest.contains("wsAttributeDefLookups") && GrouperClientWs.mostRecentRequest.contains("<uuid>"));
+            GrouperClientWs.mostRecentRequest.contains("wsAttributeDefLookups") && GrouperClientWs.mostRecentRequest.contains("uuid"));
         assertTrue(GrouperClientWs.mostRecentRequest,
             !GrouperClientWs.mostRecentRequest.contains("wsAttributeDefNameLookups"));
         assertTrue(GrouperClientWs.mostRecentRequest,
@@ -27090,7 +27095,7 @@ public class GrouperClientWsTest extends GrouperTest {
         assertTrue(GrouperClientWs.mostRecentRequest,
             !GrouperClientWs.mostRecentRequest.contains("wsAttributeAssignLookups"));
         assertTrue(GrouperClientWs.mostRecentRequest,
-            GrouperClientWs.mostRecentRequest.contains("wsAttributeDefLookups") && GrouperClientWs.mostRecentRequest.contains("<uuid>"));
+            GrouperClientWs.mostRecentRequest.contains("wsAttributeDefLookups") && GrouperClientWs.mostRecentRequest.contains("uuid"));
         assertTrue(GrouperClientWs.mostRecentRequest,
             !GrouperClientWs.mostRecentRequest.contains("wsAttributeDefNameLookups"));
         assertTrue(GrouperClientWs.mostRecentRequest,
@@ -27110,7 +27115,7 @@ public class GrouperClientWsTest extends GrouperTest {
         assertFalse(GrouperClientWs.mostRecentRequest,
             GrouperClientWs.mostRecentRequest.contains("theValue"));
         assertFalse(GrouperClientWs.mostRecentRequest,
-            GrouperClientWs.mostRecentRequest.contains(">abc<"));
+            GrouperClientWs.mostRecentRequest.contains("\"abc\""));
         assertTrue(GrouperClientWs.mostRecentRequest,
             !GrouperClientWs.mostRecentRequest.contains("includeAssignmentsFromAssignments"));
         assertFalse(GrouperClientWs.mostRecentRequest,
@@ -27179,7 +27184,7 @@ public class GrouperClientWsTest extends GrouperTest {
         assertTrue(GrouperClientWs.mostRecentRequest,
             !GrouperClientWs.mostRecentRequest.contains("wsAttributeAssignLookups"));
         assertTrue(GrouperClientWs.mostRecentRequest,
-            GrouperClientWs.mostRecentRequest.contains("wsAttributeDefLookups") && GrouperClientWs.mostRecentRequest.contains("<uuid>"));
+            GrouperClientWs.mostRecentRequest.contains("wsAttributeDefLookups") && GrouperClientWs.mostRecentRequest.contains("uuid"));
         assertTrue(GrouperClientWs.mostRecentRequest,
             !GrouperClientWs.mostRecentRequest.contains("wsAttributeDefNameLookups"));
         assertTrue(GrouperClientWs.mostRecentRequest,
@@ -27279,7 +27284,7 @@ public class GrouperClientWsTest extends GrouperTest {
         assertTrue(GrouperClientWs.mostRecentRequest,
             !GrouperClientWs.mostRecentRequest.contains("wsAttributeAssignLookups"));
         assertTrue(GrouperClientWs.mostRecentRequest,
-            GrouperClientWs.mostRecentRequest.contains("wsAttributeDefLookups") && GrouperClientWs.mostRecentRequest.contains("<uuid>"));
+            GrouperClientWs.mostRecentRequest.contains("wsAttributeDefLookups") && GrouperClientWs.mostRecentRequest.contains("uuid"));
         assertTrue(GrouperClientWs.mostRecentRequest,
             !GrouperClientWs.mostRecentRequest.contains("wsAttributeDefNameLookups"));
         assertTrue(GrouperClientWs.mostRecentRequest,
@@ -27299,7 +27304,7 @@ public class GrouperClientWsTest extends GrouperTest {
         assertTrue(GrouperClientWs.mostRecentRequest,
             GrouperClientWs.mostRecentRequest.contains("theValue"));
         assertTrue(GrouperClientWs.mostRecentRequest,
-            GrouperClientWs.mostRecentRequest.contains(">123<"));
+            GrouperClientWs.mostRecentRequest.contains("\"123\""));
         assertTrue(GrouperClientWs.mostRecentRequest,
             !GrouperClientWs.mostRecentRequest.contains("includeAssignmentsFromAssignments"));
         assertFalse(GrouperClientWs.mostRecentRequest,
@@ -27366,7 +27371,7 @@ public class GrouperClientWsTest extends GrouperTest {
         assertTrue(GrouperClientWs.mostRecentRequest,
             !GrouperClientWs.mostRecentRequest.contains("wsAttributeAssignLookups"));
         assertTrue(GrouperClientWs.mostRecentRequest,
-            GrouperClientWs.mostRecentRequest.contains("wsAttributeDefLookups") && GrouperClientWs.mostRecentRequest.contains("<uuid>"));
+            GrouperClientWs.mostRecentRequest.contains("wsAttributeDefLookups") && GrouperClientWs.mostRecentRequest.contains("uuid"));
         assertTrue(GrouperClientWs.mostRecentRequest,
             !GrouperClientWs.mostRecentRequest.contains("wsAttributeDefNameLookups"));
         assertTrue(GrouperClientWs.mostRecentRequest,
@@ -27480,7 +27485,7 @@ public class GrouperClientWsTest extends GrouperTest {
         assertTrue(GrouperClientWs.mostRecentRequest,
             !GrouperClientWs.mostRecentRequest.contains("wsAttributeAssignLookups"));
         assertTrue(GrouperClientWs.mostRecentRequest,
-            GrouperClientWs.mostRecentRequest.contains("wsAttributeDefLookups") && GrouperClientWs.mostRecentRequest.contains("<uuid>"));
+            GrouperClientWs.mostRecentRequest.contains("wsAttributeDefLookups") && GrouperClientWs.mostRecentRequest.contains("uuid"));
         assertTrue(GrouperClientWs.mostRecentRequest,
             !GrouperClientWs.mostRecentRequest.contains("wsAttributeDefNameLookups"));
         assertTrue(GrouperClientWs.mostRecentRequest,
@@ -27500,7 +27505,7 @@ public class GrouperClientWsTest extends GrouperTest {
         assertFalse(GrouperClientWs.mostRecentRequest,
             GrouperClientWs.mostRecentRequest.contains("theValue"));
         assertFalse(GrouperClientWs.mostRecentRequest,
-            GrouperClientWs.mostRecentRequest.contains(">123<"));
+            GrouperClientWs.mostRecentRequest.contains("\"123\""));
         assertTrue(GrouperClientWs.mostRecentRequest,
             GrouperClientWs.mostRecentRequest.contains("includeAssignmentsFromAssignments"));
         assertFalse(GrouperClientWs.mostRecentRequest,
@@ -27577,7 +27582,7 @@ public class GrouperClientWsTest extends GrouperTest {
         assertFalse(GrouperClientWs.mostRecentRequest,
             GrouperClientWs.mostRecentRequest.contains("wsAttributeDefLookups"));
         assertTrue(GrouperClientWs.mostRecentRequest,
-            GrouperClientWs.mostRecentRequest.contains("<uuid>"));
+            GrouperClientWs.mostRecentRequest.contains("uuid"));
         assertTrue(GrouperClientWs.mostRecentRequest,
             !GrouperClientWs.mostRecentRequest.contains("wsAttributeDefNameLookups"));
         assertTrue(GrouperClientWs.mostRecentRequest,
@@ -27597,7 +27602,7 @@ public class GrouperClientWsTest extends GrouperTest {
         assertFalse(GrouperClientWs.mostRecentRequest,
             GrouperClientWs.mostRecentRequest.contains("theValue"));
         assertFalse(GrouperClientWs.mostRecentRequest,
-            GrouperClientWs.mostRecentRequest.contains(">123<"));
+            GrouperClientWs.mostRecentRequest.contains("\"123\""));
         assertFalse(GrouperClientWs.mostRecentRequest,
             GrouperClientWs.mostRecentRequest.contains("includeAssignmentsFromAssignments"));
         assertFalse(GrouperClientWs.mostRecentRequest,
@@ -27679,7 +27684,7 @@ public class GrouperClientWsTest extends GrouperTest {
         assertFalse(GrouperClientWs.mostRecentRequest,
             GrouperClientWs.mostRecentRequest.contains("wsAttributeDefLookups"));
         assertTrue(GrouperClientWs.mostRecentRequest,
-            GrouperClientWs.mostRecentRequest.contains("<uuid>"));
+            GrouperClientWs.mostRecentRequest.contains("uuid"));
         assertTrue(GrouperClientWs.mostRecentRequest,
             !GrouperClientWs.mostRecentRequest.contains("wsAttributeDefNameLookups"));
         assertTrue(GrouperClientWs.mostRecentRequest,
@@ -27699,7 +27704,7 @@ public class GrouperClientWsTest extends GrouperTest {
         assertFalse(GrouperClientWs.mostRecentRequest,
             GrouperClientWs.mostRecentRequest.contains("theValue"));
         assertFalse(GrouperClientWs.mostRecentRequest,
-            GrouperClientWs.mostRecentRequest.contains(">123<"));
+            GrouperClientWs.mostRecentRequest.contains("\"123\""));
         assertFalse(GrouperClientWs.mostRecentRequest,
             GrouperClientWs.mostRecentRequest.contains("includeAssignmentsFromAssignments"));
         assertFalse(GrouperClientWs.mostRecentRequest,
@@ -27782,7 +27787,7 @@ public class GrouperClientWsTest extends GrouperTest {
         assertFalse(GrouperClientWs.mostRecentRequest,
             GrouperClientWs.mostRecentRequest.contains("wsAttributeDefLookups"));
         assertFalse(GrouperClientWs.mostRecentRequest,
-            GrouperClientWs.mostRecentRequest.contains("<uuid>"));
+            GrouperClientWs.mostRecentRequest.contains("uuid"));
         assertTrue(GrouperClientWs.mostRecentRequest,
             !GrouperClientWs.mostRecentRequest.contains("wsAttributeDefNameLookups"));
         assertTrue(GrouperClientWs.mostRecentRequest,
@@ -27802,7 +27807,7 @@ public class GrouperClientWsTest extends GrouperTest {
         assertFalse(GrouperClientWs.mostRecentRequest,
             GrouperClientWs.mostRecentRequest.contains("theValue"));
         assertFalse(GrouperClientWs.mostRecentRequest,
-            GrouperClientWs.mostRecentRequest.contains(">123<"));
+            GrouperClientWs.mostRecentRequest.contains("\"123\""));
         assertFalse(GrouperClientWs.mostRecentRequest,
             GrouperClientWs.mostRecentRequest.contains("includeAssignmentsFromAssignments"));
         assertFalse(GrouperClientWs.mostRecentRequest,
@@ -27880,7 +27885,7 @@ public class GrouperClientWsTest extends GrouperTest {
         assertFalse(GrouperClientWs.mostRecentRequest,
             GrouperClientWs.mostRecentRequest.contains("wsAttributeDefLookups"));
         assertFalse(GrouperClientWs.mostRecentRequest,
-            GrouperClientWs.mostRecentRequest.contains("<uuid>"));
+            GrouperClientWs.mostRecentRequest.contains("uuid"));
         assertTrue(GrouperClientWs.mostRecentRequest,
             !GrouperClientWs.mostRecentRequest.contains("wsAttributeDefNameLookups"));
         assertTrue(GrouperClientWs.mostRecentRequest,
@@ -27900,7 +27905,7 @@ public class GrouperClientWsTest extends GrouperTest {
         assertFalse(GrouperClientWs.mostRecentRequest,
             GrouperClientWs.mostRecentRequest.contains("theValue"));
         assertFalse(GrouperClientWs.mostRecentRequest,
-            GrouperClientWs.mostRecentRequest.contains(">123<"));
+            GrouperClientWs.mostRecentRequest.contains("\"123\""));
         assertFalse(GrouperClientWs.mostRecentRequest,
             GrouperClientWs.mostRecentRequest.contains("includeAssignmentsFromAssignments"));
         assertFalse(GrouperClientWs.mostRecentRequest,
@@ -27983,7 +27988,7 @@ public class GrouperClientWsTest extends GrouperTest {
         assertFalse(GrouperClientWs.mostRecentRequest,
             GrouperClientWs.mostRecentRequest.contains("wsAttributeDefLookups"));
         assertTrue(GrouperClientWs.mostRecentRequest,
-            GrouperClientWs.mostRecentRequest.contains("<uuid>"));
+            GrouperClientWs.mostRecentRequest.contains("uuid"));
         assertTrue(GrouperClientWs.mostRecentRequest,
             !GrouperClientWs.mostRecentRequest.contains("wsAttributeDefNameLookups"));
         assertTrue(GrouperClientWs.mostRecentRequest,
@@ -28003,7 +28008,7 @@ public class GrouperClientWsTest extends GrouperTest {
         assertFalse(GrouperClientWs.mostRecentRequest,
             GrouperClientWs.mostRecentRequest.contains("theValue"));
         assertFalse(GrouperClientWs.mostRecentRequest,
-            GrouperClientWs.mostRecentRequest.contains(">123<"));
+            GrouperClientWs.mostRecentRequest.contains("\"123\""));
         assertFalse(GrouperClientWs.mostRecentRequest,
             GrouperClientWs.mostRecentRequest.contains("includeAssignmentsFromAssignments"));
         assertFalse(GrouperClientWs.mostRecentRequest,
@@ -28086,7 +28091,7 @@ public class GrouperClientWsTest extends GrouperTest {
         assertFalse(GrouperClientWs.mostRecentRequest,
             GrouperClientWs.mostRecentRequest.contains("wsAttributeDefLookups"));
         assertTrue(GrouperClientWs.mostRecentRequest,
-            GrouperClientWs.mostRecentRequest.contains("<uuid>"));
+            GrouperClientWs.mostRecentRequest.contains("uuid"));
         assertTrue(GrouperClientWs.mostRecentRequest,
             !GrouperClientWs.mostRecentRequest.contains("wsAttributeDefNameLookups"));
         assertTrue(GrouperClientWs.mostRecentRequest,
@@ -28106,7 +28111,7 @@ public class GrouperClientWsTest extends GrouperTest {
         assertFalse(GrouperClientWs.mostRecentRequest,
             GrouperClientWs.mostRecentRequest.contains("theValue"));
         assertFalse(GrouperClientWs.mostRecentRequest,
-            GrouperClientWs.mostRecentRequest.contains(">123<"));
+            GrouperClientWs.mostRecentRequest.contains("\"123\""));
         assertFalse(GrouperClientWs.mostRecentRequest,
             GrouperClientWs.mostRecentRequest.contains("includeAssignmentsFromAssignments"));
         assertFalse(GrouperClientWs.mostRecentRequest,
@@ -28185,7 +28190,7 @@ public class GrouperClientWsTest extends GrouperTest {
         assertFalse(GrouperClientWs.mostRecentRequest,
             GrouperClientWs.mostRecentRequest.contains("wsAttributeDefLookups"));
         assertTrue(GrouperClientWs.mostRecentRequest,
-            GrouperClientWs.mostRecentRequest.contains("<uuid>"));
+            GrouperClientWs.mostRecentRequest.contains("uuid"));
         assertTrue(GrouperClientWs.mostRecentRequest,
             !GrouperClientWs.mostRecentRequest.contains("wsAttributeDefNameLookups"));
         assertTrue(GrouperClientWs.mostRecentRequest,
@@ -28205,7 +28210,7 @@ public class GrouperClientWsTest extends GrouperTest {
         assertFalse(GrouperClientWs.mostRecentRequest,
             GrouperClientWs.mostRecentRequest.contains("theValue"));
         assertFalse(GrouperClientWs.mostRecentRequest,
-            GrouperClientWs.mostRecentRequest.contains(">123<"));
+            GrouperClientWs.mostRecentRequest.contains("\"123\""));
         assertFalse(GrouperClientWs.mostRecentRequest,
             GrouperClientWs.mostRecentRequest.contains("includeAssignmentsFromAssignments"));
         assertFalse(GrouperClientWs.mostRecentRequest,
@@ -28288,7 +28293,7 @@ public class GrouperClientWsTest extends GrouperTest {
         assertFalse(GrouperClientWs.mostRecentRequest,
             GrouperClientWs.mostRecentRequest.contains("wsAttributeDefLookups"));
         assertFalse(GrouperClientWs.mostRecentRequest,
-            GrouperClientWs.mostRecentRequest.contains("<uuid>"));
+            GrouperClientWs.mostRecentRequest.contains("uuid"));
         assertTrue(GrouperClientWs.mostRecentRequest,
             !GrouperClientWs.mostRecentRequest.contains("wsAttributeDefNameLookups"));
         assertTrue(GrouperClientWs.mostRecentRequest,
@@ -28308,7 +28313,7 @@ public class GrouperClientWsTest extends GrouperTest {
         assertFalse(GrouperClientWs.mostRecentRequest,
             GrouperClientWs.mostRecentRequest.contains("theValue"));
         assertFalse(GrouperClientWs.mostRecentRequest,
-            GrouperClientWs.mostRecentRequest.contains(">123<"));
+            GrouperClientWs.mostRecentRequest.contains("\"123\""));
         assertFalse(GrouperClientWs.mostRecentRequest,
             GrouperClientWs.mostRecentRequest.contains("includeAssignmentsFromAssignments"));
         assertFalse(GrouperClientWs.mostRecentRequest,
@@ -28384,7 +28389,7 @@ public class GrouperClientWsTest extends GrouperTest {
         assertFalse(GrouperClientWs.mostRecentRequest,
             GrouperClientWs.mostRecentRequest.contains("wsAttributeDefLookups"));
         assertFalse(GrouperClientWs.mostRecentRequest,
-            GrouperClientWs.mostRecentRequest.contains("<uuid>"));
+            GrouperClientWs.mostRecentRequest.contains("uuid"));
         assertTrue(GrouperClientWs.mostRecentRequest,
             !GrouperClientWs.mostRecentRequest.contains("wsAttributeDefNameLookups"));
         assertTrue(GrouperClientWs.mostRecentRequest,
@@ -28404,7 +28409,7 @@ public class GrouperClientWsTest extends GrouperTest {
         assertFalse(GrouperClientWs.mostRecentRequest,
             GrouperClientWs.mostRecentRequest.contains("theValue"));
         assertFalse(GrouperClientWs.mostRecentRequest,
-            GrouperClientWs.mostRecentRequest.contains(">123<"));
+            GrouperClientWs.mostRecentRequest.contains("\"123\""));
         assertFalse(GrouperClientWs.mostRecentRequest,
             GrouperClientWs.mostRecentRequest.contains("includeAssignmentsFromAssignments"));
         assertFalse(GrouperClientWs.mostRecentRequest,
@@ -28483,7 +28488,7 @@ public class GrouperClientWsTest extends GrouperTest {
         assertFalse(GrouperClientWs.mostRecentRequest,
             GrouperClientWs.mostRecentRequest.contains("wsAttributeDefLookups"));
         assertTrue(GrouperClientWs.mostRecentRequest,
-            GrouperClientWs.mostRecentRequest.contains("<uuid>"));
+            GrouperClientWs.mostRecentRequest.contains("uuid"));
         assertTrue(GrouperClientWs.mostRecentRequest,
             !GrouperClientWs.mostRecentRequest.contains("wsAttributeDefNameLookups"));
         assertTrue(GrouperClientWs.mostRecentRequest,
@@ -28503,7 +28508,7 @@ public class GrouperClientWsTest extends GrouperTest {
         assertFalse(GrouperClientWs.mostRecentRequest,
             GrouperClientWs.mostRecentRequest.contains("theValue"));
         assertFalse(GrouperClientWs.mostRecentRequest,
-            GrouperClientWs.mostRecentRequest.contains(">123<"));
+            GrouperClientWs.mostRecentRequest.contains("\"123\""));
         assertFalse(GrouperClientWs.mostRecentRequest,
             GrouperClientWs.mostRecentRequest.contains("includeAssignmentsFromAssignments"));
         assertFalse(GrouperClientWs.mostRecentRequest,
@@ -28578,7 +28583,7 @@ public class GrouperClientWsTest extends GrouperTest {
         assertFalse(GrouperClientWs.mostRecentRequest,
             GrouperClientWs.mostRecentRequest.contains("wsAttributeDefLookups"));
         assertTrue(GrouperClientWs.mostRecentRequest,
-            GrouperClientWs.mostRecentRequest.contains("<uuid>"));
+            GrouperClientWs.mostRecentRequest.contains("uuid"));
         assertTrue(GrouperClientWs.mostRecentRequest,
             !GrouperClientWs.mostRecentRequest.contains("wsAttributeDefNameLookups"));
         assertTrue(GrouperClientWs.mostRecentRequest,
@@ -28598,7 +28603,7 @@ public class GrouperClientWsTest extends GrouperTest {
         assertFalse(GrouperClientWs.mostRecentRequest,
             GrouperClientWs.mostRecentRequest.contains("theValue"));
         assertFalse(GrouperClientWs.mostRecentRequest,
-            GrouperClientWs.mostRecentRequest.contains(">123<"));
+            GrouperClientWs.mostRecentRequest.contains("\"123\""));
         assertFalse(GrouperClientWs.mostRecentRequest,
             GrouperClientWs.mostRecentRequest.contains("includeAssignmentsFromAssignments"));
         assertFalse(GrouperClientWs.mostRecentRequest,
@@ -28655,7 +28660,7 @@ public class GrouperClientWsTest extends GrouperTest {
         assertTrue(GrouperClientWs.mostRecentRequest,
             !GrouperClientWs.mostRecentRequest.contains("actAsSubjectLookup"));
         assertTrue(GrouperClientWs.mostRecentRequest,
-            !GrouperClientWs.mostRecentRequest.contains("<actions>"));
+            !GrouperClientWs.mostRecentRequest.contains("actions"));
         assertTrue(GrouperClientWs.mostRecentRequest,
             GrouperClientWs.mostRecentRequest.contains("attributeAssignType"));
         assertTrue(GrouperClientWs.mostRecentRequest,
@@ -28677,7 +28682,7 @@ public class GrouperClientWsTest extends GrouperTest {
         assertFalse(GrouperClientWs.mostRecentRequest,
             GrouperClientWs.mostRecentRequest.contains("wsAttributeDefLookups"));
         assertTrue(GrouperClientWs.mostRecentRequest,
-            GrouperClientWs.mostRecentRequest.contains("<uuid>"));
+            GrouperClientWs.mostRecentRequest.contains("uuid"));
         assertTrue(GrouperClientWs.mostRecentRequest,
             !GrouperClientWs.mostRecentRequest.contains("wsAttributeDefNameLookups"));
         assertTrue(GrouperClientWs.mostRecentRequest,
@@ -28697,7 +28702,7 @@ public class GrouperClientWsTest extends GrouperTest {
         assertFalse(GrouperClientWs.mostRecentRequest,
             GrouperClientWs.mostRecentRequest.contains("theValue"));
         assertFalse(GrouperClientWs.mostRecentRequest,
-            GrouperClientWs.mostRecentRequest.contains(">123<"));
+            GrouperClientWs.mostRecentRequest.contains("\"123\""));
         assertFalse(GrouperClientWs.mostRecentRequest,
             GrouperClientWs.mostRecentRequest.contains("includeAssignmentsFromAssignments"));
         assertFalse(GrouperClientWs.mostRecentRequest,
@@ -28740,7 +28745,7 @@ public class GrouperClientWsTest extends GrouperTest {
         assertTrue(GrouperClientWs.mostRecentRequest,
             !GrouperClientWs.mostRecentRequest.contains("actAsSubjectLookup"));
         assertTrue(GrouperClientWs.mostRecentRequest,
-            !GrouperClientWs.mostRecentRequest.contains("<actions>"));
+            !GrouperClientWs.mostRecentRequest.contains("actions"));
         assertTrue(GrouperClientWs.mostRecentRequest,
             GrouperClientWs.mostRecentRequest.contains("attributeAssignType"));
         assertTrue(GrouperClientWs.mostRecentRequest,
@@ -28762,7 +28767,7 @@ public class GrouperClientWsTest extends GrouperTest {
         assertFalse(GrouperClientWs.mostRecentRequest,
             GrouperClientWs.mostRecentRequest.contains("wsAttributeDefLookups"));
         assertTrue(GrouperClientWs.mostRecentRequest,
-            GrouperClientWs.mostRecentRequest.contains("<uuid>"));
+            GrouperClientWs.mostRecentRequest.contains("uuid"));
         assertTrue(GrouperClientWs.mostRecentRequest,
             !GrouperClientWs.mostRecentRequest.contains("wsAttributeDefNameLookups"));
         assertTrue(GrouperClientWs.mostRecentRequest,
@@ -28782,7 +28787,7 @@ public class GrouperClientWsTest extends GrouperTest {
         assertFalse(GrouperClientWs.mostRecentRequest,
             GrouperClientWs.mostRecentRequest.contains("theValue"));
         assertFalse(GrouperClientWs.mostRecentRequest,
-            GrouperClientWs.mostRecentRequest.contains(">123<"));
+            GrouperClientWs.mostRecentRequest.contains("\"123\""));
         assertFalse(GrouperClientWs.mostRecentRequest,
             GrouperClientWs.mostRecentRequest.contains("includeAssignmentsFromAssignments"));
         assertFalse(GrouperClientWs.mostRecentRequest,
@@ -28840,7 +28845,7 @@ public class GrouperClientWsTest extends GrouperTest {
         assertTrue(GrouperClientWs.mostRecentRequest,
             !GrouperClientWs.mostRecentRequest.contains("actAsSubjectLookup"));
         assertTrue(GrouperClientWs.mostRecentRequest,
-            !GrouperClientWs.mostRecentRequest.contains("<actions>"));
+            !GrouperClientWs.mostRecentRequest.contains("actions"));
         assertTrue(GrouperClientWs.mostRecentRequest,
             GrouperClientWs.mostRecentRequest.contains("attributeAssignType"));
         assertTrue(GrouperClientWs.mostRecentRequest,
@@ -28862,7 +28867,7 @@ public class GrouperClientWsTest extends GrouperTest {
         assertFalse(GrouperClientWs.mostRecentRequest,
             GrouperClientWs.mostRecentRequest.contains("wsAttributeDefLookups"));
         assertFalse(GrouperClientWs.mostRecentRequest,
-            GrouperClientWs.mostRecentRequest.contains("<uuid>"));
+            GrouperClientWs.mostRecentRequest.contains("uuid"));
         assertTrue(GrouperClientWs.mostRecentRequest,
             !GrouperClientWs.mostRecentRequest.contains("wsAttributeDefNameLookups"));
         assertTrue(GrouperClientWs.mostRecentRequest,
@@ -28882,7 +28887,7 @@ public class GrouperClientWsTest extends GrouperTest {
         assertFalse(GrouperClientWs.mostRecentRequest,
             GrouperClientWs.mostRecentRequest.contains("theValue"));
         assertFalse(GrouperClientWs.mostRecentRequest,
-            GrouperClientWs.mostRecentRequest.contains(">123<"));
+            GrouperClientWs.mostRecentRequest.contains("\"123\""));
         assertFalse(GrouperClientWs.mostRecentRequest,
             GrouperClientWs.mostRecentRequest.contains("includeAssignmentsFromAssignments"));
         assertFalse(GrouperClientWs.mostRecentRequest,
@@ -29001,7 +29006,7 @@ public class GrouperClientWsTest extends GrouperTest {
       assertTrue(GrouperClientWs.mostRecentRequest,
           !GrouperClientWs.mostRecentRequest.contains("wsAttributeAssignLookups"));
       assertTrue(GrouperClientWs.mostRecentRequest,
-          GrouperClientWs.mostRecentRequest.contains("wsAttributeDefLookups") && GrouperClientWs.mostRecentRequest.contains("<name>"));
+          GrouperClientWs.mostRecentRequest.contains("wsAttributeDefLookups") && GrouperClientWs.mostRecentRequest.contains("\"name\""));
       assertTrue(GrouperClientWs.mostRecentRequest,
           !GrouperClientWs.mostRecentRequest.contains("wsAttributeDefNameLookups"));
       assertTrue(GrouperClientWs.mostRecentRequest,
@@ -29087,7 +29092,7 @@ public class GrouperClientWsTest extends GrouperTest {
       assertTrue(GrouperClientWs.mostRecentRequest,
           !GrouperClientWs.mostRecentRequest.contains("wsAttributeAssignLookups"));
       assertTrue(GrouperClientWs.mostRecentRequest,
-          GrouperClientWs.mostRecentRequest.contains("wsAttributeDefLookups") && GrouperClientWs.mostRecentRequest.contains("<name>"));
+          GrouperClientWs.mostRecentRequest.contains("wsAttributeDefLookups") && GrouperClientWs.mostRecentRequest.contains("\"name\""));
       assertTrue(GrouperClientWs.mostRecentRequest,
           !GrouperClientWs.mostRecentRequest.contains("wsAttributeDefNameLookups"));
       assertTrue(GrouperClientWs.mostRecentRequest,
@@ -29107,7 +29112,7 @@ public class GrouperClientWsTest extends GrouperTest {
       assertTrue(GrouperClientWs.mostRecentRequest,
           GrouperClientWs.mostRecentRequest.contains("theValue"));
       assertTrue(GrouperClientWs.mostRecentRequest,
-          GrouperClientWs.mostRecentRequest.contains(">123<"));
+          GrouperClientWs.mostRecentRequest.contains("\"123\""));
       assertTrue(GrouperClientWs.mostRecentRequest,
           !GrouperClientWs.mostRecentRequest.contains("includeAssignmentsFromAssignments"));
       assertTrue(GrouperClientWs.mostRecentRequest,
@@ -29205,7 +29210,7 @@ public class GrouperClientWsTest extends GrouperTest {
       assertTrue(GrouperClientWs.mostRecentRequest,
           !GrouperClientWs.mostRecentRequest.contains("wsAttributeAssignLookups"));
       assertTrue(GrouperClientWs.mostRecentRequest,
-          GrouperClientWs.mostRecentRequest.contains("wsAttributeDefLookups") && GrouperClientWs.mostRecentRequest.contains("<uuid>"));
+          GrouperClientWs.mostRecentRequest.contains("wsAttributeDefLookups") && GrouperClientWs.mostRecentRequest.contains("uuid"));
       assertTrue(GrouperClientWs.mostRecentRequest,
           !GrouperClientWs.mostRecentRequest.contains("wsAttributeDefNameLookups"));
       assertTrue(GrouperClientWs.mostRecentRequest,
@@ -29291,7 +29296,7 @@ public class GrouperClientWsTest extends GrouperTest {
       assertTrue(GrouperClientWs.mostRecentRequest,
           !GrouperClientWs.mostRecentRequest.contains("wsAttributeAssignLookups"));
       assertTrue(GrouperClientWs.mostRecentRequest,
-          GrouperClientWs.mostRecentRequest.contains("wsAttributeDefLookups") && GrouperClientWs.mostRecentRequest.contains("<uuid>"));
+          GrouperClientWs.mostRecentRequest.contains("wsAttributeDefLookups") && GrouperClientWs.mostRecentRequest.contains("uuid"));
       assertTrue(GrouperClientWs.mostRecentRequest,
           !GrouperClientWs.mostRecentRequest.contains("wsAttributeDefNameLookups"));
       assertTrue(GrouperClientWs.mostRecentRequest,
@@ -29391,7 +29396,7 @@ public class GrouperClientWsTest extends GrouperTest {
       assertTrue(GrouperClientWs.mostRecentRequest,
           !GrouperClientWs.mostRecentRequest.contains("wsAttributeAssignLookups"));
       assertTrue(GrouperClientWs.mostRecentRequest,
-          GrouperClientWs.mostRecentRequest.contains("wsAttributeDefLookups") && GrouperClientWs.mostRecentRequest.contains("<uuid>"));
+          GrouperClientWs.mostRecentRequest.contains("wsAttributeDefLookups") && GrouperClientWs.mostRecentRequest.contains("uuid"));
       assertTrue(GrouperClientWs.mostRecentRequest,
           !GrouperClientWs.mostRecentRequest.contains("wsAttributeDefNameLookups"));
       assertTrue(GrouperClientWs.mostRecentRequest,
@@ -29411,7 +29416,7 @@ public class GrouperClientWsTest extends GrouperTest {
       assertFalse(GrouperClientWs.mostRecentRequest,
           GrouperClientWs.mostRecentRequest.contains("theValue"));
       assertFalse(GrouperClientWs.mostRecentRequest,
-          GrouperClientWs.mostRecentRequest.contains(">abc<"));
+          GrouperClientWs.mostRecentRequest.contains("\"abc\""));
       assertTrue(GrouperClientWs.mostRecentRequest,
           !GrouperClientWs.mostRecentRequest.contains("includeAssignmentsFromAssignments"));
       assertFalse(GrouperClientWs.mostRecentRequest,
@@ -29480,7 +29485,7 @@ public class GrouperClientWsTest extends GrouperTest {
       assertTrue(GrouperClientWs.mostRecentRequest,
           !GrouperClientWs.mostRecentRequest.contains("wsAttributeAssignLookups"));
       assertTrue(GrouperClientWs.mostRecentRequest,
-          GrouperClientWs.mostRecentRequest.contains("wsAttributeDefLookups") && GrouperClientWs.mostRecentRequest.contains("<uuid>"));
+          GrouperClientWs.mostRecentRequest.contains("wsAttributeDefLookups") && GrouperClientWs.mostRecentRequest.contains("uuid"));
       assertTrue(GrouperClientWs.mostRecentRequest,
           !GrouperClientWs.mostRecentRequest.contains("wsAttributeDefNameLookups"));
       assertTrue(GrouperClientWs.mostRecentRequest,
@@ -29580,7 +29585,7 @@ public class GrouperClientWsTest extends GrouperTest {
       assertTrue(GrouperClientWs.mostRecentRequest,
           !GrouperClientWs.mostRecentRequest.contains("wsAttributeAssignLookups"));
       assertTrue(GrouperClientWs.mostRecentRequest,
-          GrouperClientWs.mostRecentRequest.contains("wsAttributeDefLookups") && GrouperClientWs.mostRecentRequest.contains("<uuid>"));
+          GrouperClientWs.mostRecentRequest.contains("wsAttributeDefLookups") && GrouperClientWs.mostRecentRequest.contains("uuid"));
       assertTrue(GrouperClientWs.mostRecentRequest,
           !GrouperClientWs.mostRecentRequest.contains("wsAttributeDefNameLookups"));
       assertTrue(GrouperClientWs.mostRecentRequest,
@@ -29600,7 +29605,7 @@ public class GrouperClientWsTest extends GrouperTest {
       assertTrue(GrouperClientWs.mostRecentRequest,
           GrouperClientWs.mostRecentRequest.contains("theValue"));
       assertTrue(GrouperClientWs.mostRecentRequest,
-          GrouperClientWs.mostRecentRequest.contains(">123<"));
+          GrouperClientWs.mostRecentRequest.contains("\"123\""));
       assertTrue(GrouperClientWs.mostRecentRequest,
           !GrouperClientWs.mostRecentRequest.contains("includeAssignmentsFromAssignments"));
       assertFalse(GrouperClientWs.mostRecentRequest,
@@ -29667,7 +29672,7 @@ public class GrouperClientWsTest extends GrouperTest {
       assertTrue(GrouperClientWs.mostRecentRequest,
           !GrouperClientWs.mostRecentRequest.contains("wsAttributeAssignLookups"));
       assertTrue(GrouperClientWs.mostRecentRequest,
-          GrouperClientWs.mostRecentRequest.contains("wsAttributeDefLookups") && GrouperClientWs.mostRecentRequest.contains("<uuid>"));
+          GrouperClientWs.mostRecentRequest.contains("wsAttributeDefLookups") && GrouperClientWs.mostRecentRequest.contains("uuid"));
       assertTrue(GrouperClientWs.mostRecentRequest,
           !GrouperClientWs.mostRecentRequest.contains("wsAttributeDefNameLookups"));
       assertTrue(GrouperClientWs.mostRecentRequest,
@@ -29781,7 +29786,7 @@ public class GrouperClientWsTest extends GrouperTest {
       assertTrue(GrouperClientWs.mostRecentRequest,
           !GrouperClientWs.mostRecentRequest.contains("wsAttributeAssignLookups"));
       assertTrue(GrouperClientWs.mostRecentRequest,
-          GrouperClientWs.mostRecentRequest.contains("wsAttributeDefLookups") && GrouperClientWs.mostRecentRequest.contains("<uuid>"));
+          GrouperClientWs.mostRecentRequest.contains("wsAttributeDefLookups") && GrouperClientWs.mostRecentRequest.contains("uuid"));
       assertTrue(GrouperClientWs.mostRecentRequest,
           !GrouperClientWs.mostRecentRequest.contains("wsAttributeDefNameLookups"));
       assertTrue(GrouperClientWs.mostRecentRequest,
@@ -29801,7 +29806,7 @@ public class GrouperClientWsTest extends GrouperTest {
       assertFalse(GrouperClientWs.mostRecentRequest,
           GrouperClientWs.mostRecentRequest.contains("theValue"));
       assertFalse(GrouperClientWs.mostRecentRequest,
-          GrouperClientWs.mostRecentRequest.contains(">123<"));
+          GrouperClientWs.mostRecentRequest.contains("\"123\""));
       assertTrue(GrouperClientWs.mostRecentRequest,
           GrouperClientWs.mostRecentRequest.contains("includeAssignmentsFromAssignments"));
       assertFalse(GrouperClientWs.mostRecentRequest,
@@ -29878,7 +29883,7 @@ public class GrouperClientWsTest extends GrouperTest {
       assertFalse(GrouperClientWs.mostRecentRequest,
           GrouperClientWs.mostRecentRequest.contains("wsAttributeDefLookups"));
       assertTrue(GrouperClientWs.mostRecentRequest,
-          GrouperClientWs.mostRecentRequest.contains("<uuid>"));
+          GrouperClientWs.mostRecentRequest.contains("uuid"));
       assertTrue(GrouperClientWs.mostRecentRequest,
           !GrouperClientWs.mostRecentRequest.contains("wsAttributeDefNameLookups"));
       assertTrue(GrouperClientWs.mostRecentRequest,
@@ -29898,7 +29903,7 @@ public class GrouperClientWsTest extends GrouperTest {
       assertFalse(GrouperClientWs.mostRecentRequest,
           GrouperClientWs.mostRecentRequest.contains("theValue"));
       assertFalse(GrouperClientWs.mostRecentRequest,
-          GrouperClientWs.mostRecentRequest.contains(">123<"));
+          GrouperClientWs.mostRecentRequest.contains("\"123\""));
       assertFalse(GrouperClientWs.mostRecentRequest,
           GrouperClientWs.mostRecentRequest.contains("includeAssignmentsFromAssignments"));
       assertFalse(GrouperClientWs.mostRecentRequest,
@@ -29980,7 +29985,7 @@ public class GrouperClientWsTest extends GrouperTest {
       assertFalse(GrouperClientWs.mostRecentRequest,
           GrouperClientWs.mostRecentRequest.contains("wsAttributeDefLookups"));
       assertTrue(GrouperClientWs.mostRecentRequest,
-          GrouperClientWs.mostRecentRequest.contains("<uuid>"));
+          GrouperClientWs.mostRecentRequest.contains("uuid"));
       assertTrue(GrouperClientWs.mostRecentRequest,
           !GrouperClientWs.mostRecentRequest.contains("wsAttributeDefNameLookups"));
       assertTrue(GrouperClientWs.mostRecentRequest,
@@ -30000,7 +30005,7 @@ public class GrouperClientWsTest extends GrouperTest {
       assertFalse(GrouperClientWs.mostRecentRequest,
           GrouperClientWs.mostRecentRequest.contains("theValue"));
       assertFalse(GrouperClientWs.mostRecentRequest,
-          GrouperClientWs.mostRecentRequest.contains(">123<"));
+          GrouperClientWs.mostRecentRequest.contains("\"123\""));
       assertFalse(GrouperClientWs.mostRecentRequest,
           GrouperClientWs.mostRecentRequest.contains("includeAssignmentsFromAssignments"));
       assertFalse(GrouperClientWs.mostRecentRequest,
@@ -30083,7 +30088,7 @@ public class GrouperClientWsTest extends GrouperTest {
       assertFalse(GrouperClientWs.mostRecentRequest,
           GrouperClientWs.mostRecentRequest.contains("wsAttributeDefLookups"));
       assertFalse(GrouperClientWs.mostRecentRequest,
-          GrouperClientWs.mostRecentRequest.contains("<uuid>"));
+          GrouperClientWs.mostRecentRequest.contains("uuid"));
       assertTrue(GrouperClientWs.mostRecentRequest,
           !GrouperClientWs.mostRecentRequest.contains("wsAttributeDefNameLookups"));
       assertTrue(GrouperClientWs.mostRecentRequest,
@@ -30103,7 +30108,7 @@ public class GrouperClientWsTest extends GrouperTest {
       assertFalse(GrouperClientWs.mostRecentRequest,
           GrouperClientWs.mostRecentRequest.contains("theValue"));
       assertFalse(GrouperClientWs.mostRecentRequest,
-          GrouperClientWs.mostRecentRequest.contains(">123<"));
+          GrouperClientWs.mostRecentRequest.contains("\"123\""));
       assertFalse(GrouperClientWs.mostRecentRequest,
           GrouperClientWs.mostRecentRequest.contains("includeAssignmentsFromAssignments"));
       assertFalse(GrouperClientWs.mostRecentRequest,
@@ -30181,7 +30186,7 @@ public class GrouperClientWsTest extends GrouperTest {
       assertFalse(GrouperClientWs.mostRecentRequest,
           GrouperClientWs.mostRecentRequest.contains("wsAttributeDefLookups"));
       assertFalse(GrouperClientWs.mostRecentRequest,
-          GrouperClientWs.mostRecentRequest.contains("<uuid>"));
+          GrouperClientWs.mostRecentRequest.contains("uuid"));
       assertTrue(GrouperClientWs.mostRecentRequest,
           !GrouperClientWs.mostRecentRequest.contains("wsAttributeDefNameLookups"));
       assertTrue(GrouperClientWs.mostRecentRequest,
@@ -30201,7 +30206,7 @@ public class GrouperClientWsTest extends GrouperTest {
       assertFalse(GrouperClientWs.mostRecentRequest,
           GrouperClientWs.mostRecentRequest.contains("theValue"));
       assertFalse(GrouperClientWs.mostRecentRequest,
-          GrouperClientWs.mostRecentRequest.contains(">123<"));
+          GrouperClientWs.mostRecentRequest.contains("\"123\""));
       assertFalse(GrouperClientWs.mostRecentRequest,
           GrouperClientWs.mostRecentRequest.contains("includeAssignmentsFromAssignments"));
       assertFalse(GrouperClientWs.mostRecentRequest,
@@ -30284,7 +30289,7 @@ public class GrouperClientWsTest extends GrouperTest {
       assertFalse(GrouperClientWs.mostRecentRequest,
           GrouperClientWs.mostRecentRequest.contains("wsAttributeDefLookups"));
       assertTrue(GrouperClientWs.mostRecentRequest,
-          GrouperClientWs.mostRecentRequest.contains("<uuid>"));
+          GrouperClientWs.mostRecentRequest.contains("uuid"));
       assertTrue(GrouperClientWs.mostRecentRequest,
           !GrouperClientWs.mostRecentRequest.contains("wsAttributeDefNameLookups"));
       assertTrue(GrouperClientWs.mostRecentRequest,
@@ -30304,7 +30309,7 @@ public class GrouperClientWsTest extends GrouperTest {
       assertFalse(GrouperClientWs.mostRecentRequest,
           GrouperClientWs.mostRecentRequest.contains("theValue"));
       assertFalse(GrouperClientWs.mostRecentRequest,
-          GrouperClientWs.mostRecentRequest.contains(">123<"));
+          GrouperClientWs.mostRecentRequest.contains("\"123\""));
       assertFalse(GrouperClientWs.mostRecentRequest,
           GrouperClientWs.mostRecentRequest.contains("includeAssignmentsFromAssignments"));
       assertFalse(GrouperClientWs.mostRecentRequest,
@@ -30387,7 +30392,7 @@ public class GrouperClientWsTest extends GrouperTest {
       assertFalse(GrouperClientWs.mostRecentRequest,
           GrouperClientWs.mostRecentRequest.contains("wsAttributeDefLookups"));
       assertTrue(GrouperClientWs.mostRecentRequest,
-          GrouperClientWs.mostRecentRequest.contains("<uuid>"));
+          GrouperClientWs.mostRecentRequest.contains("uuid"));
       assertTrue(GrouperClientWs.mostRecentRequest,
           !GrouperClientWs.mostRecentRequest.contains("wsAttributeDefNameLookups"));
       assertTrue(GrouperClientWs.mostRecentRequest,
@@ -30407,7 +30412,7 @@ public class GrouperClientWsTest extends GrouperTest {
       assertFalse(GrouperClientWs.mostRecentRequest,
           GrouperClientWs.mostRecentRequest.contains("theValue"));
       assertFalse(GrouperClientWs.mostRecentRequest,
-          GrouperClientWs.mostRecentRequest.contains(">123<"));
+          GrouperClientWs.mostRecentRequest.contains("\"123\""));
       assertFalse(GrouperClientWs.mostRecentRequest,
           GrouperClientWs.mostRecentRequest.contains("includeAssignmentsFromAssignments"));
       assertFalse(GrouperClientWs.mostRecentRequest,
@@ -30486,7 +30491,7 @@ public class GrouperClientWsTest extends GrouperTest {
       assertFalse(GrouperClientWs.mostRecentRequest,
           GrouperClientWs.mostRecentRequest.contains("wsAttributeDefLookups"));
       assertTrue(GrouperClientWs.mostRecentRequest,
-          GrouperClientWs.mostRecentRequest.contains("<uuid>"));
+          GrouperClientWs.mostRecentRequest.contains("uuid"));
       assertTrue(GrouperClientWs.mostRecentRequest,
           !GrouperClientWs.mostRecentRequest.contains("wsAttributeDefNameLookups"));
       assertTrue(GrouperClientWs.mostRecentRequest,
@@ -30506,7 +30511,7 @@ public class GrouperClientWsTest extends GrouperTest {
       assertFalse(GrouperClientWs.mostRecentRequest,
           GrouperClientWs.mostRecentRequest.contains("theValue"));
       assertFalse(GrouperClientWs.mostRecentRequest,
-          GrouperClientWs.mostRecentRequest.contains(">123<"));
+          GrouperClientWs.mostRecentRequest.contains("\"123\""));
       assertFalse(GrouperClientWs.mostRecentRequest,
           GrouperClientWs.mostRecentRequest.contains("includeAssignmentsFromAssignments"));
       assertFalse(GrouperClientWs.mostRecentRequest,
@@ -30589,7 +30594,7 @@ public class GrouperClientWsTest extends GrouperTest {
       assertFalse(GrouperClientWs.mostRecentRequest,
           GrouperClientWs.mostRecentRequest.contains("wsAttributeDefLookups"));
       assertFalse(GrouperClientWs.mostRecentRequest,
-          GrouperClientWs.mostRecentRequest.contains("<uuid>"));
+          GrouperClientWs.mostRecentRequest.contains("uuid"));
       assertTrue(GrouperClientWs.mostRecentRequest,
           !GrouperClientWs.mostRecentRequest.contains("wsAttributeDefNameLookups"));
       assertTrue(GrouperClientWs.mostRecentRequest,
@@ -30609,7 +30614,7 @@ public class GrouperClientWsTest extends GrouperTest {
       assertFalse(GrouperClientWs.mostRecentRequest,
           GrouperClientWs.mostRecentRequest.contains("theValue"));
       assertFalse(GrouperClientWs.mostRecentRequest,
-          GrouperClientWs.mostRecentRequest.contains(">123<"));
+          GrouperClientWs.mostRecentRequest.contains("\"123\""));
       assertFalse(GrouperClientWs.mostRecentRequest,
           GrouperClientWs.mostRecentRequest.contains("includeAssignmentsFromAssignments"));
       assertFalse(GrouperClientWs.mostRecentRequest,
@@ -30685,7 +30690,7 @@ public class GrouperClientWsTest extends GrouperTest {
       assertFalse(GrouperClientWs.mostRecentRequest,
           GrouperClientWs.mostRecentRequest.contains("wsAttributeDefLookups"));
       assertFalse(GrouperClientWs.mostRecentRequest,
-          GrouperClientWs.mostRecentRequest.contains("<uuid>"));
+          GrouperClientWs.mostRecentRequest.contains("uuid"));
       assertTrue(GrouperClientWs.mostRecentRequest,
           !GrouperClientWs.mostRecentRequest.contains("wsAttributeDefNameLookups"));
       assertTrue(GrouperClientWs.mostRecentRequest,
@@ -30705,7 +30710,7 @@ public class GrouperClientWsTest extends GrouperTest {
       assertFalse(GrouperClientWs.mostRecentRequest,
           GrouperClientWs.mostRecentRequest.contains("theValue"));
       assertFalse(GrouperClientWs.mostRecentRequest,
-          GrouperClientWs.mostRecentRequest.contains(">123<"));
+          GrouperClientWs.mostRecentRequest.contains("\"123\""));
       assertFalse(GrouperClientWs.mostRecentRequest,
           GrouperClientWs.mostRecentRequest.contains("includeAssignmentsFromAssignments"));
       assertFalse(GrouperClientWs.mostRecentRequest,
@@ -30784,7 +30789,7 @@ public class GrouperClientWsTest extends GrouperTest {
       assertFalse(GrouperClientWs.mostRecentRequest,
           GrouperClientWs.mostRecentRequest.contains("wsAttributeDefLookups"));
       assertTrue(GrouperClientWs.mostRecentRequest,
-          GrouperClientWs.mostRecentRequest.contains("<uuid>"));
+          GrouperClientWs.mostRecentRequest.contains("uuid"));
       assertTrue(GrouperClientWs.mostRecentRequest,
           !GrouperClientWs.mostRecentRequest.contains("wsAttributeDefNameLookups"));
       assertTrue(GrouperClientWs.mostRecentRequest,
@@ -30804,7 +30809,7 @@ public class GrouperClientWsTest extends GrouperTest {
       assertFalse(GrouperClientWs.mostRecentRequest,
           GrouperClientWs.mostRecentRequest.contains("theValue"));
       assertFalse(GrouperClientWs.mostRecentRequest,
-          GrouperClientWs.mostRecentRequest.contains(">123<"));
+          GrouperClientWs.mostRecentRequest.contains("\"123\""));
       assertFalse(GrouperClientWs.mostRecentRequest,
           GrouperClientWs.mostRecentRequest.contains("includeAssignmentsFromAssignments"));
       assertFalse(GrouperClientWs.mostRecentRequest,
@@ -30879,7 +30884,7 @@ public class GrouperClientWsTest extends GrouperTest {
       assertFalse(GrouperClientWs.mostRecentRequest,
           GrouperClientWs.mostRecentRequest.contains("wsAttributeDefLookups"));
       assertTrue(GrouperClientWs.mostRecentRequest,
-          GrouperClientWs.mostRecentRequest.contains("<uuid>"));
+          GrouperClientWs.mostRecentRequest.contains("uuid"));
       assertTrue(GrouperClientWs.mostRecentRequest,
           !GrouperClientWs.mostRecentRequest.contains("wsAttributeDefNameLookups"));
       assertTrue(GrouperClientWs.mostRecentRequest,
@@ -30899,7 +30904,7 @@ public class GrouperClientWsTest extends GrouperTest {
       assertFalse(GrouperClientWs.mostRecentRequest,
           GrouperClientWs.mostRecentRequest.contains("theValue"));
       assertFalse(GrouperClientWs.mostRecentRequest,
-          GrouperClientWs.mostRecentRequest.contains(">123<"));
+          GrouperClientWs.mostRecentRequest.contains("\"123\""));
       assertFalse(GrouperClientWs.mostRecentRequest,
           GrouperClientWs.mostRecentRequest.contains("includeAssignmentsFromAssignments"));
       assertFalse(GrouperClientWs.mostRecentRequest,
@@ -30956,7 +30961,7 @@ public class GrouperClientWsTest extends GrouperTest {
       assertTrue(GrouperClientWs.mostRecentRequest,
           !GrouperClientWs.mostRecentRequest.contains("actAsSubjectLookup"));
       assertTrue(GrouperClientWs.mostRecentRequest,
-          !GrouperClientWs.mostRecentRequest.contains("<actions>"));
+          !GrouperClientWs.mostRecentRequest.contains("actions"));
       assertTrue(GrouperClientWs.mostRecentRequest,
           GrouperClientWs.mostRecentRequest.contains("attributeAssignType"));
       assertTrue(GrouperClientWs.mostRecentRequest,
@@ -30978,7 +30983,7 @@ public class GrouperClientWsTest extends GrouperTest {
       assertFalse(GrouperClientWs.mostRecentRequest,
           GrouperClientWs.mostRecentRequest.contains("wsAttributeDefLookups"));
       assertTrue(GrouperClientWs.mostRecentRequest,
-          GrouperClientWs.mostRecentRequest.contains("<uuid>"));
+          GrouperClientWs.mostRecentRequest.contains("uuid"));
       assertTrue(GrouperClientWs.mostRecentRequest,
           !GrouperClientWs.mostRecentRequest.contains("wsAttributeDefNameLookups"));
       assertTrue(GrouperClientWs.mostRecentRequest,
@@ -30998,7 +31003,7 @@ public class GrouperClientWsTest extends GrouperTest {
       assertFalse(GrouperClientWs.mostRecentRequest,
           GrouperClientWs.mostRecentRequest.contains("theValue"));
       assertFalse(GrouperClientWs.mostRecentRequest,
-          GrouperClientWs.mostRecentRequest.contains(">123<"));
+          GrouperClientWs.mostRecentRequest.contains("\"123\""));
       assertFalse(GrouperClientWs.mostRecentRequest,
           GrouperClientWs.mostRecentRequest.contains("includeAssignmentsFromAssignments"));
       assertFalse(GrouperClientWs.mostRecentRequest,
@@ -31041,7 +31046,7 @@ public class GrouperClientWsTest extends GrouperTest {
       assertTrue(GrouperClientWs.mostRecentRequest,
           !GrouperClientWs.mostRecentRequest.contains("actAsSubjectLookup"));
       assertTrue(GrouperClientWs.mostRecentRequest,
-          !GrouperClientWs.mostRecentRequest.contains("<actions>"));
+          !GrouperClientWs.mostRecentRequest.contains("actions"));
       assertTrue(GrouperClientWs.mostRecentRequest,
           GrouperClientWs.mostRecentRequest.contains("attributeAssignType"));
       assertTrue(GrouperClientWs.mostRecentRequest,
@@ -31063,7 +31068,7 @@ public class GrouperClientWsTest extends GrouperTest {
       assertFalse(GrouperClientWs.mostRecentRequest,
           GrouperClientWs.mostRecentRequest.contains("wsAttributeDefLookups"));
       assertTrue(GrouperClientWs.mostRecentRequest,
-          GrouperClientWs.mostRecentRequest.contains("<uuid>"));
+          GrouperClientWs.mostRecentRequest.contains("uuid"));
       assertTrue(GrouperClientWs.mostRecentRequest,
           !GrouperClientWs.mostRecentRequest.contains("wsAttributeDefNameLookups"));
       assertTrue(GrouperClientWs.mostRecentRequest,
@@ -31083,7 +31088,7 @@ public class GrouperClientWsTest extends GrouperTest {
       assertFalse(GrouperClientWs.mostRecentRequest,
           GrouperClientWs.mostRecentRequest.contains("theValue"));
       assertFalse(GrouperClientWs.mostRecentRequest,
-          GrouperClientWs.mostRecentRequest.contains(">123<"));
+          GrouperClientWs.mostRecentRequest.contains("\"123\""));
       assertFalse(GrouperClientWs.mostRecentRequest,
           GrouperClientWs.mostRecentRequest.contains("includeAssignmentsFromAssignments"));
       assertFalse(GrouperClientWs.mostRecentRequest,
@@ -31141,7 +31146,7 @@ public class GrouperClientWsTest extends GrouperTest {
       assertTrue(GrouperClientWs.mostRecentRequest,
           !GrouperClientWs.mostRecentRequest.contains("actAsSubjectLookup"));
       assertTrue(GrouperClientWs.mostRecentRequest,
-          !GrouperClientWs.mostRecentRequest.contains("<actions>"));
+          !GrouperClientWs.mostRecentRequest.contains("actions"));
       assertTrue(GrouperClientWs.mostRecentRequest,
           GrouperClientWs.mostRecentRequest.contains("attributeAssignType"));
       assertTrue(GrouperClientWs.mostRecentRequest,
@@ -31163,7 +31168,7 @@ public class GrouperClientWsTest extends GrouperTest {
       assertFalse(GrouperClientWs.mostRecentRequest,
           GrouperClientWs.mostRecentRequest.contains("wsAttributeDefLookups"));
       assertFalse(GrouperClientWs.mostRecentRequest,
-          GrouperClientWs.mostRecentRequest.contains("<uuid>"));
+          GrouperClientWs.mostRecentRequest.contains("uuid"));
       assertTrue(GrouperClientWs.mostRecentRequest,
           !GrouperClientWs.mostRecentRequest.contains("wsAttributeDefNameLookups"));
       assertTrue(GrouperClientWs.mostRecentRequest,
@@ -31183,7 +31188,7 @@ public class GrouperClientWsTest extends GrouperTest {
       assertFalse(GrouperClientWs.mostRecentRequest,
           GrouperClientWs.mostRecentRequest.contains("theValue"));
       assertFalse(GrouperClientWs.mostRecentRequest,
-          GrouperClientWs.mostRecentRequest.contains(">123<"));
+          GrouperClientWs.mostRecentRequest.contains("\"123\""));
       assertFalse(GrouperClientWs.mostRecentRequest,
           GrouperClientWs.mostRecentRequest.contains("includeAssignmentsFromAssignments"));
       assertFalse(GrouperClientWs.mostRecentRequest,
@@ -31305,7 +31310,7 @@ public class GrouperClientWsTest extends GrouperTest {
       assertTrue(GrouperClientWs.mostRecentRequest,
           !GrouperClientWs.mostRecentRequest.contains("wsAttributeAssignLookups"));
       assertTrue(GrouperClientWs.mostRecentRequest,
-          GrouperClientWs.mostRecentRequest.contains("wsAttributeDefLookups") && GrouperClientWs.mostRecentRequest.contains("<name>"));
+          GrouperClientWs.mostRecentRequest.contains("wsAttributeDefLookups") && GrouperClientWs.mostRecentRequest.contains("\"name\""));
       assertTrue(GrouperClientWs.mostRecentRequest,
           !GrouperClientWs.mostRecentRequest.contains("wsAttributeDefNameLookups"));
       assertTrue(GrouperClientWs.mostRecentRequest,
@@ -31391,7 +31396,7 @@ public class GrouperClientWsTest extends GrouperTest {
       assertTrue(GrouperClientWs.mostRecentRequest,
           !GrouperClientWs.mostRecentRequest.contains("wsAttributeAssignLookups"));
       assertTrue(GrouperClientWs.mostRecentRequest,
-          GrouperClientWs.mostRecentRequest.contains("wsAttributeDefLookups") && GrouperClientWs.mostRecentRequest.contains("<name>"));
+          GrouperClientWs.mostRecentRequest.contains("wsAttributeDefLookups") && GrouperClientWs.mostRecentRequest.contains("\"name\""));
       assertTrue(GrouperClientWs.mostRecentRequest,
           !GrouperClientWs.mostRecentRequest.contains("wsAttributeDefNameLookups"));
       assertTrue(GrouperClientWs.mostRecentRequest,
@@ -31411,7 +31416,7 @@ public class GrouperClientWsTest extends GrouperTest {
       assertTrue(GrouperClientWs.mostRecentRequest,
           GrouperClientWs.mostRecentRequest.contains("theValue"));
       assertTrue(GrouperClientWs.mostRecentRequest,
-          GrouperClientWs.mostRecentRequest.contains(">123<"));
+          GrouperClientWs.mostRecentRequest.contains("\"123\""));
       assertTrue(GrouperClientWs.mostRecentRequest,
           !GrouperClientWs.mostRecentRequest.contains("includeAssignmentsFromAssignments"));
       assertTrue(GrouperClientWs.mostRecentRequest,
@@ -31509,7 +31514,7 @@ public class GrouperClientWsTest extends GrouperTest {
       assertTrue(GrouperClientWs.mostRecentRequest,
           !GrouperClientWs.mostRecentRequest.contains("wsAttributeAssignLookups"));
       assertTrue(GrouperClientWs.mostRecentRequest,
-          GrouperClientWs.mostRecentRequest.contains("wsAttributeDefLookups") && GrouperClientWs.mostRecentRequest.contains("<uuid>"));
+          GrouperClientWs.mostRecentRequest.contains("wsAttributeDefLookups") && GrouperClientWs.mostRecentRequest.contains("uuid"));
       assertTrue(GrouperClientWs.mostRecentRequest,
           !GrouperClientWs.mostRecentRequest.contains("wsAttributeDefNameLookups"));
       assertTrue(GrouperClientWs.mostRecentRequest,
@@ -31595,7 +31600,7 @@ public class GrouperClientWsTest extends GrouperTest {
       assertTrue(GrouperClientWs.mostRecentRequest,
           !GrouperClientWs.mostRecentRequest.contains("wsAttributeAssignLookups"));
       assertTrue(GrouperClientWs.mostRecentRequest,
-          GrouperClientWs.mostRecentRequest.contains("wsAttributeDefLookups") && GrouperClientWs.mostRecentRequest.contains("<uuid>"));
+          GrouperClientWs.mostRecentRequest.contains("wsAttributeDefLookups") && GrouperClientWs.mostRecentRequest.contains("uuid"));
       assertTrue(GrouperClientWs.mostRecentRequest,
           !GrouperClientWs.mostRecentRequest.contains("wsAttributeDefNameLookups"));
       assertTrue(GrouperClientWs.mostRecentRequest,
@@ -31695,7 +31700,7 @@ public class GrouperClientWsTest extends GrouperTest {
       assertTrue(GrouperClientWs.mostRecentRequest,
           !GrouperClientWs.mostRecentRequest.contains("wsAttributeAssignLookups"));
       assertTrue(GrouperClientWs.mostRecentRequest,
-          GrouperClientWs.mostRecentRequest.contains("wsAttributeDefLookups") && GrouperClientWs.mostRecentRequest.contains("<uuid>"));
+          GrouperClientWs.mostRecentRequest.contains("wsAttributeDefLookups") && GrouperClientWs.mostRecentRequest.contains("uuid"));
       assertTrue(GrouperClientWs.mostRecentRequest,
           !GrouperClientWs.mostRecentRequest.contains("wsAttributeDefNameLookups"));
       assertTrue(GrouperClientWs.mostRecentRequest,
@@ -31715,7 +31720,7 @@ public class GrouperClientWsTest extends GrouperTest {
       assertFalse(GrouperClientWs.mostRecentRequest,
           GrouperClientWs.mostRecentRequest.contains("theValue"));
       assertFalse(GrouperClientWs.mostRecentRequest,
-          GrouperClientWs.mostRecentRequest.contains(">abc<"));
+          GrouperClientWs.mostRecentRequest.contains("\"abc\""));
       assertTrue(GrouperClientWs.mostRecentRequest,
           !GrouperClientWs.mostRecentRequest.contains("includeAssignmentsFromAssignments"));
       assertFalse(GrouperClientWs.mostRecentRequest,
@@ -31784,7 +31789,7 @@ public class GrouperClientWsTest extends GrouperTest {
       assertTrue(GrouperClientWs.mostRecentRequest,
           !GrouperClientWs.mostRecentRequest.contains("wsAttributeAssignLookups"));
       assertTrue(GrouperClientWs.mostRecentRequest,
-          GrouperClientWs.mostRecentRequest.contains("wsAttributeDefLookups") && GrouperClientWs.mostRecentRequest.contains("<uuid>"));
+          GrouperClientWs.mostRecentRequest.contains("wsAttributeDefLookups") && GrouperClientWs.mostRecentRequest.contains("uuid"));
       assertTrue(GrouperClientWs.mostRecentRequest,
           !GrouperClientWs.mostRecentRequest.contains("wsAttributeDefNameLookups"));
       assertTrue(GrouperClientWs.mostRecentRequest,
@@ -31884,7 +31889,7 @@ public class GrouperClientWsTest extends GrouperTest {
       assertTrue(GrouperClientWs.mostRecentRequest,
           !GrouperClientWs.mostRecentRequest.contains("wsAttributeAssignLookups"));
       assertTrue(GrouperClientWs.mostRecentRequest,
-          GrouperClientWs.mostRecentRequest.contains("wsAttributeDefLookups") && GrouperClientWs.mostRecentRequest.contains("<uuid>"));
+          GrouperClientWs.mostRecentRequest.contains("wsAttributeDefLookups") && GrouperClientWs.mostRecentRequest.contains("uuid"));
       assertTrue(GrouperClientWs.mostRecentRequest,
           !GrouperClientWs.mostRecentRequest.contains("wsAttributeDefNameLookups"));
       assertTrue(GrouperClientWs.mostRecentRequest,
@@ -31904,7 +31909,7 @@ public class GrouperClientWsTest extends GrouperTest {
       assertTrue(GrouperClientWs.mostRecentRequest,
           GrouperClientWs.mostRecentRequest.contains("theValue"));
       assertTrue(GrouperClientWs.mostRecentRequest,
-          GrouperClientWs.mostRecentRequest.contains(">123<"));
+          GrouperClientWs.mostRecentRequest.contains("\"123\""));
       assertTrue(GrouperClientWs.mostRecentRequest,
           !GrouperClientWs.mostRecentRequest.contains("includeAssignmentsFromAssignments"));
       assertFalse(GrouperClientWs.mostRecentRequest,
@@ -31971,7 +31976,7 @@ public class GrouperClientWsTest extends GrouperTest {
       assertTrue(GrouperClientWs.mostRecentRequest,
           !GrouperClientWs.mostRecentRequest.contains("wsAttributeAssignLookups"));
       assertTrue(GrouperClientWs.mostRecentRequest,
-          GrouperClientWs.mostRecentRequest.contains("wsAttributeDefLookups") && GrouperClientWs.mostRecentRequest.contains("<uuid>"));
+          GrouperClientWs.mostRecentRequest.contains("wsAttributeDefLookups") && GrouperClientWs.mostRecentRequest.contains("uuid"));
       assertTrue(GrouperClientWs.mostRecentRequest,
           !GrouperClientWs.mostRecentRequest.contains("wsAttributeDefNameLookups"));
       assertTrue(GrouperClientWs.mostRecentRequest,
@@ -32085,7 +32090,7 @@ public class GrouperClientWsTest extends GrouperTest {
       assertTrue(GrouperClientWs.mostRecentRequest,
           !GrouperClientWs.mostRecentRequest.contains("wsAttributeAssignLookups"));
       assertTrue(GrouperClientWs.mostRecentRequest,
-          GrouperClientWs.mostRecentRequest.contains("wsAttributeDefLookups") && GrouperClientWs.mostRecentRequest.contains("<uuid>"));
+          GrouperClientWs.mostRecentRequest.contains("wsAttributeDefLookups") && GrouperClientWs.mostRecentRequest.contains("uuid"));
       assertTrue(GrouperClientWs.mostRecentRequest,
           !GrouperClientWs.mostRecentRequest.contains("wsAttributeDefNameLookups"));
       assertTrue(GrouperClientWs.mostRecentRequest,
@@ -32105,7 +32110,7 @@ public class GrouperClientWsTest extends GrouperTest {
       assertFalse(GrouperClientWs.mostRecentRequest,
           GrouperClientWs.mostRecentRequest.contains("theValue"));
       assertFalse(GrouperClientWs.mostRecentRequest,
-          GrouperClientWs.mostRecentRequest.contains(">123<"));
+          GrouperClientWs.mostRecentRequest.contains("\"123\""));
       assertTrue(GrouperClientWs.mostRecentRequest,
           GrouperClientWs.mostRecentRequest.contains("includeAssignmentsFromAssignments"));
       assertFalse(GrouperClientWs.mostRecentRequest,
@@ -32182,7 +32187,7 @@ public class GrouperClientWsTest extends GrouperTest {
       assertFalse(GrouperClientWs.mostRecentRequest,
           GrouperClientWs.mostRecentRequest.contains("wsAttributeDefLookups"));
       assertTrue(GrouperClientWs.mostRecentRequest,
-          GrouperClientWs.mostRecentRequest.contains("<uuid>"));
+          GrouperClientWs.mostRecentRequest.contains("uuid"));
       assertTrue(GrouperClientWs.mostRecentRequest,
           !GrouperClientWs.mostRecentRequest.contains("wsAttributeDefNameLookups"));
       assertTrue(GrouperClientWs.mostRecentRequest,
@@ -32202,7 +32207,7 @@ public class GrouperClientWsTest extends GrouperTest {
       assertFalse(GrouperClientWs.mostRecentRequest,
           GrouperClientWs.mostRecentRequest.contains("theValue"));
       assertFalse(GrouperClientWs.mostRecentRequest,
-          GrouperClientWs.mostRecentRequest.contains(">123<"));
+          GrouperClientWs.mostRecentRequest.contains("\"123\""));
       assertFalse(GrouperClientWs.mostRecentRequest,
           GrouperClientWs.mostRecentRequest.contains("includeAssignmentsFromAssignments"));
       assertFalse(GrouperClientWs.mostRecentRequest,
@@ -32284,7 +32289,7 @@ public class GrouperClientWsTest extends GrouperTest {
       assertFalse(GrouperClientWs.mostRecentRequest,
           GrouperClientWs.mostRecentRequest.contains("wsAttributeDefLookups"));
       assertTrue(GrouperClientWs.mostRecentRequest,
-          GrouperClientWs.mostRecentRequest.contains("<uuid>"));
+          GrouperClientWs.mostRecentRequest.contains("uuid"));
       assertTrue(GrouperClientWs.mostRecentRequest,
           !GrouperClientWs.mostRecentRequest.contains("wsAttributeDefNameLookups"));
       assertTrue(GrouperClientWs.mostRecentRequest,
@@ -32304,7 +32309,7 @@ public class GrouperClientWsTest extends GrouperTest {
       assertFalse(GrouperClientWs.mostRecentRequest,
           GrouperClientWs.mostRecentRequest.contains("theValue"));
       assertFalse(GrouperClientWs.mostRecentRequest,
-          GrouperClientWs.mostRecentRequest.contains(">123<"));
+          GrouperClientWs.mostRecentRequest.contains("\"123\""));
       assertFalse(GrouperClientWs.mostRecentRequest,
           GrouperClientWs.mostRecentRequest.contains("includeAssignmentsFromAssignments"));
       assertFalse(GrouperClientWs.mostRecentRequest,
@@ -32387,7 +32392,7 @@ public class GrouperClientWsTest extends GrouperTest {
       assertFalse(GrouperClientWs.mostRecentRequest,
           GrouperClientWs.mostRecentRequest.contains("wsAttributeDefLookups"));
       assertFalse(GrouperClientWs.mostRecentRequest,
-          GrouperClientWs.mostRecentRequest.contains("<uuid>"));
+          GrouperClientWs.mostRecentRequest.contains("uuid"));
       assertTrue(GrouperClientWs.mostRecentRequest,
           !GrouperClientWs.mostRecentRequest.contains("wsAttributeDefNameLookups"));
       assertTrue(GrouperClientWs.mostRecentRequest,
@@ -32407,7 +32412,7 @@ public class GrouperClientWsTest extends GrouperTest {
       assertFalse(GrouperClientWs.mostRecentRequest,
           GrouperClientWs.mostRecentRequest.contains("theValue"));
       assertFalse(GrouperClientWs.mostRecentRequest,
-          GrouperClientWs.mostRecentRequest.contains(">123<"));
+          GrouperClientWs.mostRecentRequest.contains("\"123\""));
       assertFalse(GrouperClientWs.mostRecentRequest,
           GrouperClientWs.mostRecentRequest.contains("includeAssignmentsFromAssignments"));
       assertFalse(GrouperClientWs.mostRecentRequest,
@@ -32485,7 +32490,7 @@ public class GrouperClientWsTest extends GrouperTest {
       assertFalse(GrouperClientWs.mostRecentRequest,
           GrouperClientWs.mostRecentRequest.contains("wsAttributeDefLookups"));
       assertFalse(GrouperClientWs.mostRecentRequest,
-          GrouperClientWs.mostRecentRequest.contains("<uuid>"));
+          GrouperClientWs.mostRecentRequest.contains("uuid"));
       assertTrue(GrouperClientWs.mostRecentRequest,
           !GrouperClientWs.mostRecentRequest.contains("wsAttributeDefNameLookups"));
       assertTrue(GrouperClientWs.mostRecentRequest,
@@ -32505,7 +32510,7 @@ public class GrouperClientWsTest extends GrouperTest {
       assertFalse(GrouperClientWs.mostRecentRequest,
           GrouperClientWs.mostRecentRequest.contains("theValue"));
       assertFalse(GrouperClientWs.mostRecentRequest,
-          GrouperClientWs.mostRecentRequest.contains(">123<"));
+          GrouperClientWs.mostRecentRequest.contains("\"123\""));
       assertFalse(GrouperClientWs.mostRecentRequest,
           GrouperClientWs.mostRecentRequest.contains("includeAssignmentsFromAssignments"));
       assertFalse(GrouperClientWs.mostRecentRequest,
@@ -32588,7 +32593,7 @@ public class GrouperClientWsTest extends GrouperTest {
       assertFalse(GrouperClientWs.mostRecentRequest,
           GrouperClientWs.mostRecentRequest.contains("wsAttributeDefLookups"));
       assertTrue(GrouperClientWs.mostRecentRequest,
-          GrouperClientWs.mostRecentRequest.contains("<uuid>"));
+          GrouperClientWs.mostRecentRequest.contains("uuid"));
       assertTrue(GrouperClientWs.mostRecentRequest,
           !GrouperClientWs.mostRecentRequest.contains("wsAttributeDefNameLookups"));
       assertTrue(GrouperClientWs.mostRecentRequest,
@@ -32608,7 +32613,7 @@ public class GrouperClientWsTest extends GrouperTest {
       assertFalse(GrouperClientWs.mostRecentRequest,
           GrouperClientWs.mostRecentRequest.contains("theValue"));
       assertFalse(GrouperClientWs.mostRecentRequest,
-          GrouperClientWs.mostRecentRequest.contains(">123<"));
+          GrouperClientWs.mostRecentRequest.contains("\"123\""));
       assertFalse(GrouperClientWs.mostRecentRequest,
           GrouperClientWs.mostRecentRequest.contains("includeAssignmentsFromAssignments"));
       assertFalse(GrouperClientWs.mostRecentRequest,
@@ -32691,7 +32696,7 @@ public class GrouperClientWsTest extends GrouperTest {
       assertFalse(GrouperClientWs.mostRecentRequest,
           GrouperClientWs.mostRecentRequest.contains("wsAttributeDefLookups"));
       assertTrue(GrouperClientWs.mostRecentRequest,
-          GrouperClientWs.mostRecentRequest.contains("<uuid>"));
+          GrouperClientWs.mostRecentRequest.contains("uuid"));
       assertTrue(GrouperClientWs.mostRecentRequest,
           !GrouperClientWs.mostRecentRequest.contains("wsAttributeDefNameLookups"));
       assertTrue(GrouperClientWs.mostRecentRequest,
@@ -32711,7 +32716,7 @@ public class GrouperClientWsTest extends GrouperTest {
       assertFalse(GrouperClientWs.mostRecentRequest,
           GrouperClientWs.mostRecentRequest.contains("theValue"));
       assertFalse(GrouperClientWs.mostRecentRequest,
-          GrouperClientWs.mostRecentRequest.contains(">123<"));
+          GrouperClientWs.mostRecentRequest.contains("\"123\""));
       assertFalse(GrouperClientWs.mostRecentRequest,
           GrouperClientWs.mostRecentRequest.contains("includeAssignmentsFromAssignments"));
       assertFalse(GrouperClientWs.mostRecentRequest,
@@ -32790,7 +32795,7 @@ public class GrouperClientWsTest extends GrouperTest {
       assertFalse(GrouperClientWs.mostRecentRequest,
           GrouperClientWs.mostRecentRequest.contains("wsAttributeDefLookups"));
       assertTrue(GrouperClientWs.mostRecentRequest,
-          GrouperClientWs.mostRecentRequest.contains("<uuid>"));
+          GrouperClientWs.mostRecentRequest.contains("uuid"));
       assertTrue(GrouperClientWs.mostRecentRequest,
           !GrouperClientWs.mostRecentRequest.contains("wsAttributeDefNameLookups"));
       assertTrue(GrouperClientWs.mostRecentRequest,
@@ -32810,7 +32815,7 @@ public class GrouperClientWsTest extends GrouperTest {
       assertFalse(GrouperClientWs.mostRecentRequest,
           GrouperClientWs.mostRecentRequest.contains("theValue"));
       assertFalse(GrouperClientWs.mostRecentRequest,
-          GrouperClientWs.mostRecentRequest.contains(">123<"));
+          GrouperClientWs.mostRecentRequest.contains("\"123\""));
       assertFalse(GrouperClientWs.mostRecentRequest,
           GrouperClientWs.mostRecentRequest.contains("includeAssignmentsFromAssignments"));
       assertFalse(GrouperClientWs.mostRecentRequest,
@@ -32893,7 +32898,7 @@ public class GrouperClientWsTest extends GrouperTest {
       assertFalse(GrouperClientWs.mostRecentRequest,
           GrouperClientWs.mostRecentRequest.contains("wsAttributeDefLookups"));
       assertFalse(GrouperClientWs.mostRecentRequest,
-          GrouperClientWs.mostRecentRequest.contains("<uuid>"));
+          GrouperClientWs.mostRecentRequest.contains("uuid"));
       assertTrue(GrouperClientWs.mostRecentRequest,
           !GrouperClientWs.mostRecentRequest.contains("wsAttributeDefNameLookups"));
       assertTrue(GrouperClientWs.mostRecentRequest,
@@ -32913,7 +32918,7 @@ public class GrouperClientWsTest extends GrouperTest {
       assertFalse(GrouperClientWs.mostRecentRequest,
           GrouperClientWs.mostRecentRequest.contains("theValue"));
       assertFalse(GrouperClientWs.mostRecentRequest,
-          GrouperClientWs.mostRecentRequest.contains(">123<"));
+          GrouperClientWs.mostRecentRequest.contains("\"123\""));
       assertFalse(GrouperClientWs.mostRecentRequest,
           GrouperClientWs.mostRecentRequest.contains("includeAssignmentsFromAssignments"));
       assertFalse(GrouperClientWs.mostRecentRequest,
@@ -32989,7 +32994,7 @@ public class GrouperClientWsTest extends GrouperTest {
       assertFalse(GrouperClientWs.mostRecentRequest,
           GrouperClientWs.mostRecentRequest.contains("wsAttributeDefLookups"));
       assertFalse(GrouperClientWs.mostRecentRequest,
-          GrouperClientWs.mostRecentRequest.contains("<uuid>"));
+          GrouperClientWs.mostRecentRequest.contains("uuid"));
       assertTrue(GrouperClientWs.mostRecentRequest,
           !GrouperClientWs.mostRecentRequest.contains("wsAttributeDefNameLookups"));
       assertTrue(GrouperClientWs.mostRecentRequest,
@@ -33009,7 +33014,7 @@ public class GrouperClientWsTest extends GrouperTest {
       assertFalse(GrouperClientWs.mostRecentRequest,
           GrouperClientWs.mostRecentRequest.contains("theValue"));
       assertFalse(GrouperClientWs.mostRecentRequest,
-          GrouperClientWs.mostRecentRequest.contains(">123<"));
+          GrouperClientWs.mostRecentRequest.contains("\"123\""));
       assertFalse(GrouperClientWs.mostRecentRequest,
           GrouperClientWs.mostRecentRequest.contains("includeAssignmentsFromAssignments"));
       assertFalse(GrouperClientWs.mostRecentRequest,
@@ -33088,7 +33093,7 @@ public class GrouperClientWsTest extends GrouperTest {
       assertFalse(GrouperClientWs.mostRecentRequest,
           GrouperClientWs.mostRecentRequest.contains("wsAttributeDefLookups"));
       assertTrue(GrouperClientWs.mostRecentRequest,
-          GrouperClientWs.mostRecentRequest.contains("<uuid>"));
+          GrouperClientWs.mostRecentRequest.contains("uuid"));
       assertTrue(GrouperClientWs.mostRecentRequest,
           !GrouperClientWs.mostRecentRequest.contains("wsAttributeDefNameLookups"));
       assertTrue(GrouperClientWs.mostRecentRequest,
@@ -33108,7 +33113,7 @@ public class GrouperClientWsTest extends GrouperTest {
       assertFalse(GrouperClientWs.mostRecentRequest,
           GrouperClientWs.mostRecentRequest.contains("theValue"));
       assertFalse(GrouperClientWs.mostRecentRequest,
-          GrouperClientWs.mostRecentRequest.contains(">123<"));
+          GrouperClientWs.mostRecentRequest.contains("\"123\""));
       assertFalse(GrouperClientWs.mostRecentRequest,
           GrouperClientWs.mostRecentRequest.contains("includeAssignmentsFromAssignments"));
       assertFalse(GrouperClientWs.mostRecentRequest,
@@ -33183,7 +33188,7 @@ public class GrouperClientWsTest extends GrouperTest {
       assertFalse(GrouperClientWs.mostRecentRequest,
           GrouperClientWs.mostRecentRequest.contains("wsAttributeDefLookups"));
       assertTrue(GrouperClientWs.mostRecentRequest,
-          GrouperClientWs.mostRecentRequest.contains("<uuid>"));
+          GrouperClientWs.mostRecentRequest.contains("uuid"));
       assertTrue(GrouperClientWs.mostRecentRequest,
           !GrouperClientWs.mostRecentRequest.contains("wsAttributeDefNameLookups"));
       assertTrue(GrouperClientWs.mostRecentRequest,
@@ -33203,7 +33208,7 @@ public class GrouperClientWsTest extends GrouperTest {
       assertFalse(GrouperClientWs.mostRecentRequest,
           GrouperClientWs.mostRecentRequest.contains("theValue"));
       assertFalse(GrouperClientWs.mostRecentRequest,
-          GrouperClientWs.mostRecentRequest.contains(">123<"));
+          GrouperClientWs.mostRecentRequest.contains("\"123\""));
       assertFalse(GrouperClientWs.mostRecentRequest,
           GrouperClientWs.mostRecentRequest.contains("includeAssignmentsFromAssignments"));
       assertFalse(GrouperClientWs.mostRecentRequest,
@@ -33260,7 +33265,7 @@ public class GrouperClientWsTest extends GrouperTest {
       assertTrue(GrouperClientWs.mostRecentRequest,
           !GrouperClientWs.mostRecentRequest.contains("actAsSubjectLookup"));
       assertTrue(GrouperClientWs.mostRecentRequest,
-          !GrouperClientWs.mostRecentRequest.contains("<actions>"));
+          !GrouperClientWs.mostRecentRequest.contains("actions"));
       assertTrue(GrouperClientWs.mostRecentRequest,
           GrouperClientWs.mostRecentRequest.contains("attributeAssignType"));
       assertTrue(GrouperClientWs.mostRecentRequest,
@@ -33282,7 +33287,7 @@ public class GrouperClientWsTest extends GrouperTest {
       assertFalse(GrouperClientWs.mostRecentRequest,
           GrouperClientWs.mostRecentRequest.contains("wsAttributeDefLookups"));
       assertTrue(GrouperClientWs.mostRecentRequest,
-          GrouperClientWs.mostRecentRequest.contains("<uuid>"));
+          GrouperClientWs.mostRecentRequest.contains("uuid"));
       assertTrue(GrouperClientWs.mostRecentRequest,
           !GrouperClientWs.mostRecentRequest.contains("wsAttributeDefNameLookups"));
       assertTrue(GrouperClientWs.mostRecentRequest,
@@ -33302,7 +33307,7 @@ public class GrouperClientWsTest extends GrouperTest {
       assertFalse(GrouperClientWs.mostRecentRequest,
           GrouperClientWs.mostRecentRequest.contains("theValue"));
       assertFalse(GrouperClientWs.mostRecentRequest,
-          GrouperClientWs.mostRecentRequest.contains(">123<"));
+          GrouperClientWs.mostRecentRequest.contains("\"123\""));
       assertFalse(GrouperClientWs.mostRecentRequest,
           GrouperClientWs.mostRecentRequest.contains("includeAssignmentsFromAssignments"));
       assertFalse(GrouperClientWs.mostRecentRequest,
@@ -33345,7 +33350,7 @@ public class GrouperClientWsTest extends GrouperTest {
       assertTrue(GrouperClientWs.mostRecentRequest,
           !GrouperClientWs.mostRecentRequest.contains("actAsSubjectLookup"));
       assertTrue(GrouperClientWs.mostRecentRequest,
-          !GrouperClientWs.mostRecentRequest.contains("<actions>"));
+          !GrouperClientWs.mostRecentRequest.contains("actions"));
       assertTrue(GrouperClientWs.mostRecentRequest,
           GrouperClientWs.mostRecentRequest.contains("attributeAssignType"));
       assertTrue(GrouperClientWs.mostRecentRequest,
@@ -33367,7 +33372,7 @@ public class GrouperClientWsTest extends GrouperTest {
       assertFalse(GrouperClientWs.mostRecentRequest,
           GrouperClientWs.mostRecentRequest.contains("wsAttributeDefLookups"));
       assertTrue(GrouperClientWs.mostRecentRequest,
-          GrouperClientWs.mostRecentRequest.contains("<uuid>"));
+          GrouperClientWs.mostRecentRequest.contains("uuid"));
       assertTrue(GrouperClientWs.mostRecentRequest,
           !GrouperClientWs.mostRecentRequest.contains("wsAttributeDefNameLookups"));
       assertTrue(GrouperClientWs.mostRecentRequest,
@@ -33387,7 +33392,7 @@ public class GrouperClientWsTest extends GrouperTest {
       assertFalse(GrouperClientWs.mostRecentRequest,
           GrouperClientWs.mostRecentRequest.contains("theValue"));
       assertFalse(GrouperClientWs.mostRecentRequest,
-          GrouperClientWs.mostRecentRequest.contains(">123<"));
+          GrouperClientWs.mostRecentRequest.contains("\"123\""));
       assertFalse(GrouperClientWs.mostRecentRequest,
           GrouperClientWs.mostRecentRequest.contains("includeAssignmentsFromAssignments"));
       assertFalse(GrouperClientWs.mostRecentRequest,
@@ -33445,7 +33450,7 @@ public class GrouperClientWsTest extends GrouperTest {
       assertTrue(GrouperClientWs.mostRecentRequest,
           !GrouperClientWs.mostRecentRequest.contains("actAsSubjectLookup"));
       assertTrue(GrouperClientWs.mostRecentRequest,
-          !GrouperClientWs.mostRecentRequest.contains("<actions>"));
+          !GrouperClientWs.mostRecentRequest.contains("actions"));
       assertTrue(GrouperClientWs.mostRecentRequest,
           GrouperClientWs.mostRecentRequest.contains("attributeAssignType"));
       assertTrue(GrouperClientWs.mostRecentRequest,
@@ -33467,7 +33472,7 @@ public class GrouperClientWsTest extends GrouperTest {
       assertFalse(GrouperClientWs.mostRecentRequest,
           GrouperClientWs.mostRecentRequest.contains("wsAttributeDefLookups"));
       assertTrue(GrouperClientWs.mostRecentRequest,
-          GrouperClientWs.mostRecentRequest.contains("<uuid>"));
+          GrouperClientWs.mostRecentRequest.contains("uuid"));
       assertTrue(GrouperClientWs.mostRecentRequest,
           !GrouperClientWs.mostRecentRequest.contains("wsAttributeDefNameLookups"));
       assertTrue(GrouperClientWs.mostRecentRequest,
@@ -33487,7 +33492,7 @@ public class GrouperClientWsTest extends GrouperTest {
       assertFalse(GrouperClientWs.mostRecentRequest,
           GrouperClientWs.mostRecentRequest.contains("theValue"));
       assertFalse(GrouperClientWs.mostRecentRequest,
-          GrouperClientWs.mostRecentRequest.contains(">123<"));
+          GrouperClientWs.mostRecentRequest.contains("\"123\""));
       assertFalse(GrouperClientWs.mostRecentRequest,
           GrouperClientWs.mostRecentRequest.contains("includeAssignmentsFromAssignments"));
       assertFalse(GrouperClientWs.mostRecentRequest,
@@ -33618,7 +33623,7 @@ public class GrouperClientWsTest extends GrouperTest {
       assertTrue(GrouperClientWs.mostRecentRequest,
           !GrouperClientWs.mostRecentRequest.contains("wsAttributeAssignLookups"));
       assertTrue(GrouperClientWs.mostRecentRequest,
-          GrouperClientWs.mostRecentRequest.contains("wsAttributeDefLookups") && GrouperClientWs.mostRecentRequest.contains("<name>"));
+          GrouperClientWs.mostRecentRequest.contains("wsAttributeDefLookups") && GrouperClientWs.mostRecentRequest.contains("\"name\""));
       assertTrue(GrouperClientWs.mostRecentRequest,
           !GrouperClientWs.mostRecentRequest.contains("wsAttributeDefNameLookups"));
       assertTrue(GrouperClientWs.mostRecentRequest,
@@ -33704,7 +33709,7 @@ public class GrouperClientWsTest extends GrouperTest {
       assertTrue(GrouperClientWs.mostRecentRequest,
           !GrouperClientWs.mostRecentRequest.contains("wsAttributeAssignLookups"));
       assertTrue(GrouperClientWs.mostRecentRequest,
-          GrouperClientWs.mostRecentRequest.contains("wsAttributeDefLookups") && GrouperClientWs.mostRecentRequest.contains("<name>"));
+          GrouperClientWs.mostRecentRequest.contains("wsAttributeDefLookups") && GrouperClientWs.mostRecentRequest.contains("\"name\""));
       assertTrue(GrouperClientWs.mostRecentRequest,
           !GrouperClientWs.mostRecentRequest.contains("wsAttributeDefNameLookups"));
       assertTrue(GrouperClientWs.mostRecentRequest,
@@ -33724,7 +33729,7 @@ public class GrouperClientWsTest extends GrouperTest {
       assertTrue(GrouperClientWs.mostRecentRequest,
           GrouperClientWs.mostRecentRequest.contains("theValue"));
       assertTrue(GrouperClientWs.mostRecentRequest,
-          GrouperClientWs.mostRecentRequest.contains(">123<"));
+          GrouperClientWs.mostRecentRequest.contains("\"123\""));
       assertTrue(GrouperClientWs.mostRecentRequest,
           !GrouperClientWs.mostRecentRequest.contains("includeAssignmentsFromAssignments"));
       assertTrue(GrouperClientWs.mostRecentRequest,
@@ -33822,7 +33827,7 @@ public class GrouperClientWsTest extends GrouperTest {
       assertTrue(GrouperClientWs.mostRecentRequest,
           !GrouperClientWs.mostRecentRequest.contains("wsAttributeAssignLookups"));
       assertTrue(GrouperClientWs.mostRecentRequest,
-          GrouperClientWs.mostRecentRequest.contains("wsAttributeDefLookups") && GrouperClientWs.mostRecentRequest.contains("<uuid>"));
+          GrouperClientWs.mostRecentRequest.contains("wsAttributeDefLookups") && GrouperClientWs.mostRecentRequest.contains("uuid"));
       assertTrue(GrouperClientWs.mostRecentRequest,
           !GrouperClientWs.mostRecentRequest.contains("wsAttributeDefNameLookups"));
       assertTrue(GrouperClientWs.mostRecentRequest,
@@ -33908,7 +33913,7 @@ public class GrouperClientWsTest extends GrouperTest {
       assertTrue(GrouperClientWs.mostRecentRequest,
           !GrouperClientWs.mostRecentRequest.contains("wsAttributeAssignLookups"));
       assertTrue(GrouperClientWs.mostRecentRequest,
-          GrouperClientWs.mostRecentRequest.contains("wsAttributeDefLookups") && GrouperClientWs.mostRecentRequest.contains("<uuid>"));
+          GrouperClientWs.mostRecentRequest.contains("wsAttributeDefLookups") && GrouperClientWs.mostRecentRequest.contains("uuid"));
       assertTrue(GrouperClientWs.mostRecentRequest,
           !GrouperClientWs.mostRecentRequest.contains("wsAttributeDefNameLookups"));
       assertTrue(GrouperClientWs.mostRecentRequest,
@@ -34008,7 +34013,7 @@ public class GrouperClientWsTest extends GrouperTest {
       assertTrue(GrouperClientWs.mostRecentRequest,
           !GrouperClientWs.mostRecentRequest.contains("wsAttributeAssignLookups"));
       assertTrue(GrouperClientWs.mostRecentRequest,
-          GrouperClientWs.mostRecentRequest.contains("wsAttributeDefLookups") && GrouperClientWs.mostRecentRequest.contains("<uuid>"));
+          GrouperClientWs.mostRecentRequest.contains("wsAttributeDefLookups") && GrouperClientWs.mostRecentRequest.contains("uuid"));
       assertTrue(GrouperClientWs.mostRecentRequest,
           !GrouperClientWs.mostRecentRequest.contains("wsAttributeDefNameLookups"));
       assertTrue(GrouperClientWs.mostRecentRequest,
@@ -34028,7 +34033,7 @@ public class GrouperClientWsTest extends GrouperTest {
       assertFalse(GrouperClientWs.mostRecentRequest,
           GrouperClientWs.mostRecentRequest.contains("theValue"));
       assertFalse(GrouperClientWs.mostRecentRequest,
-          GrouperClientWs.mostRecentRequest.contains(">abc<"));
+          GrouperClientWs.mostRecentRequest.contains("\"abc\""));
       assertTrue(GrouperClientWs.mostRecentRequest,
           !GrouperClientWs.mostRecentRequest.contains("includeAssignmentsFromAssignments"));
       assertFalse(GrouperClientWs.mostRecentRequest,
@@ -34107,7 +34112,7 @@ public class GrouperClientWsTest extends GrouperTest {
       assertTrue(GrouperClientWs.mostRecentRequest,
           !GrouperClientWs.mostRecentRequest.contains("wsAttributeAssignLookups"));
       assertTrue(GrouperClientWs.mostRecentRequest,
-          GrouperClientWs.mostRecentRequest.contains("wsAttributeDefLookups") && GrouperClientWs.mostRecentRequest.contains("<idIndex>"));
+          GrouperClientWs.mostRecentRequest.contains("wsAttributeDefLookups") && GrouperClientWs.mostRecentRequest.contains("\"idIndex\""));
       assertTrue(GrouperClientWs.mostRecentRequest,
           !GrouperClientWs.mostRecentRequest.contains("wsAttributeDefNameLookups"));
       assertTrue(GrouperClientWs.mostRecentRequest,
@@ -34127,7 +34132,7 @@ public class GrouperClientWsTest extends GrouperTest {
       assertFalse(GrouperClientWs.mostRecentRequest,
           GrouperClientWs.mostRecentRequest.contains("theValue"));
       assertFalse(GrouperClientWs.mostRecentRequest,
-          GrouperClientWs.mostRecentRequest.contains(">abc<"));
+          GrouperClientWs.mostRecentRequest.contains("\"abc\""));
       assertTrue(GrouperClientWs.mostRecentRequest,
           !GrouperClientWs.mostRecentRequest.contains("includeAssignmentsFromAssignments"));
       assertFalse(GrouperClientWs.mostRecentRequest,
@@ -34196,7 +34201,7 @@ public class GrouperClientWsTest extends GrouperTest {
       assertTrue(GrouperClientWs.mostRecentRequest,
           !GrouperClientWs.mostRecentRequest.contains("wsAttributeAssignLookups"));
       assertTrue(GrouperClientWs.mostRecentRequest,
-          GrouperClientWs.mostRecentRequest.contains("wsAttributeDefLookups") && GrouperClientWs.mostRecentRequest.contains("<uuid>"));
+          GrouperClientWs.mostRecentRequest.contains("wsAttributeDefLookups") && GrouperClientWs.mostRecentRequest.contains("uuid"));
       assertTrue(GrouperClientWs.mostRecentRequest,
           !GrouperClientWs.mostRecentRequest.contains("wsAttributeDefNameLookups"));
       assertTrue(GrouperClientWs.mostRecentRequest,
@@ -34296,7 +34301,7 @@ public class GrouperClientWsTest extends GrouperTest {
       assertTrue(GrouperClientWs.mostRecentRequest,
           !GrouperClientWs.mostRecentRequest.contains("wsAttributeAssignLookups"));
       assertTrue(GrouperClientWs.mostRecentRequest,
-          GrouperClientWs.mostRecentRequest.contains("wsAttributeDefLookups") && GrouperClientWs.mostRecentRequest.contains("<uuid>"));
+          GrouperClientWs.mostRecentRequest.contains("wsAttributeDefLookups") && GrouperClientWs.mostRecentRequest.contains("uuid"));
       assertTrue(GrouperClientWs.mostRecentRequest,
           !GrouperClientWs.mostRecentRequest.contains("wsAttributeDefNameLookups"));
       assertTrue(GrouperClientWs.mostRecentRequest,
@@ -34316,7 +34321,7 @@ public class GrouperClientWsTest extends GrouperTest {
       assertTrue(GrouperClientWs.mostRecentRequest,
           GrouperClientWs.mostRecentRequest.contains("theValue"));
       assertTrue(GrouperClientWs.mostRecentRequest,
-          GrouperClientWs.mostRecentRequest.contains(">123<"));
+          GrouperClientWs.mostRecentRequest.contains("\"123\""));
       assertTrue(GrouperClientWs.mostRecentRequest,
           !GrouperClientWs.mostRecentRequest.contains("includeAssignmentsFromAssignments"));
       assertFalse(GrouperClientWs.mostRecentRequest,
@@ -34383,7 +34388,7 @@ public class GrouperClientWsTest extends GrouperTest {
       assertTrue(GrouperClientWs.mostRecentRequest,
           !GrouperClientWs.mostRecentRequest.contains("wsAttributeAssignLookups"));
       assertTrue(GrouperClientWs.mostRecentRequest,
-          GrouperClientWs.mostRecentRequest.contains("wsAttributeDefLookups") && GrouperClientWs.mostRecentRequest.contains("<uuid>"));
+          GrouperClientWs.mostRecentRequest.contains("wsAttributeDefLookups") && GrouperClientWs.mostRecentRequest.contains("uuid"));
       assertTrue(GrouperClientWs.mostRecentRequest,
           !GrouperClientWs.mostRecentRequest.contains("wsAttributeDefNameLookups"));
       assertTrue(GrouperClientWs.mostRecentRequest,
@@ -34497,7 +34502,7 @@ public class GrouperClientWsTest extends GrouperTest {
       assertTrue(GrouperClientWs.mostRecentRequest,
           !GrouperClientWs.mostRecentRequest.contains("wsAttributeAssignLookups"));
       assertTrue(GrouperClientWs.mostRecentRequest,
-          GrouperClientWs.mostRecentRequest.contains("wsAttributeDefLookups") && GrouperClientWs.mostRecentRequest.contains("<uuid>"));
+          GrouperClientWs.mostRecentRequest.contains("wsAttributeDefLookups") && GrouperClientWs.mostRecentRequest.contains("uuid"));
       assertTrue(GrouperClientWs.mostRecentRequest,
           !GrouperClientWs.mostRecentRequest.contains("wsAttributeDefNameLookups"));
       assertTrue(GrouperClientWs.mostRecentRequest,
@@ -34517,7 +34522,7 @@ public class GrouperClientWsTest extends GrouperTest {
       assertFalse(GrouperClientWs.mostRecentRequest,
           GrouperClientWs.mostRecentRequest.contains("theValue"));
       assertFalse(GrouperClientWs.mostRecentRequest,
-          GrouperClientWs.mostRecentRequest.contains(">123<"));
+          GrouperClientWs.mostRecentRequest.contains("\"123\""));
       assertTrue(GrouperClientWs.mostRecentRequest,
           GrouperClientWs.mostRecentRequest.contains("includeAssignmentsFromAssignments"));
       assertFalse(GrouperClientWs.mostRecentRequest,
@@ -34594,7 +34599,7 @@ public class GrouperClientWsTest extends GrouperTest {
       assertFalse(GrouperClientWs.mostRecentRequest,
           GrouperClientWs.mostRecentRequest.contains("wsAttributeDefLookups"));
       assertTrue(GrouperClientWs.mostRecentRequest,
-          GrouperClientWs.mostRecentRequest.contains("<uuid>"));
+          GrouperClientWs.mostRecentRequest.contains("uuid"));
       assertTrue(GrouperClientWs.mostRecentRequest,
           !GrouperClientWs.mostRecentRequest.contains("wsAttributeDefNameLookups"));
       assertTrue(GrouperClientWs.mostRecentRequest,
@@ -34614,7 +34619,7 @@ public class GrouperClientWsTest extends GrouperTest {
       assertFalse(GrouperClientWs.mostRecentRequest,
           GrouperClientWs.mostRecentRequest.contains("theValue"));
       assertFalse(GrouperClientWs.mostRecentRequest,
-          GrouperClientWs.mostRecentRequest.contains(">123<"));
+          GrouperClientWs.mostRecentRequest.contains("\"123\""));
       assertFalse(GrouperClientWs.mostRecentRequest,
           GrouperClientWs.mostRecentRequest.contains("includeAssignmentsFromAssignments"));
       assertFalse(GrouperClientWs.mostRecentRequest,
@@ -34696,7 +34701,7 @@ public class GrouperClientWsTest extends GrouperTest {
       assertFalse(GrouperClientWs.mostRecentRequest,
           GrouperClientWs.mostRecentRequest.contains("wsAttributeDefLookups"));
       assertTrue(GrouperClientWs.mostRecentRequest,
-          GrouperClientWs.mostRecentRequest.contains("<uuid>"));
+          GrouperClientWs.mostRecentRequest.contains("uuid"));
       assertTrue(GrouperClientWs.mostRecentRequest,
           !GrouperClientWs.mostRecentRequest.contains("wsAttributeDefNameLookups"));
       assertTrue(GrouperClientWs.mostRecentRequest,
@@ -34716,7 +34721,7 @@ public class GrouperClientWsTest extends GrouperTest {
       assertFalse(GrouperClientWs.mostRecentRequest,
           GrouperClientWs.mostRecentRequest.contains("theValue"));
       assertFalse(GrouperClientWs.mostRecentRequest,
-          GrouperClientWs.mostRecentRequest.contains(">123<"));
+          GrouperClientWs.mostRecentRequest.contains("\"123\""));
       assertFalse(GrouperClientWs.mostRecentRequest,
           GrouperClientWs.mostRecentRequest.contains("includeAssignmentsFromAssignments"));
       assertFalse(GrouperClientWs.mostRecentRequest,
@@ -34799,7 +34804,7 @@ public class GrouperClientWsTest extends GrouperTest {
       assertFalse(GrouperClientWs.mostRecentRequest,
           GrouperClientWs.mostRecentRequest.contains("wsAttributeDefLookups"));
       assertFalse(GrouperClientWs.mostRecentRequest,
-          GrouperClientWs.mostRecentRequest.contains("<uuid>"));
+          GrouperClientWs.mostRecentRequest.contains("uuid"));
       assertTrue(GrouperClientWs.mostRecentRequest,
           !GrouperClientWs.mostRecentRequest.contains("wsAttributeDefNameLookups"));
       assertTrue(GrouperClientWs.mostRecentRequest,
@@ -34819,7 +34824,7 @@ public class GrouperClientWsTest extends GrouperTest {
       assertFalse(GrouperClientWs.mostRecentRequest,
           GrouperClientWs.mostRecentRequest.contains("theValue"));
       assertFalse(GrouperClientWs.mostRecentRequest,
-          GrouperClientWs.mostRecentRequest.contains(">123<"));
+          GrouperClientWs.mostRecentRequest.contains("\"123\""));
       assertFalse(GrouperClientWs.mostRecentRequest,
           GrouperClientWs.mostRecentRequest.contains("includeAssignmentsFromAssignments"));
       assertFalse(GrouperClientWs.mostRecentRequest,
@@ -34897,7 +34902,7 @@ public class GrouperClientWsTest extends GrouperTest {
       assertFalse(GrouperClientWs.mostRecentRequest,
           GrouperClientWs.mostRecentRequest.contains("wsAttributeDefLookups"));
       assertFalse(GrouperClientWs.mostRecentRequest,
-          GrouperClientWs.mostRecentRequest.contains("<uuid>"));
+          GrouperClientWs.mostRecentRequest.contains("uuid"));
       assertTrue(GrouperClientWs.mostRecentRequest,
           !GrouperClientWs.mostRecentRequest.contains("wsAttributeDefNameLookups"));
       assertTrue(GrouperClientWs.mostRecentRequest,
@@ -34917,7 +34922,7 @@ public class GrouperClientWsTest extends GrouperTest {
       assertFalse(GrouperClientWs.mostRecentRequest,
           GrouperClientWs.mostRecentRequest.contains("theValue"));
       assertFalse(GrouperClientWs.mostRecentRequest,
-          GrouperClientWs.mostRecentRequest.contains(">123<"));
+          GrouperClientWs.mostRecentRequest.contains("\"123\""));
       assertFalse(GrouperClientWs.mostRecentRequest,
           GrouperClientWs.mostRecentRequest.contains("includeAssignmentsFromAssignments"));
       assertFalse(GrouperClientWs.mostRecentRequest,
@@ -35000,7 +35005,7 @@ public class GrouperClientWsTest extends GrouperTest {
       assertFalse(GrouperClientWs.mostRecentRequest,
           GrouperClientWs.mostRecentRequest.contains("wsAttributeDefLookups"));
       assertTrue(GrouperClientWs.mostRecentRequest,
-          GrouperClientWs.mostRecentRequest.contains("<uuid>"));
+          GrouperClientWs.mostRecentRequest.contains("uuid"));
       assertTrue(GrouperClientWs.mostRecentRequest,
           !GrouperClientWs.mostRecentRequest.contains("wsAttributeDefNameLookups"));
       assertTrue(GrouperClientWs.mostRecentRequest,
@@ -35020,7 +35025,7 @@ public class GrouperClientWsTest extends GrouperTest {
       assertFalse(GrouperClientWs.mostRecentRequest,
           GrouperClientWs.mostRecentRequest.contains("theValue"));
       assertFalse(GrouperClientWs.mostRecentRequest,
-          GrouperClientWs.mostRecentRequest.contains(">123<"));
+          GrouperClientWs.mostRecentRequest.contains("\"123\""));
       assertFalse(GrouperClientWs.mostRecentRequest,
           GrouperClientWs.mostRecentRequest.contains("includeAssignmentsFromAssignments"));
       assertFalse(GrouperClientWs.mostRecentRequest,
@@ -35103,7 +35108,7 @@ public class GrouperClientWsTest extends GrouperTest {
       assertFalse(GrouperClientWs.mostRecentRequest,
           GrouperClientWs.mostRecentRequest.contains("wsAttributeDefLookups"));
       assertTrue(GrouperClientWs.mostRecentRequest,
-          GrouperClientWs.mostRecentRequest.contains("<uuid>"));
+          GrouperClientWs.mostRecentRequest.contains("uuid"));
       assertTrue(GrouperClientWs.mostRecentRequest,
           !GrouperClientWs.mostRecentRequest.contains("wsAttributeDefNameLookups"));
       assertTrue(GrouperClientWs.mostRecentRequest,
@@ -35123,7 +35128,7 @@ public class GrouperClientWsTest extends GrouperTest {
       assertFalse(GrouperClientWs.mostRecentRequest,
           GrouperClientWs.mostRecentRequest.contains("theValue"));
       assertFalse(GrouperClientWs.mostRecentRequest,
-          GrouperClientWs.mostRecentRequest.contains(">123<"));
+          GrouperClientWs.mostRecentRequest.contains("\"123\""));
       assertFalse(GrouperClientWs.mostRecentRequest,
           GrouperClientWs.mostRecentRequest.contains("includeAssignmentsFromAssignments"));
       assertFalse(GrouperClientWs.mostRecentRequest,
@@ -35202,7 +35207,7 @@ public class GrouperClientWsTest extends GrouperTest {
       assertFalse(GrouperClientWs.mostRecentRequest,
           GrouperClientWs.mostRecentRequest.contains("wsAttributeDefLookups"));
       assertTrue(GrouperClientWs.mostRecentRequest,
-          GrouperClientWs.mostRecentRequest.contains("<uuid>"));
+          GrouperClientWs.mostRecentRequest.contains("uuid"));
       assertTrue(GrouperClientWs.mostRecentRequest,
           !GrouperClientWs.mostRecentRequest.contains("wsAttributeDefNameLookups"));
       assertTrue(GrouperClientWs.mostRecentRequest,
@@ -35222,7 +35227,7 @@ public class GrouperClientWsTest extends GrouperTest {
       assertFalse(GrouperClientWs.mostRecentRequest,
           GrouperClientWs.mostRecentRequest.contains("theValue"));
       assertFalse(GrouperClientWs.mostRecentRequest,
-          GrouperClientWs.mostRecentRequest.contains(">123<"));
+          GrouperClientWs.mostRecentRequest.contains("\"123\""));
       assertFalse(GrouperClientWs.mostRecentRequest,
           GrouperClientWs.mostRecentRequest.contains("includeAssignmentsFromAssignments"));
       assertFalse(GrouperClientWs.mostRecentRequest,
@@ -35305,7 +35310,7 @@ public class GrouperClientWsTest extends GrouperTest {
       assertFalse(GrouperClientWs.mostRecentRequest,
           GrouperClientWs.mostRecentRequest.contains("wsAttributeDefLookups"));
       assertFalse(GrouperClientWs.mostRecentRequest,
-          GrouperClientWs.mostRecentRequest.contains("<uuid>"));
+          GrouperClientWs.mostRecentRequest.contains("uuid"));
       assertTrue(GrouperClientWs.mostRecentRequest,
           !GrouperClientWs.mostRecentRequest.contains("wsAttributeDefNameLookups"));
       assertTrue(GrouperClientWs.mostRecentRequest,
@@ -35325,7 +35330,7 @@ public class GrouperClientWsTest extends GrouperTest {
       assertFalse(GrouperClientWs.mostRecentRequest,
           GrouperClientWs.mostRecentRequest.contains("theValue"));
       assertFalse(GrouperClientWs.mostRecentRequest,
-          GrouperClientWs.mostRecentRequest.contains(">123<"));
+          GrouperClientWs.mostRecentRequest.contains("\"123\""));
       assertFalse(GrouperClientWs.mostRecentRequest,
           GrouperClientWs.mostRecentRequest.contains("includeAssignmentsFromAssignments"));
       assertFalse(GrouperClientWs.mostRecentRequest,
@@ -35401,7 +35406,7 @@ public class GrouperClientWsTest extends GrouperTest {
       assertFalse(GrouperClientWs.mostRecentRequest,
           GrouperClientWs.mostRecentRequest.contains("wsAttributeDefLookups"));
       assertFalse(GrouperClientWs.mostRecentRequest,
-          GrouperClientWs.mostRecentRequest.contains("<uuid>"));
+          GrouperClientWs.mostRecentRequest.contains("uuid"));
       assertTrue(GrouperClientWs.mostRecentRequest,
           !GrouperClientWs.mostRecentRequest.contains("wsAttributeDefNameLookups"));
       assertTrue(GrouperClientWs.mostRecentRequest,
@@ -35421,7 +35426,7 @@ public class GrouperClientWsTest extends GrouperTest {
       assertFalse(GrouperClientWs.mostRecentRequest,
           GrouperClientWs.mostRecentRequest.contains("theValue"));
       assertFalse(GrouperClientWs.mostRecentRequest,
-          GrouperClientWs.mostRecentRequest.contains(">123<"));
+          GrouperClientWs.mostRecentRequest.contains("\"123\""));
       assertFalse(GrouperClientWs.mostRecentRequest,
           GrouperClientWs.mostRecentRequest.contains("includeAssignmentsFromAssignments"));
       assertFalse(GrouperClientWs.mostRecentRequest,
@@ -35500,7 +35505,7 @@ public class GrouperClientWsTest extends GrouperTest {
       assertFalse(GrouperClientWs.mostRecentRequest,
           GrouperClientWs.mostRecentRequest.contains("wsAttributeDefLookups"));
       assertTrue(GrouperClientWs.mostRecentRequest,
-          GrouperClientWs.mostRecentRequest.contains("<uuid>"));
+          GrouperClientWs.mostRecentRequest.contains("uuid"));
       assertTrue(GrouperClientWs.mostRecentRequest,
           !GrouperClientWs.mostRecentRequest.contains("wsAttributeDefNameLookups"));
       assertTrue(GrouperClientWs.mostRecentRequest,
@@ -35520,7 +35525,7 @@ public class GrouperClientWsTest extends GrouperTest {
       assertFalse(GrouperClientWs.mostRecentRequest,
           GrouperClientWs.mostRecentRequest.contains("theValue"));
       assertFalse(GrouperClientWs.mostRecentRequest,
-          GrouperClientWs.mostRecentRequest.contains(">123<"));
+          GrouperClientWs.mostRecentRequest.contains("\"123\""));
       assertFalse(GrouperClientWs.mostRecentRequest,
           GrouperClientWs.mostRecentRequest.contains("includeAssignmentsFromAssignments"));
       assertFalse(GrouperClientWs.mostRecentRequest,
@@ -35595,7 +35600,7 @@ public class GrouperClientWsTest extends GrouperTest {
       assertFalse(GrouperClientWs.mostRecentRequest,
           GrouperClientWs.mostRecentRequest.contains("wsAttributeDefLookups"));
       assertTrue(GrouperClientWs.mostRecentRequest,
-          GrouperClientWs.mostRecentRequest.contains("<uuid>"));
+          GrouperClientWs.mostRecentRequest.contains("uuid"));
       assertTrue(GrouperClientWs.mostRecentRequest,
           !GrouperClientWs.mostRecentRequest.contains("wsAttributeDefNameLookups"));
       assertTrue(GrouperClientWs.mostRecentRequest,
@@ -35615,7 +35620,7 @@ public class GrouperClientWsTest extends GrouperTest {
       assertFalse(GrouperClientWs.mostRecentRequest,
           GrouperClientWs.mostRecentRequest.contains("theValue"));
       assertFalse(GrouperClientWs.mostRecentRequest,
-          GrouperClientWs.mostRecentRequest.contains(">123<"));
+          GrouperClientWs.mostRecentRequest.contains("\"123\""));
       assertFalse(GrouperClientWs.mostRecentRequest,
           GrouperClientWs.mostRecentRequest.contains("includeAssignmentsFromAssignments"));
       assertFalse(GrouperClientWs.mostRecentRequest,
@@ -35672,7 +35677,7 @@ public class GrouperClientWsTest extends GrouperTest {
       assertTrue(GrouperClientWs.mostRecentRequest,
           !GrouperClientWs.mostRecentRequest.contains("actAsSubjectLookup"));
       assertTrue(GrouperClientWs.mostRecentRequest,
-          !GrouperClientWs.mostRecentRequest.contains("<actions>"));
+          !GrouperClientWs.mostRecentRequest.contains("actions"));
       assertTrue(GrouperClientWs.mostRecentRequest,
           GrouperClientWs.mostRecentRequest.contains("attributeAssignType"));
       assertTrue(GrouperClientWs.mostRecentRequest,
@@ -35694,7 +35699,7 @@ public class GrouperClientWsTest extends GrouperTest {
       assertFalse(GrouperClientWs.mostRecentRequest,
           GrouperClientWs.mostRecentRequest.contains("wsAttributeDefLookups"));
       assertTrue(GrouperClientWs.mostRecentRequest,
-          GrouperClientWs.mostRecentRequest.contains("<uuid>"));
+          GrouperClientWs.mostRecentRequest.contains("uuid"));
       assertTrue(GrouperClientWs.mostRecentRequest,
           !GrouperClientWs.mostRecentRequest.contains("wsAttributeDefNameLookups"));
       assertTrue(GrouperClientWs.mostRecentRequest,
@@ -35714,7 +35719,7 @@ public class GrouperClientWsTest extends GrouperTest {
       assertFalse(GrouperClientWs.mostRecentRequest,
           GrouperClientWs.mostRecentRequest.contains("theValue"));
       assertFalse(GrouperClientWs.mostRecentRequest,
-          GrouperClientWs.mostRecentRequest.contains(">123<"));
+          GrouperClientWs.mostRecentRequest.contains("\"123\""));
       assertFalse(GrouperClientWs.mostRecentRequest,
           GrouperClientWs.mostRecentRequest.contains("includeAssignmentsFromAssignments"));
       assertFalse(GrouperClientWs.mostRecentRequest,
@@ -35757,7 +35762,7 @@ public class GrouperClientWsTest extends GrouperTest {
       assertTrue(GrouperClientWs.mostRecentRequest,
           !GrouperClientWs.mostRecentRequest.contains("actAsSubjectLookup"));
       assertTrue(GrouperClientWs.mostRecentRequest,
-          !GrouperClientWs.mostRecentRequest.contains("<actions>"));
+          !GrouperClientWs.mostRecentRequest.contains("actions"));
       assertTrue(GrouperClientWs.mostRecentRequest,
           GrouperClientWs.mostRecentRequest.contains("attributeAssignType"));
       assertTrue(GrouperClientWs.mostRecentRequest,
@@ -35779,7 +35784,7 @@ public class GrouperClientWsTest extends GrouperTest {
       assertFalse(GrouperClientWs.mostRecentRequest,
           GrouperClientWs.mostRecentRequest.contains("wsAttributeDefLookups"));
       assertTrue(GrouperClientWs.mostRecentRequest,
-          GrouperClientWs.mostRecentRequest.contains("<uuid>"));
+          GrouperClientWs.mostRecentRequest.contains("uuid"));
       assertTrue(GrouperClientWs.mostRecentRequest,
           !GrouperClientWs.mostRecentRequest.contains("wsAttributeDefNameLookups"));
       assertTrue(GrouperClientWs.mostRecentRequest,
@@ -35799,7 +35804,7 @@ public class GrouperClientWsTest extends GrouperTest {
       assertFalse(GrouperClientWs.mostRecentRequest,
           GrouperClientWs.mostRecentRequest.contains("theValue"));
       assertFalse(GrouperClientWs.mostRecentRequest,
-          GrouperClientWs.mostRecentRequest.contains(">123<"));
+          GrouperClientWs.mostRecentRequest.contains("\"123\""));
       assertFalse(GrouperClientWs.mostRecentRequest,
           GrouperClientWs.mostRecentRequest.contains("includeAssignmentsFromAssignments"));
       assertFalse(GrouperClientWs.mostRecentRequest,
@@ -35858,7 +35863,7 @@ public class GrouperClientWsTest extends GrouperTest {
       assertTrue(GrouperClientWs.mostRecentRequest,
           !GrouperClientWs.mostRecentRequest.contains("actAsSubjectLookup"));
       assertTrue(GrouperClientWs.mostRecentRequest,
-          !GrouperClientWs.mostRecentRequest.contains("<actions>"));
+          !GrouperClientWs.mostRecentRequest.contains("actions"));
       assertTrue(GrouperClientWs.mostRecentRequest,
           GrouperClientWs.mostRecentRequest.contains("attributeAssignType"));
       assertTrue(GrouperClientWs.mostRecentRequest,
@@ -35880,7 +35885,7 @@ public class GrouperClientWsTest extends GrouperTest {
       assertFalse(GrouperClientWs.mostRecentRequest,
           GrouperClientWs.mostRecentRequest.contains("wsAttributeDefLookups"));
       assertFalse(GrouperClientWs.mostRecentRequest,
-          GrouperClientWs.mostRecentRequest.contains("<uuid>"));
+          GrouperClientWs.mostRecentRequest.contains("uuid"));
       assertTrue(GrouperClientWs.mostRecentRequest,
           !GrouperClientWs.mostRecentRequest.contains("wsAttributeDefNameLookups"));
       assertTrue(GrouperClientWs.mostRecentRequest,
@@ -35900,7 +35905,7 @@ public class GrouperClientWsTest extends GrouperTest {
       assertFalse(GrouperClientWs.mostRecentRequest,
           GrouperClientWs.mostRecentRequest.contains("theValue"));
       assertFalse(GrouperClientWs.mostRecentRequest,
-          GrouperClientWs.mostRecentRequest.contains(">123<"));
+          GrouperClientWs.mostRecentRequest.contains("\"123\""));
       assertFalse(GrouperClientWs.mostRecentRequest,
           GrouperClientWs.mostRecentRequest.contains("includeAssignmentsFromAssignments"));
       assertFalse(GrouperClientWs.mostRecentRequest,
@@ -36927,9 +36932,9 @@ public class GrouperClientWsTest extends GrouperTest {
           !GrouperClientWs.mostRecentRequest.contains("subjectAttributeNames"));
       assertTrue(GrouperClientWs.mostRecentRequest,
           GrouperClientWs.mostRecentRequest.contains("values")
-          && GrouperClientWs.mostRecentRequest.contains(">3<")
-          && GrouperClientWs.mostRecentRequest.contains(">4<")
-          && GrouperClientWs.mostRecentRequest.contains(">5<"));
+          && GrouperClientWs.mostRecentRequest.contains("\"3\"")
+          && GrouperClientWs.mostRecentRequest.contains("\"4\"")
+          && GrouperClientWs.mostRecentRequest.contains("\"5\""));
       assertTrue(GrouperClientWs.mostRecentRequest,
           !GrouperClientWs.mostRecentRequest.contains("wsAttributeAssignLookup"));
       assertTrue(GrouperClientWs.mostRecentRequest,
@@ -37695,7 +37700,7 @@ public class GrouperClientWsTest extends GrouperTest {
       assertTrue(GrouperClientWs.mostRecentRequest,
           GrouperClientWs.mostRecentRequest.contains("serviceRole"));
       assertTrue(GrouperClientWs.mostRecentRequest,
-          GrouperClientWs.mostRecentRequest.contains("<subjectId>"));
+          GrouperClientWs.mostRecentRequest.contains("subjectId"));
 
       // ##################### subject 1 is in the jira and confluence service...
 
@@ -37738,7 +37743,7 @@ public class GrouperClientWsTest extends GrouperTest {
       assertTrue(GrouperClientWs.mostRecentRequest,
           GrouperClientWs.mostRecentRequest.contains("subjectIdentifier"));
       assertFalse(GrouperClientWs.mostRecentRequest,
-          GrouperClientWs.mostRecentRequest.contains("<subjectId>"));
+          GrouperClientWs.mostRecentRequest.contains("subjectId"));
       assertTrue(GrouperClientWs.mostRecentRequest,
           GrouperClientWs.mostRecentRequest.contains("subjectSourceId"));
 
@@ -37850,7 +37855,7 @@ public class GrouperClientWsTest extends GrouperTest {
 
       assertTrue(GrouperClientWs.mostRecentRequest,
           GrouperClientWs.mostRecentRequest.contains("saveMode")
-              && GrouperClientWs.mostRecentRequest.contains(">UPDATE<"));
+              && GrouperClientWs.mostRecentRequest.contains("\"UPDATE\""));
       assertFalse(GrouperClientWs.mostRecentRequest,
           GrouperClientWs.mostRecentRequest.contains("wsAttributeDefLookup"));
 
@@ -37887,7 +37892,7 @@ public class GrouperClientWsTest extends GrouperTest {
       assertTrue(GrouperClientWs.mostRecentRequest,
           GrouperClientWs.mostRecentRequest.contains("createParentStemsIfNotExist"));
       assertTrue(GrouperClientWs.mostRecentRequest,
-          GrouperClientWs.mostRecentRequest.contains("<wsAttributeDefLookup>"));
+          GrouperClientWs.mostRecentRequest.contains("wsAttributeDefLookup"));
 
       //########################################################
       // run again with lookup  --attributeDefLookupUuid=aStem:newAttributeDef
@@ -37924,7 +37929,7 @@ public class GrouperClientWsTest extends GrouperTest {
       assertFalse(GrouperClientWs.mostRecentRequest,
           GrouperClientWs.mostRecentRequest.contains("description"));
       assertTrue(GrouperClientWs.mostRecentRequest,
-          GrouperClientWs.mostRecentRequest.contains("<wsAttributeDefLookup>")
+          GrouperClientWs.mostRecentRequest.contains("wsAttributeDefLookup")
               && GrouperClientWs.mostRecentRequest.contains(newAttributeDef.getId()));
 
       //########################################################
@@ -37959,7 +37964,7 @@ public class GrouperClientWsTest extends GrouperTest {
       assertFalse(GrouperClientWs.mostRecentRequest,
           GrouperClientWs.mostRecentRequest.contains("description"));
       assertTrue(GrouperClientWs.mostRecentRequest,
-          GrouperClientWs.mostRecentRequest.contains("<wsAttributeDefLookup>")
+          GrouperClientWs.mostRecentRequest.contains("wsAttributeDefLookup")
               && GrouperClientWs.mostRecentRequest
                   .contains(newAttributeDef.getIdIndex().toString()));
 
@@ -37992,7 +37997,7 @@ public class GrouperClientWsTest extends GrouperTest {
       assertEquals(outputLines[0], "aStem:newAttributeDef", matcher.group(3));
 
       assertTrue(GrouperClientWs.mostRecentRequest,
-          GrouperClientWs.mostRecentRequest.contains("<description>")
+          GrouperClientWs.mostRecentRequest.contains("\"description\"")
               && GrouperClientWs.mostRecentRequest.contains("theDescription"));
 
       //########################################################
@@ -38024,10 +38029,10 @@ public class GrouperClientWsTest extends GrouperTest {
       assertEquals(outputLines[0], "aStem:newAttributeDef5", matcher.group(3));
 
       assertTrue(GrouperClientWs.mostRecentRequest,
-          GrouperClientWs.mostRecentRequest.contains("<idIndex>")
+          GrouperClientWs.mostRecentRequest.contains("\"idIndex\"")
               && GrouperClientWs.mostRecentRequest.contains("12345"));
       assertTrue(GrouperClientWs.mostRecentResponse,
-          GrouperClientWs.mostRecentResponse.contains("<idIndex>12345"));
+          GrouperClientWs.mostRecentResponse.contains("\"idIndex\"12345"));
 
       //########################################################
       // run again with --actAsSubjectId=subjId
@@ -38060,7 +38065,7 @@ public class GrouperClientWsTest extends GrouperTest {
       assertFalse(GrouperClientWs.mostRecentRequest,
           GrouperClientWs.mostRecentRequest.contains("subjectIdentifier"));
       assertTrue(GrouperClientWs.mostRecentRequest,
-          GrouperClientWs.mostRecentRequest.contains("<actAsSubjectLookup><subjectId>"));
+          GrouperClientWs.mostRecentRequest.contains("actAsSubjectLookup\":\"subjectId"));
 
       //########################################################
       // run again with --actAsSubjectIdentifier=subjId
@@ -38094,7 +38099,7 @@ public class GrouperClientWsTest extends GrouperTest {
           GrouperClientWs.mostRecentRequest.contains("sourceId"));
       assertTrue(GrouperClientWs.mostRecentRequest,
           GrouperClientWs.mostRecentRequest
-              .contains("<actAsSubjectLookup><subjectIdentifier>"));
+              .contains("actAsSubjectLookup\":\"subjectIdentifier"));
 
       //########################################################
       // run again with --actAsSubjectSource=subjId
@@ -38899,7 +38904,7 @@ public class GrouperClientWsTest extends GrouperTest {
       assertTrue(outputLines[0], matcher.matches());
   
       assertEquals("0", matcher.group(1));
-      assertEquals("SUCCESS", matcher.group(2));
+      assertEquals(output, "SUCCESS", matcher.group(2));
       assertEquals("a_ident@idp.example.edu", matcher.group(3));
       assertEquals("Some Name", matcher.group(4));
   

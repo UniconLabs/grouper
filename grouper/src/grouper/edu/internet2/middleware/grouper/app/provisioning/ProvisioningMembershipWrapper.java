@@ -2,53 +2,12 @@ package edu.internet2.middleware.grouper.app.provisioning;
 
 import edu.internet2.middleware.grouper.util.GrouperUtil;
 import edu.internet2.middleware.grouperClient.collections.MultiKey;
-import edu.internet2.middleware.grouperClient.jdbc.tableSync.GcGrouperSyncErrorCode;
+import edu.internet2.middleware.grouperClient.jdbc.tableSync.GcGrouperSyncGroup;
+import edu.internet2.middleware.grouperClient.jdbc.tableSync.GcGrouperSyncMember;
 import edu.internet2.middleware.grouperClient.jdbc.tableSync.GcGrouperSyncMembership;
 
-public class ProvisioningMembershipWrapper {
+public class ProvisioningMembershipWrapper extends ProvisioningUpdatableWrapper {
   
-  /**
-   * if this object should not be provisioned because there is an error, list it here
-   */
-  private GcGrouperSyncErrorCode errorCode;
-  
-  /**
-   * if this object should not be provisioned because there is an error, list it here
-   * @return
-   */
-  public GcGrouperSyncErrorCode getErrorCode() {
-    return errorCode;
-  }
-
-  /**
-   * if this object should not be provisioned because there is an error, list it here
-   * @param errorCode
-   */
-  public void setErrorCode(GcGrouperSyncErrorCode errorCode) {
-    this.errorCode = errorCode;
-  }
-
-  /**
-   * if incremental and recalc
-   */
-  private boolean recalc;
-  
-  /**
-   * if incremental and recalc
-   * @return
-   */
-  public boolean isRecalc() {
-    return recalc;
-  }
-
-  /**
-   * if incremental and recalc
-   * @param recalc
-   */
-  public void setRecalc(boolean recalc) {
-    this.recalc = recalc;
-  }
-
   /**
    * if this is an incremental action without recalc, then this is the action that occurred in Grouper
    */
@@ -75,21 +34,6 @@ public class ProvisioningMembershipWrapper {
   
   private MultiKey syncGroupIdSyncMemberId = null;
   
-  private Object matchingId = null;
-  
-  
-  public Object getMatchingId() {
-    return matchingId;
-  }
-
-
-
-  
-  public void setMatchingId(Object matchingId) {
-    this.matchingId = matchingId;
-  }
-
-
 
   public MultiKey getGroupIdMemberId() {
     return groupIdMemberId;
@@ -118,9 +62,6 @@ public class ProvisioningMembershipWrapper {
     super();
   }
 
-  private GrouperProvisioner grouperProvisioner;
-  
-  
   /**
    * get grouper target mship if its there, if not, get target provisioning mship
    * @return the target mship
@@ -130,19 +71,6 @@ public class ProvisioningMembershipWrapper {
   }
 
   
-  public GrouperProvisioner getGrouperProvisioner() {
-    return grouperProvisioner;
-  }
-
-
-
-  
-  public void setGrouperProvisioner(GrouperProvisioner grouperProvisioner) {
-    this.grouperProvisioner = grouperProvisioner;
-  }
-
-
-
   public String toString() {
     return "MshipWrapper@" + Integer.toHexString(hashCode());
   }
@@ -204,19 +132,43 @@ public class ProvisioningMembershipWrapper {
   
   public void setGrouperProvisioningMembership(
       ProvisioningMembership grouperProvisioningMembership) {
-    this.grouperProvisioningMembership = grouperProvisioningMembership;
-    if (this.grouperProvisioningMembership!=null) {
-      this.groupIdMemberId = new MultiKey(this.grouperProvisioningMembership.getProvisioningGroupId(), this.grouperProvisioningMembership.getProvisioningEntityId());
-      if (this != this.grouperProvisioningMembership.getProvisioningMembershipWrapper()) {
-        if (this.grouperProvisioningMembership.getProvisioningMembershipWrapper() != null) {
-          this.grouperProvisioner.retrieveGrouperProvisioningData().getProvisioningMembershipWrappers().remove(this.grouperProvisioningMembership.getProvisioningMembershipWrapper());
-        }
-        this.grouperProvisioningMembership.setProvisioningMembershipWrapper(this);
-      }
+    if (this.grouperProvisioningMembership == grouperProvisioningMembership) {
+      return;
     }
+    ProvisioningMembership oldGrouperProvisioningMembership = this.grouperProvisioningMembership;
+    ProvisioningMembershipWrapper oldProvisioningMembershipWrapper = oldGrouperProvisioningMembership == null ? null : oldGrouperProvisioningMembership.getProvisioningMembershipWrapper();
+
+    this.grouperProvisioningMembership = grouperProvisioningMembership;
+    
+    if (this.grouperProvisioningMembership != null) {
+      this.grouperProvisioningMembership.setProvisioningMembershipWrapper(this);
+    }
+
+    if (oldGrouperProvisioningMembership != null) {
+      oldGrouperProvisioningMembership.setProvisioningMembershipWrapper(null);
+    }
+    if (oldProvisioningMembershipWrapper != null && oldProvisioningMembershipWrapper != this) {
+      oldProvisioningMembershipWrapper.grouperProvisioningMembership = null;
+    }
+    this.calculateGroupIdMemberId();
   }
 
   
+  private void calculateGroupIdMemberId() {
+    this.groupIdMemberId = null;
+    if (this.grouperProvisioningMembership != null) {
+      this.groupIdMemberId = new MultiKey(this.grouperProvisioningMembership.getProvisioningGroupId(), this.grouperProvisioningMembership.getProvisioningEntityId());
+
+    } else if (this.gcGrouperSyncMembership != null) {
+      GcGrouperSyncGroup gcGrouperSyncGroup = this.gcGrouperSyncMembership.getGrouperSyncGroup();
+      GcGrouperSyncMember gcGrouperSyncMember = this.gcGrouperSyncMembership.getGrouperSyncMember();
+      if (gcGrouperSyncGroup != null && gcGrouperSyncMember != null) {
+        this.groupIdMemberId = new MultiKey(gcGrouperSyncGroup.getGroupId(), gcGrouperSyncMember.getId());
+      }
+    }
+    
+  }
+
   public ProvisioningMembership getTargetProvisioningMembership() {
     return targetProvisioningMembership;
   }
@@ -224,12 +176,25 @@ public class ProvisioningMembershipWrapper {
   
   public void setTargetProvisioningMembership(
       ProvisioningMembership targetProvisioningMembership) {
+
+    if (this.targetProvisioningMembership == targetProvisioningMembership) {
+      return;
+    }
+
+    ProvisioningMembership oldTargetProvisioningMembership = this.targetProvisioningMembership;
+    ProvisioningMembershipWrapper oldProvisioningMembershipWrapper = oldTargetProvisioningMembership == null ? null : oldTargetProvisioningMembership.getProvisioningMembershipWrapper();
+
     this.targetProvisioningMembership = targetProvisioningMembership;
-    if (this.targetProvisioningMembership != null && this != this.targetProvisioningMembership.getProvisioningMembershipWrapper()) {
-      if (this.targetProvisioningMembership.getProvisioningMembershipWrapper() != null) {
-        this.grouperProvisioner.retrieveGrouperProvisioningData().getProvisioningMembershipWrappers().remove(this.targetProvisioningMembership.getProvisioningMembershipWrapper());
-      }
+    
+    if (this.targetProvisioningMembership != null) {
       this.targetProvisioningMembership.setProvisioningMembershipWrapper(this);
+    }
+
+    if (oldTargetProvisioningMembership != null) {
+      oldTargetProvisioningMembership.setProvisioningMembershipWrapper(null);
+    }
+    if (oldProvisioningMembershipWrapper != null && oldProvisioningMembershipWrapper != this) {
+      oldProvisioningMembershipWrapper.targetProvisioningMembership = null;
     }
   }
 
@@ -240,12 +205,25 @@ public class ProvisioningMembershipWrapper {
 
   
   public void setGrouperTargetMembership(ProvisioningMembership grouperTargetMembership) {
+    
+    if (this.grouperTargetMembership == grouperTargetMembership) {
+      return;
+    }
+    
+    ProvisioningMembership oldGrouperTargetMembership = this.grouperTargetMembership;
+    ProvisioningMembershipWrapper oldProvisioningMembershipWrapper = oldGrouperTargetMembership == null ? null : oldGrouperTargetMembership.getProvisioningMembershipWrapper();
+
     this.grouperTargetMembership = grouperTargetMembership;
-    if (this.grouperTargetMembership != null && this != this.grouperTargetMembership.getProvisioningMembershipWrapper()) {
-      if (this.grouperTargetMembership.getProvisioningMembershipWrapper() != null) {
-        this.grouperProvisioner.retrieveGrouperProvisioningData().getProvisioningMembershipWrappers().remove(this.grouperTargetMembership.getProvisioningMembershipWrapper());
-      }
+    
+    if (this.grouperTargetMembership != null) {
       this.grouperTargetMembership.setProvisioningMembershipWrapper(this);
+    }
+
+    if (oldGrouperTargetMembership != null) {
+      oldGrouperTargetMembership.setProvisioningMembershipWrapper(null);
+    }
+    if (oldProvisioningMembershipWrapper != null && oldProvisioningMembershipWrapper != this) {
+      oldProvisioningMembershipWrapper.grouperTargetMembership = null;
     }
   }
 
@@ -270,6 +248,8 @@ public class ProvisioningMembershipWrapper {
     if (gcGrouperSyncMembership != null) {
       this.syncGroupIdSyncMemberId = new MultiKey(gcGrouperSyncMembership.getGrouperSyncGroupId(), gcGrouperSyncMembership.getGrouperSyncMemberId());
     }
+    this.calculateGroupIdMemberId();
+
   }
 
 
@@ -312,7 +292,31 @@ public class ProvisioningMembershipWrapper {
     this.delete = delete;
   }
 
-  
-  
+  @Override
+  public String objectTypeName() {
+    return "membership";
+  }
+
+  public String toStringForError() {
+    
+    StringBuilder result = new StringBuilder();
+    if (this.getGrouperProvisioningMembership() != null && this.getGrouperProvisioningMembership().getProvisioningGroup() != null && this.getGrouperProvisioningMembership().getProvisioningGroup().getProvisioningGroupWrapper() != null) {
+      result.append(this.getGrouperProvisioningMembership().getProvisioningGroup().getProvisioningGroupWrapper().toStringForError()).append(", ");
+    } else if (this.grouperTargetMembership != null && this.grouperTargetMembership.getProvisioningGroup() != null) {
+      result.append(this.grouperTargetMembership.getProvisioningGroup()).append(", ");
+    }
+
+    if (this.getGrouperProvisioningMembership() != null && this.getGrouperProvisioningMembership().getProvisioningEntity() != null && this.getGrouperProvisioningMembership().getProvisioningEntity().getProvisioningEntityWrapper() != null) {
+      result.append(this.getGrouperProvisioningMembership().getProvisioningEntity().getProvisioningEntityWrapper().toStringForError()).append(", ");
+    } else if (this.grouperTargetMembership != null && this.grouperTargetMembership.getProvisioningEntity() != null) {
+      result.append(this.grouperTargetMembership.getProvisioningEntity());
+    }
+
+    if (result.length() > 0) {
+      return result.toString();
+    }
+    return this.toString();
+  }
+
 
 }

@@ -14,7 +14,7 @@ import java.util.regex.Pattern;
 import org.apache.commons.codec.digest.HmacAlgorithms;
 import org.apache.commons.codec.digest.HmacUtils;
 import org.apache.commons.lang.StringUtils;
-import org.apache.ddlutils.model.Database;
+import edu.internet2.middleware.grouper.ext.org.apache.ddlutils.model.Database;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ArrayNode;
@@ -268,7 +268,11 @@ public class DuoMockServiceHandler extends MockServiceHandler {
     
     String adminDomainName = GrouperConfig.retrieveConfig().propertyValueString("grouper.duoConnector."+configId+".adminDomainName");
     if (StringUtils.isBlank(adminDomainName)) {
-      adminDomainName = "localhost:8080/grouper/mockServices/duo";
+      String uiUrl = GrouperConfig.retrieveConfig().propertyValueString("grouper.ui.url", "http://localhost:8080/grouper");
+      uiUrl = GrouperUtil.stripLastSlashIfExists(uiUrl);
+      uiUrl = GrouperUtil.prefixOrSuffix(uiUrl, "http://", false);
+      uiUrl = GrouperUtil.prefixOrSuffix(uiUrl, "https://", false);
+      adminDomainName = uiUrl + "/mockServices/duo";
     }
     if (!StringUtils.equals(expectedIntegrationKey, integrationKey)) {
       throw new RuntimeException("Integration key does not match with what is in grouper config");
@@ -373,7 +377,17 @@ public class DuoMockServiceHandler extends MockServiceHandler {
     
     List<GrouperDuoUser> grouperDuoUsers = null;
     
-    ByHqlStatic query = HibernateSession.byHqlStatic().createQuery("select distinct user from GrouperDuoUser user left join user.groups groups");
+    String hql = "select distinct user from GrouperDuoUser user left join user.groups groups";
+    
+    String userName = mockServiceRequest.getHttpServletRequest().getParameter("username");
+    if (!StringUtils.isBlank(userName)) {
+      hql += " where user.userName = :userName";
+    }
+    
+    ByHqlStatic query = HibernateSession.byHqlStatic().createQuery(hql);
+    if (!StringUtils.isBlank(userName)) {
+      query.setString("userName", userName);
+    }
     
     QueryOptions queryOptions = new QueryOptions();
     QueryPaging queryPaging = QueryPaging.page(limitInt, pageNumber, true);

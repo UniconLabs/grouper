@@ -7,7 +7,7 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 import org.apache.commons.lang.StringUtils;
-import org.apache.ddlutils.model.Database;
+import edu.internet2.middleware.grouper.ext.org.apache.ddlutils.model.Database;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.ArrayNode;
@@ -140,6 +140,10 @@ public class AzureMockServiceHandler extends MockServiceHandler {
     if (StringUtils.equals("DELETE", mockServiceRequest.getHttpServletRequest().getMethod())) {
       if ("groups".equals(mockServiceRequest.getPostMockNamePaths()[0]) && 2 == mockServiceRequest.getPostMockNamePaths().length) {
         deleteGroups(mockServiceRequest, mockServiceResponse);
+        return;
+      }
+      if ("users".equals(mockServiceRequest.getPostMockNamePaths()[0]) && 2 == mockServiceRequest.getPostMockNamePaths().length) {
+        deleteUsers(mockServiceRequest, mockServiceResponse);
         return;
       }
       if ("groups".equals(mockServiceRequest.getPostMockNamePaths()[0]) && 5 == mockServiceRequest.getPostMockNamePaths().length
@@ -283,6 +287,7 @@ public class AzureMockServiceHandler extends MockServiceHandler {
 //        "password": "xWwvJ]6NMw+bWH-d1"
 //      }
 //    }
+    
     
     String userJsonString = mockServiceRequest.getRequestBody();
     JsonNode userJsonNode = GrouperUtil.jsonJacksonNode(userJsonString);
@@ -450,7 +455,10 @@ public class AzureMockServiceHandler extends MockServiceHandler {
       throw new RuntimeException("Cant find client secret!");
     }
     
-    String tenantId = GrouperLoaderConfig.retrieveConfig().propertyValueStringRequired("grouper.azureConnector." + configId + ".tenantId");
+    String tenantId = GrouperLoaderConfig.retrieveConfig().propertyValueString("grouper.azureConnector." + configId + ".tenantId");
+    if (StringUtils.isBlank(tenantId)) {
+      tenantId = "myTenant";
+    }
     
     if (4 != mockServiceRequest.getPostMockNamePaths().length
         || !StringUtils.equals(tenantId, mockServiceRequest.getPostMockNamePaths()[1])
@@ -534,6 +542,36 @@ public class AzureMockServiceHandler extends MockServiceHandler {
       mockServiceResponse.setResponseCode(404);
     } else {
       throw new RuntimeException("groupsDeleted: " + groupsDeleted);
+    }
+        
+  }
+
+
+
+  public void deleteUsers(MockServiceRequest mockServiceRequest, MockServiceResponse mockServiceResponse) {
+    checkAuthorization(mockServiceRequest);
+
+    checkRequestContentType(mockServiceRequest);
+
+    String id = mockServiceRequest.getPostMockNamePaths()[1];
+    
+    GrouperUtil.assertion(GrouperUtil.length(id) > 0, "id is required");
+
+    int membershipsDeleted = HibernateSession.byHqlStatic()
+        .createQuery("delete from GrouperAzureMembership where userId = :theId")
+        .setString("theId", id).executeUpdateInt();
+    mockServiceRequest.getDebugMap().put("membershipsDeleted", membershipsDeleted);
+    
+    int groupsDeleted = HibernateSession.byHqlStatic()
+        .createQuery("delete from GrouperAzureUser where id = :theId")
+        .setString("theId", id).executeUpdateInt();
+
+    if (groupsDeleted == 1) {
+      mockServiceResponse.setResponseCode(204);
+    } else if (groupsDeleted == 0) {
+      mockServiceResponse.setResponseCode(404);
+    } else {
+      throw new RuntimeException("usersDeleted: " + groupsDeleted);
     }
         
   }
@@ -687,16 +725,18 @@ public class AzureMockServiceHandler extends MockServiceHandler {
         String groupType = groupTypesArrayNode.get(i).asText();
         groupTypesSet.add(groupType);
       }
-      grouperAzureGroup.setGroupTypeMailEnabled(groupTypesSet.contains("MailEnabled"));
-      grouperAzureGroup.setGroupTypeMailEnabledSecurity(groupTypesSet.contains("MailEnabledSecurity"));
-      grouperAzureGroup.setGroupTypeSecurity(groupTypesSet.contains("Security"));
+     
       grouperAzureGroup.setGroupTypeUnified(groupTypesSet.contains("Unified"));
+      grouperAzureGroup.setGroupTypeDynamic(groupTypesSet.contains("Dynamic"));
     }
     if (requestJsonNode.has("id")) {
       throw new RuntimeException("Cant update the id field!");
     }
     if (requestJsonNode.has("mailEnabled")) {
       grouperAzureGroup.setMailEnabled(GrouperUtil.jsonJacksonGetBoolean(requestJsonNode, "mailEnabled"));
+    }
+    if (requestJsonNode.has("isAssignableToRole")) {
+      grouperAzureGroup.setAssignableToRole(GrouperUtil.jsonJacksonGetBoolean(requestJsonNode, "isAssignableToRole"));
     }
     if (requestJsonNode.has("mailNickname")) {
       grouperAzureGroup.setMailNickname(GrouperUtil.jsonJacksonGetString(requestJsonNode, "mailNickname"));

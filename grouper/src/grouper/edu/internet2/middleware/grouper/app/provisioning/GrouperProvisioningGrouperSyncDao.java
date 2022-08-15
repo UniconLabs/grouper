@@ -5,6 +5,7 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -76,9 +77,34 @@ public class GrouperProvisioningGrouperSyncDao {
     List<GcGrouperSyncGroup> gcGrouperSyncGroups = gcGrouperSync
         .getGcGrouperSyncGroupDao().groupRetrieveAll();
 
+    clearErrorsGroup(gcGrouperSyncGroups);
     return gcGrouperSyncGroups;
   }
 
+  public void clearErrorsGroup(Collection<GcGrouperSyncGroup> gcGrouperSyncGroups) {
+    for (GcGrouperSyncGroup gcGrouperSyncGroup : GrouperUtil.nonNull(gcGrouperSyncGroups)) {
+      gcGrouperSyncGroup.setErrorCode(null);
+      gcGrouperSyncGroup.setErrorMessage(null);
+      gcGrouperSyncGroup.setErrorTimestamp(null);
+    }
+  }
+  
+  public void clearErrorsMember(Collection<GcGrouperSyncMember> gcGrouperSyncMembers) {
+    for (GcGrouperSyncMember gcGrouperSyncMember : GrouperUtil.nonNull(gcGrouperSyncMembers)) {
+      gcGrouperSyncMember.setErrorCode(null);
+      gcGrouperSyncMember.setErrorMessage(null);
+      gcGrouperSyncMember.setErrorTimestamp(null);
+    }
+  }
+  
+  public void clearErrorsMembership(Collection<GcGrouperSyncMembership> gcGrouperSyncMemberships) {
+    for (GcGrouperSyncMembership gcGrouperSyncMembership : GrouperUtil.nonNull(gcGrouperSyncMemberships)) {
+      gcGrouperSyncMembership.setErrorCode(null);
+      gcGrouperSyncMembership.setErrorMessage(null);
+      gcGrouperSyncMembership.setErrorTimestamp(null);
+    }
+  }
+  
   /**
    * get sync objects from the database
    */
@@ -87,6 +113,7 @@ public class GrouperProvisioningGrouperSyncDao {
 
     List<GcGrouperSyncMember> gcGrouperSyncMembers = gcGrouperSync
         .getGcGrouperSyncMemberDao().memberRetrieveAll();
+    clearErrorsMember(gcGrouperSyncMembers);
 
     return gcGrouperSyncMembers;
   }
@@ -99,6 +126,8 @@ public class GrouperProvisioningGrouperSyncDao {
 
     List<GcGrouperSyncMembership> gcGrouperSyncMemberships = gcGrouperSync
         .getGcGrouperSyncMembershipDao().membershipRetrieveAll();
+
+    clearErrorsMembership(gcGrouperSyncMemberships);
 
     return gcGrouperSyncMemberships;
   }
@@ -166,10 +195,12 @@ public class GrouperProvisioningGrouperSyncDao {
       GcGrouperSync gcGrouperSync = this.getGrouperProvisioner().getGcGrouperSync();
       Map<String, GcGrouperSyncGroup> grouperSyncGroupIdToSyncGroup = gcGrouperSync
           .getGcGrouperSyncGroupDao().groupRetrieveByGroupIds(groupIdsToRetrieve);
+
       gcGrouperSyncGroups
           .addAll(GrouperUtil.nonNull(grouperSyncGroupIdToSyncGroup).values());
     }
 
+    clearErrorsGroup(gcGrouperSyncGroups);
     this.getGrouperProvisioner().getDebugMap().put("syncGroupsFound",
         GrouperUtil.length(gcGrouperSyncGroups));
 
@@ -265,12 +296,14 @@ public class GrouperProvisioningGrouperSyncDao {
     } else {
       Set<GcGrouperSyncMember> gcGrouperSyncMembersSet = new HashSet<GcGrouperSyncMember>();
       gcGrouperSyncMembersSet.addAll(gcGrouperSyncMembers);
+
       this.getGrouperProvisioner().retrieveGrouperProvisioningDataSync()
           .setGcGrouperSyncMembers(
               new ArrayList<GcGrouperSyncMember>(gcGrouperSyncMembersSet));
     }
 
     //    this.getGrouperProvisioner().retrieveGrouperProvisioningDataSync().setGcGrouperSyncMembers(gcGrouperSyncMembers);
+    clearErrorsMember(gcGrouperSyncMembers);
 
     debugMap.put("retrieveSyncMembersMillis", System.currentTimeMillis() - start);
     debugMap.put("syncMemberCount", GrouperUtil.length(gcGrouperSyncMembers));
@@ -410,12 +443,14 @@ public class GrouperProvisioningGrouperSyncDao {
           .setGcGrouperSyncMembers(
               new ArrayList<GcGrouperSyncMember>(gcGrouperSyncMembersSet));
     } else {
-      Set<GcGrouperSyncMember> gcGrouperSyncMembersSet = new HashSet<GcGrouperSyncMember>();
-      gcGrouperSyncMembersSet.addAll(memberRetrieveByIds.values());
+      Set<GcGrouperSyncMember> gcGrouperSyncMembershipsSet = new HashSet<GcGrouperSyncMember>();
+      gcGrouperSyncMembershipsSet.addAll(memberRetrieveByIds.values());
       this.getGrouperProvisioner().retrieveGrouperProvisioningDataSync()
           .setGcGrouperSyncMembers(
-              new ArrayList<GcGrouperSyncMember>(gcGrouperSyncMembersSet));
+              new ArrayList<GcGrouperSyncMember>(gcGrouperSyncMembershipsSet));
     }
+
+    clearErrorsMembership(gcGrouperSyncMemberships);
 
     debugMap.put("retrieveSyncMembershipsMillis", System.currentTimeMillis() - start);
     debugMap.put("syncMembershipCount", GrouperUtil.length(gcGrouperSyncMemberships));
@@ -511,15 +546,20 @@ public class GrouperProvisioningGrouperSyncDao {
 
     for (GcGrouperSyncMember gcGrouperSyncMember : gcGrouperSyncMembersToRefreshSubjectLink) {
 
-      MultiKey sourceIdSubjectId = new MultiKey(gcGrouperSyncMember.getSourceId(),
-          gcGrouperSyncMember.getSubjectId());
-      sourceIdSubjectIds.add(sourceIdSubjectId);
-
+      ProvisioningSyncIntegration.decorateSyncMemberSubjectInformationIfNull(this.grouperProvisioner, gcGrouperSyncMember, null);
+      
+      if (!StringUtils.isBlank(gcGrouperSyncMember.getSourceId()) && !StringUtils.isBlank(gcGrouperSyncMember.getSubjectId())) {
+        MultiKey sourceIdSubjectId = new MultiKey(gcGrouperSyncMember.getSourceId(),
+            gcGrouperSyncMember.getSubjectId());
+        sourceIdSubjectIds.add(sourceIdSubjectId);
+      }
     }
 
     Map<MultiKey, Subject> sourceIdSubjectIdToSubject = SubjectFinder
         .findBySourceIdsAndSubjectIds(sourceIdSubjectIds, false, true);
 
+    Set<GcGrouperSyncMember> gcSyncMembersChangedInSubjectLink = new LinkedHashSet<GcGrouperSyncMember>();
+    
     for (GcGrouperSyncMember gcGrouperSyncMember : gcGrouperSyncMembersToRefreshSubjectLink) {
 
       MultiKey sourceIdSubjectId = new MultiKey(gcGrouperSyncMember.getSourceId(),
@@ -553,18 +593,22 @@ public class GrouperProvisioningGrouperSyncDao {
         gcGrouperSyncMember.setEntityAttributeValueCache2(entityAttributeValueCache2Value);
       }
 
-      if (hasSubjectLinkAttributeValueCache1) {
+      if (hasSubjectLinkAttributeValueCache3) {
         String entityAttributeValueCache3Value = GrouperUtil
             .substituteExpressionLanguage(grouperProvisioningConfigurationAttributeDbCache3.getTranslationScript(), variableMap);
         gcGrouperSyncMember.setEntityAttributeValueCache3(entityAttributeValueCache3Value);
       }
-
+      gcSyncMembersChangedInSubjectLink.add(gcGrouperSyncMember);
     }
 
     if (subjectsCannotFindLinkData > 0) {
       this.grouperProvisioner.getDebugMap().put("subjectsCannotFindLinkData",
           subjectsCannotFindLinkData);
     }
+    if (GrouperUtil.length(gcSyncMembersChangedInSubjectLink) > 0) {
+      this.getGrouperProvisioner().retrieveGrouperProvisioningObjectLog().debug(GrouperProvisioningObjectLogType.retrieveSubjectLink, gcSyncMembersChangedInSubjectLink);
+    }
+
   }
 
   /**
@@ -606,7 +650,6 @@ public class GrouperProvisioningGrouperSyncDao {
         if (this.grouperProvisioner.retrieveGrouperProvisioningBehavior().getGrouperProvisioningType().isIncrementalSync()) {
           GcGrouperSync gcGrouperSync = this.grouperProvisioner.getGcGrouperSync();
           gcGrouperSync.setGroupCount(GrouperUtil.intValue(gcGrouperSync.getGroupCount(), 0) + 1);
-          gcGrouperSync.setRecordsCount(GrouperUtil.intValue(gcGrouperSync.getRecordsCount(), 0) + 1);
         }
         
       } else {
@@ -816,7 +859,6 @@ public class GrouperProvisioningGrouperSyncDao {
         if (this.grouperProvisioner.retrieveGrouperProvisioningBehavior().getGrouperProvisioningType().isIncrementalSync()) {
           GcGrouperSync gcGrouperSync = this.grouperProvisioner.getGcGrouperSync();
           gcGrouperSync.setUserCount(GrouperUtil.intValue(gcGrouperSync.getUserCount(), 0) + 1);
-          gcGrouperSync.setRecordsCount(GrouperUtil.intValue(gcGrouperSync.getRecordsCount(), 0) + 1);
         }
         
       } else {
@@ -1130,7 +1172,6 @@ public class GrouperProvisioningGrouperSyncDao {
           if (this.grouperProvisioner.retrieveGrouperProvisioningBehavior().getGrouperProvisioningType().isIncrementalSync()) {
             GcGrouperSync gcGrouperSync = this.grouperProvisioner.getGcGrouperSync();
             gcGrouperSync.setUserCount(GrouperUtil.intValue(gcGrouperSync.getUserCount(), 0) - 1);
-            gcGrouperSync.setRecordsCount(GrouperUtil.intValue(gcGrouperSync.getRecordsCount(), 0) - 1);
           }
           
         }
@@ -1212,7 +1253,6 @@ public class GrouperProvisioningGrouperSyncDao {
           if (this.grouperProvisioner.retrieveGrouperProvisioningBehavior().getGrouperProvisioningType().isIncrementalSync()) {
             GcGrouperSync gcGrouperSync = this.grouperProvisioner.getGcGrouperSync();
             gcGrouperSync.setGroupCount(GrouperUtil.intValue(gcGrouperSync.getGroupCount(), 0) - 1);
-            gcGrouperSync.setRecordsCount(GrouperUtil.intValue(gcGrouperSync.getRecordsCount(), 0) - 1);
           }
           
         }
@@ -1288,7 +1328,7 @@ public class GrouperProvisioningGrouperSyncDao {
     for (ProvisioningGroupWrapper provisioningGroupWrapper : GrouperUtil
         .nonNull(values)) {
       
-      if (!provisioningGroupWrapper.isRecalc()) {
+      if (!provisioningGroupWrapper.isRecalcObject()) {
         continue;
       }
       
@@ -1330,7 +1370,7 @@ public class GrouperProvisioningGrouperSyncDao {
     for (ProvisioningEntityWrapper provisioningEntityWrapper : GrouperUtil
         .nonNull(values)) {
       
-      if (!provisioningEntityWrapper.isRecalc()) {
+      if (!provisioningEntityWrapper.isRecalcObject()) {
         continue;
       }
       
@@ -1483,7 +1523,7 @@ public class GrouperProvisioningGrouperSyncDao {
           for (ProvisioningMembershipWrapper provisioningMembershipWrapper : syncGroupIdSyncMemberIdToMembershipWrappersProcessed
               .values()) {
             
-            if (!provisioningMembershipWrapper.isRecalc()) {
+            if (!provisioningMembershipWrapper.isRecalcObject()) {
               continue;
             }
             
@@ -1609,7 +1649,7 @@ public class GrouperProvisioningGrouperSyncDao {
           for (ProvisioningMembershipWrapper provisioningMembershipWrapper : syncGroupIdSyncMemberIdToMembershipWrappersProcessed
               .values()) {
             
-            if (!provisioningMembershipWrapper.isRecalc()) {
+            if (!provisioningMembershipWrapper.isRecalcObject()) {
               continue;
             }
             
@@ -1637,7 +1677,7 @@ public class GrouperProvisioningGrouperSyncDao {
         for (ProvisioningMembershipWrapper provisioningMembershipWrapper : GrouperUtil
             .nonNull(provisioningMembershipWrappers)) {
           
-          if (!provisioningMembershipWrapper.isRecalc()) {
+          if (!provisioningMembershipWrapper.isRecalcObject()) {
             continue;
           }
           
