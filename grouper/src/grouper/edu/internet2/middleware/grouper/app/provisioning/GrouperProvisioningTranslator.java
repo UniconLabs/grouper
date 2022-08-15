@@ -9,6 +9,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+import edu.internet2.middleware.grouper.app.ldapProvisioning.LdapSyncConfiguration;
 import org.apache.commons.lang3.StringUtils;
 
 import edu.internet2.middleware.grouper.util.GrouperUtil;
@@ -1187,6 +1188,9 @@ public class GrouperProvisioningTranslator {
   }
 
   public String getTranslateFromGrouperProvisioningGroupField(boolean forCreate, GrouperProvisioningConfigurationAttribute grouperProvisioningConfigurationAttribute) {
+    if (((LdapSyncConfiguration) this.getGrouperProvisioner().retrieveGrouperProvisioningConfiguration()).getGroupRdnAttribute() != null) {
+      return ((LdapSyncConfiguration) this.getGrouperProvisioner().retrieveGrouperProvisioningConfiguration()).getGroupRdnAttribute();
+    }
     String expression = grouperProvisioningConfigurationAttribute.getTranslateFromGrouperProvisioningGroupField();
     boolean hasExpression = !StringUtils.isBlank(expression);
     String expressionCreateOnly = grouperProvisioningConfigurationAttribute.getTranslateFromGrouperProvisioningGroupFieldCreateOnly();
