@@ -1183,7 +1183,7 @@ public class GrouperUtil {
 
     String location = "log4j2.xml";
     
-    fileCopyExampleResourceIfNotExist("log4j2.example.xml", location);
+    // fileCopyExampleResourceIfNotExist("log4j2.example.xml", location);
     
 //    URL url = computeUrl(location, false);
 //    
