@@ -187,6 +187,26 @@ public class CommonServletContainerInitializer implements ServletContainerInitia
       
       if (runGrouperScim) {
         // logic to enable/disable filters, web listeners is in the grouper ws scim project itself. One eg. is RestApplication.java
+        try {
+          Class grouperScimServiceFilterClass = Class.forName("edu.internet2.middleware.grouper.scim.TierFilter");
+          Dynamic grouperWsServiceFilter = context.addFilter("TierFilter", grouperScimServiceFilterClass);
+          grouperWsServiceFilter.addMappingForUrlPatterns(null, false, "/v2/*");
+          String restServletName = "SCIMRestServlet";
+          Class restServletClass = Class.forName("org.glassfish.jersey.servlet.ServletContainer");
+          javax.servlet.ServletRegistration.Dynamic restServlet = context.addServlet(restServletName, restServletClass);
+          restServlet.addMapping("/v2/*");
+          restServlet.setInitParameter("jersey.config.server.provider.packages", "edu.internet2.middleware.grouper.scim, edu.internet2.middleware.grouper.scim.providers, edu.internet2.middleware.grouper.scim.resources");
+          restServlet.setLoadOnStartup(1);
+
+        } catch (ClassNotFoundException e) {
+          if (GrouperConfig.retrieveConfig().propertyValueBoolean("grouper.dev.env.allowMissingServlets", true)) {
+            LOG.info("you can't access grouper scim because required classes are not on the classpath.");
+          } else {
+            LOG.info("if you are developing and got this exception put grouper.dev.env.allowMissingServlets=true in config file grouper.properties.");
+            throw new RuntimeException("required classes for grouper ws are not on the classpath", e);
+          }
+        }
+
       }
       
       if (runGrouperDaemon) {

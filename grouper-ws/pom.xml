@@ -40,6 +40,7 @@
         <module>grouper-ws-java-manual-client</module>
         <module>grouper-ws-test</module>
         <module>grouper-ws-scim</module>
+        <module>grouper-ws-scim-pingid</module>
     </modules>
 	
 </project>
