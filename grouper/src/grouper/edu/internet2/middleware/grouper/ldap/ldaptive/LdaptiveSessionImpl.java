@@ -28,6 +28,7 @@ import java.util.Properties;
 
 import javax.net.ssl.SSLSocketFactory;
 
+import edu.internet2.middleware.grouper.app.externalSystem.GrouperX509TrustManager;
 import org.apache.commons.lang.StringUtils;
 import org.apache.commons.logging.Log;
 import org.ldaptive.AddOperation;
@@ -422,6 +423,12 @@ public class LdaptiveSessionImpl implements LdapSession {
       value = Morph.decryptIfFile(value);
       _ldaptiveProperties.put(encryptablePropertyKey, value);
     }
+
+    if (GrouperX509TrustManager.getInstance().isCustomized()) {
+      _ldaptiveProperties.put("org.ldaptive.trustManagers", GrouperX509TrustManager.class.getName());
+
+    }
+
     return _ldaptiveProperties;
   }
   

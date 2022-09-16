@@ -19,7 +19,9 @@ import java.util.Set;
 import javax.net.ssl.HostnameVerifier;
 import javax.net.ssl.SSLContext;
 import javax.net.ssl.SSLSession;
+import javax.net.ssl.TrustManager;
 
+import edu.internet2.middleware.grouper.app.externalSystem.GrouperX509TrustManager;
 import org.apache.commons.codec.binary.Base64;
 import org.apache.commons.httpclient.HttpMethod;
 import org.apache.commons.io.IOUtils;
@@ -673,11 +675,18 @@ public class GrouperHttpClient {
    */
   private CloseableHttpClient getCustomTrustStoreClient() throws Exception {
     // Trust own CA and all self-signed certs
-    SSLContext sslcontext = SSLContexts.custom()
-        .loadTrustMaterial(this.trustStore,
-            this.trustStorePassword == null ? "".toCharArray() : this.trustStorePassword.toCharArray(),
-                new TrustSelfSignedStrategy())
-        .build();
+    SSLContextBuilder builder = SSLContexts.custom();
+    if (this.trustStore != null) {
+        builder.loadTrustMaterial(this.trustStore,
+              this.trustStorePassword == null ? "".toCharArray() : this.trustStorePassword.toCharArray(),
+              new TrustSelfSignedStrategy());
+    }
+    SSLContext sslcontext = builder.build();
+
+    GrouperX509TrustManager trustManager = GrouperX509TrustManager.getInstance();
+    if (trustManager.isCustomized()) {
+      sslcontext.init(null, new TrustManager[]{trustManager}, null);
+    }
 
     // Allow TLSv1* protocol only
     SSLConnectionSocketFactory sslConnectionSocketFactory = new SSLConnectionSocketFactory(
@@ -761,7 +770,7 @@ public class GrouperHttpClient {
         throw new RuntimeException(e);
       } 
       // Check for custom truststore
-    } else if(this.trustStore != null) {
+    } else if (this.trustStore != null || GrouperX509TrustManager.getInstance().isCustomized()) {
       try {
         closeableHttpClient = this.getCustomTrustStoreClient();
       } catch (Exception e) {
