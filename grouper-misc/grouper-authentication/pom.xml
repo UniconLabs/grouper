@@ -16,6 +16,10 @@
     limitations under the License.
 
 -->
+<!-- This POM is to register this jar in maven.  Note, the jar in maven will NOT have all the dependencies embedded.
+     Note this jar will not be in the grouper container anywhere, it is just stored in maven central (or your institution's maven)
+     so there is a snapshot of it.
+-->
 <project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
     xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
 
@@ -24,18 +28,20 @@
     <parent>
         <groupId>edu.internet2.middleware.grouper</groupId>
         <artifactId>grouper-parent</artifactId>
-        <version>2.5.0-SNAPSHOT</version>
+        <version>2.6.0-SNAPSHOT</version>
         <relativePath>../../grouper-parent</relativePath>
     </parent>
 
     <name>Grouper Authentication</name>
     <description>Authentication Library</description>
     <artifactId>grouper-authentication</artifactId>
+    <version>0.0.1-SNAPSHOT</version>
     <packaging>jar</packaging>
 
     <properties>
         <pac4j.version>4.3.1</pac4j.version>
         <jee-pac4j.version>5.0.0</jee-pac4j.version>
+        <grouper.version>2.6.0-SNAPSHOT</grouper.version>
     </properties>
 
     <dependencies>
@@ -43,8 +49,7 @@
         <dependency>
             <groupId>${project.groupId}</groupId>
             <artifactId>grouper-ui</artifactId>
-            <version>${project.version}</version>
-            <scope>provided</scope>
+            <version>${grouper.version}</version>
         </dependency>
         <dependency>
             <groupId>org.pac4j</groupId>
@@ -75,17 +80,15 @@
             <groupId>org.apache.tomcat</groupId>
             <artifactId>tomcat-catalina</artifactId>
             <version>8.5.60</version>
-            <scope>provided</scope>
         </dependency>
         <dependency>
             <groupId>commons-logging</groupId>
             <artifactId>commons-logging</artifactId>
-            <scope>provided</scope>
         </dependency>
         <dependency>
             <groupId>${project.groupId}</groupId>
             <artifactId>grouper</artifactId>
-            <version>${project.version}</version>
+            <version>${grouper.version}</version>
             <type>test-jar</type>
             <scope>test</scope>
         </dependency>
@@ -105,12 +108,17 @@
                             <Implementation-Title>${project.artifactId}</Implementation-Title>
                             <Implementation-Version>${project.version}</Implementation-Version>
                             <Implementation-URL>${project.url}</Implementation-URL>
-                            <Main-Class>edu.internet2.middleware.grouperBox.GrouperBoxSync</Main-Class>
                             <Build-Timestamp>${maven.build.timestamp}</Build-Timestamp>
                         </manifestEntries>
                     </archive>
                 </configuration>
             </plugin>
+        </plugins>
+    </build>
+
+<!--
+    <build>
+        <plugins>
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-dependency-plugin</artifactId>
@@ -132,6 +140,5 @@
             </plugin>
         </plugins>
     </build>
-
+-->
 </project>
-

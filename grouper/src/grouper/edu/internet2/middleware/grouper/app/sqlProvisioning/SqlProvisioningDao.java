@@ -3,10 +3,8 @@ package edu.internet2.middleware.grouper.app.sqlProvisioning;
 import java.sql.Timestamp;
 import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 
 import org.apache.commons.lang.StringUtils;
 
@@ -43,11 +41,14 @@ import edu.internet2.middleware.grouper.app.provisioning.targetDao.TargetDaoRetr
 import edu.internet2.middleware.grouper.app.provisioning.targetDao.TargetDaoRetrieveGroupsResponse;
 import edu.internet2.middleware.grouper.app.provisioning.targetDao.TargetDaoRetrieveMembershipsBulkRequest;
 import edu.internet2.middleware.grouper.app.provisioning.targetDao.TargetDaoRetrieveMembershipsBulkResponse;
+import edu.internet2.middleware.grouper.app.provisioning.targetDao.TargetDaoRetrieveMembershipsRequest;
+import edu.internet2.middleware.grouper.app.provisioning.targetDao.TargetDaoRetrieveMembershipsResponse;
 import edu.internet2.middleware.grouper.app.provisioning.targetDao.TargetDaoUpdateEntitiesRequest;
 import edu.internet2.middleware.grouper.app.provisioning.targetDao.TargetDaoUpdateEntitiesResponse;
 import edu.internet2.middleware.grouper.app.provisioning.targetDao.TargetDaoUpdateGroupsRequest;
 import edu.internet2.middleware.grouper.app.provisioning.targetDao.TargetDaoUpdateGroupsResponse;
 import edu.internet2.middleware.grouper.util.GrouperUtil;
+import edu.internet2.middleware.grouperClient.collections.MultiKey;
 
 /**
  * 
@@ -94,6 +95,38 @@ public class SqlProvisioningDao extends GrouperProvisionerTargetDaoBase {
   }
 
   /**
+   * bulk retrieve target provisioning Memberships, generally use the matching Ids in the targetMemberships
+   * @param targetDaoRetrieveMembershipsRequest
+   * @return the target provisioning Memberships
+   */
+  public TargetDaoRetrieveMembershipsResponse retrieveMemberships(TargetDaoRetrieveMembershipsRequest targetDaoRetrieveMembershipsRequest) {
+    TargetDaoRetrieveMembershipsResponse targetDaoRetrieveMembershipsResponse = new TargetDaoRetrieveMembershipsResponse();
+    if (GrouperUtil.length(targetDaoRetrieveMembershipsRequest.getTargetMemberships()) == 0) {
+      return targetDaoRetrieveMembershipsResponse;
+    }
+    
+    List<ProvisioningGroup> grouperTargetGroups = new ArrayList<ProvisioningGroup>();
+    List<ProvisioningEntity> grouperTargetEntities = new ArrayList<ProvisioningEntity>();
+    List<ProvisioningMembership> grouperTargetMemberships = new ArrayList<ProvisioningMembership>();
+    
+    for (Object object : targetDaoRetrieveMembershipsRequest.getTargetMemberships()) {
+      if (object instanceof ProvisioningGroup) {
+        grouperTargetGroups.add((ProvisioningGroup)object);
+      }
+      if (object instanceof ProvisioningEntity) {
+        grouperTargetEntities.add((ProvisioningEntity)object);
+      }
+      if (object instanceof ProvisioningMembership) {
+        grouperTargetMemberships.add((ProvisioningMembership)object);
+      }
+    }
+    
+    List<ProvisioningMembership> memberships = retrieveMemberships(grouperTargetGroups, grouperTargetEntities, (List<Object>)(Object)grouperTargetMemberships);
+    targetDaoRetrieveMembershipsResponse.setTargetMemberships((List<Object>)(Object)memberships);
+    return targetDaoRetrieveMembershipsResponse;
+  }
+
+  /**
    * 
    * @param grouperTargetGroups
    * @param grouperTargetEntities
@@ -107,9 +140,9 @@ public class SqlProvisioningDao extends GrouperProvisionerTargetDaoBase {
     
     String dbExternalSystemConfigId = sqlProvisioningConfiguration.getDbExternalSystemConfigId();
 
-    String membershipGroupColumn = sqlProvisioningConfiguration.getMembershipGroupForeignKeyColumn();
-    String membershipEntityColumn = sqlProvisioningConfiguration.getMembershipEntityForeignKeyColumn();
-
+    String membershipGroupColumn = sqlProvisioningConfiguration.getMembershipGroupMatchingIdAttribute();
+    String membershipEntityColumn = sqlProvisioningConfiguration.getMembershipEntityMatchingIdAttribute();
+    
     String entityTableIdColumn = sqlProvisioningConfiguration.getEntityTableIdColumn();
     String groupTableIdColumn = sqlProvisioningConfiguration.getGroupTableIdColumn();
 
@@ -294,9 +327,16 @@ public class SqlProvisioningDao extends GrouperProvisionerTargetDaoBase {
     
     for (ProvisioningGroup targetGroup: targetGroups) {
       
-      String groupIdentifierValue = targetGroup.retrieveAttributeValueString(groupTableIdColumn);
+      String groupIdentifierValueNew = targetGroup.retrieveAttributeValueString(groupTableIdColumn);
+      String groupIdentifierValueOld = groupIdentifierValueNew;
+      if (targetGroup.getProvisioningGroupWrapper() != null && targetGroup.getProvisioningGroupWrapper().getTargetProvisioningGroup() != null) {
+        groupIdentifierValueOld = targetGroup.getProvisioningGroupWrapper().getTargetProvisioningGroup().retrieveAttributeValueString(groupTableIdColumn);
+        if (StringUtils.isBlank(groupIdentifierValueOld)) {
+          groupIdentifierValueOld = groupIdentifierValueNew;
+        }
+      }
       
-      if (StringUtils.isBlank(groupIdentifierValue)) {
+      if (StringUtils.isBlank(groupIdentifierValueNew)) {
         throw new RuntimeException("Unable to retrieve entitiy identifier value");
       }
       Object[] mainData = new Object[primaryColumnsToUpdate.size()];
@@ -309,6 +349,13 @@ public class SqlProvisioningDao extends GrouperProvisionerTargetDaoBase {
       for (ProvisioningObjectChange provisioningObjectChange : GrouperUtil.nonNull(targetGroup.getInternal_objectChanges())) {
         
         String attributeName = provisioningObjectChange.getAttributeName();
+        
+        if (StringUtils.equals(attributeName, groupTableIdColumn) && provisioningObjectChange.getProvisioningObjectChangeAction() == ProvisioningObjectChangeAction.update 
+            && !GrouperUtil.isBlank(provisioningObjectChange.getOldValue()) 
+            && !StringUtils.equals(groupIdentifierValueNew, GrouperUtil.stringValue(provisioningObjectChange.getOldValue()))) {
+          groupIdentifierValueOld = GrouperUtil.stringValue(provisioningObjectChange.getOldValue());
+        }
+        
         SqlGrouperProvisioningConfigurationAttribute configurationAttribute = (SqlGrouperProvisioningConfigurationAttribute) attributeNameToConfig.get(attributeName);
         GrouperUtil.assertion(configurationAttribute!=null, "Configuration attribute is null: '" + attributeName + "'");
         if (StringUtils.equals(configurationAttribute.getStorageType(), "separateAttributesTable")) {
@@ -317,7 +364,7 @@ public class SqlProvisioningDao extends GrouperProvisionerTargetDaoBase {
             
             Object[] updateData = new Object[attributeColumnsToUpdate.size()];
             attributeTableUpdates.add(updateData);
-            updateData[0] = groupIdentifierValue;
+            updateData[0] = groupIdentifierValueNew;
             updateData[1] = attributeName;
             updateData[2] = provisioningObjectChange.getNewValue();
             if (StringUtils.isNotBlank(groupAttributesLastModifiedColumn)) {
@@ -329,13 +376,13 @@ public class SqlProvisioningDao extends GrouperProvisionerTargetDaoBase {
                 throw new RuntimeException("Invalid groupAttributesLastModifiedColumnType: '"+groupAttributesLastModifiedColumnType+"'");
               }
             }
-            attributeTableUpdatesWhereClause.add(new Object[] {groupIdentifierValue, attributeName, provisioningObjectChange.getOldValue()});
+            attributeTableUpdatesWhereClause.add(new Object[] {groupIdentifierValueNew, attributeName, provisioningObjectChange.getOldValue()});
             
           } else if (provisioningObjectChange.getProvisioningObjectChangeAction() == ProvisioningObjectChangeAction.insert) {
             
             Object[] insertData = new Object[attributeColumnsToInsert.size()];
             attributeTableInserts.add(insertData);
-            insertData[0] = groupIdentifierValue;
+            insertData[0] = groupIdentifierValueNew;
             insertData[1] = attributeName;
             insertData[2] = provisioningObjectChange.getNewValue();
             if (StringUtils.isNotBlank(groupAttributesLastModifiedColumn)) {
@@ -351,10 +398,10 @@ public class SqlProvisioningDao extends GrouperProvisionerTargetDaoBase {
           } else if (provisioningObjectChange.getProvisioningObjectChangeAction() == ProvisioningObjectChangeAction.delete) {
             Object[] deleteData = new Object[attributeColumnsToDelete.size()];
             attributeTableDeletes.add(deleteData);
-            deleteData[0] = groupIdentifierValue;
+            deleteData[0] = groupIdentifierValueNew;
             deleteData[1] = attributeName;
             deleteData[2] = provisioningObjectChange.getOldValue();
-            attributeTableDeletesWhereClause.add(new Object[] {groupIdentifierValue});
+            attributeTableDeletesWhereClause.add(new Object[] {groupIdentifierValueNew});
           }
           
         } else {
@@ -368,10 +415,23 @@ public class SqlProvisioningDao extends GrouperProvisionerTargetDaoBase {
       }
       if (hasPrimaryUpdate) {
         primaryTableUpdates.add(mainData);
-        primaryTableWhereClause.add(new Object[] {groupIdentifierValue});
+        primaryTableWhereClause.add(new Object[] {groupIdentifierValueOld});
       }
-    }
-    
+
+      // if the groupIdentiferNew and groupIdentifierOld do not match...
+      if (!StringUtils.equals(groupIdentifierValueNew, groupIdentifierValueOld) && sqlProvisioningConfiguration.isUseSeparateTableForGroupAttributes()) {
+
+        List<Object[]> groupAttributesGroupForeignKeyColumnOld = new ArrayList<Object[]>();
+        groupAttributesGroupForeignKeyColumnOld.add(new Object[] {groupIdentifierValueOld});
+        List<Object[]> groupAttributesGroupForeignKeyColumnNew = new ArrayList<Object[]>();
+        groupAttributesGroupForeignKeyColumnNew.add(new Object[] {groupIdentifierValueNew});
+        
+
+        SqlProvisionerCommands.updateObjects(dbExternalSystemConfigId, groupAttributesTableName, 
+           GrouperUtil.toList(groupAttributesGroupForeignKeyColumn), groupAttributesGroupForeignKeyColumnNew, 
+           GrouperUtil.toList(groupAttributesGroupForeignKeyColumn), groupAttributesGroupForeignKeyColumnOld);
+      }
+    }      
     if (primaryTableUpdates.size() > 0) {
       
       SqlProvisionerCommands.updateObjects(dbExternalSystemConfigId, groupTableName, primaryColumnsToUpdate, primaryTableUpdates, primaryColumnsWhereClause, primaryTableWhereClause);
@@ -397,7 +457,7 @@ public class SqlProvisioningDao extends GrouperProvisionerTargetDaoBase {
     }
     
     for (ProvisioningGroup targetGroup: targetGroups) {
-      
+
       targetGroup.setProvisioned(true);
       for (ProvisioningObjectChange provisioningObjectChange : GrouperUtil.nonNull(targetGroup.getInternal_objectChanges())) {
         provisioningObjectChange.setProvisioned(true);
@@ -488,9 +548,16 @@ public class SqlProvisioningDao extends GrouperProvisionerTargetDaoBase {
     
     for (ProvisioningEntity targetEntity: targetEntities) {
       
-      String entityIdentifierValue = targetEntity.retrieveAttributeValueString(entityTableIdColumn);
-      
-      if (StringUtils.isBlank(entityIdentifierValue)) {
+      String entityIdentifierValueNew = targetEntity.retrieveAttributeValueString(entityTableIdColumn);
+      String entityIdentifierValueOld = entityIdentifierValueNew;
+      if (targetEntity.getProvisioningEntityWrapper() != null && targetEntity.getProvisioningEntityWrapper().getTargetProvisioningEntity() != null) {
+        entityIdentifierValueOld = targetEntity.getProvisioningEntityWrapper().getTargetProvisioningEntity().retrieveAttributeValueString(entityTableIdColumn);
+        if (StringUtils.isBlank(entityIdentifierValueOld)) {
+          entityIdentifierValueOld = entityIdentifierValueNew;
+        }
+      }
+
+      if (StringUtils.isBlank(entityIdentifierValueNew)) {
         throw new RuntimeException("Unable to retrieve entitiy identifier value");
       }
       Object[] mainData = new Object[primaryColumnsToUpdate.size()];
@@ -503,6 +570,13 @@ public class SqlProvisioningDao extends GrouperProvisionerTargetDaoBase {
       for (ProvisioningObjectChange provisioningObjectChange : GrouperUtil.nonNull(targetEntity.getInternal_objectChanges())) {
         
         String attributeName = provisioningObjectChange.getAttributeName();
+        
+        if (StringUtils.equals(attributeName, entityTableIdColumn) && provisioningObjectChange.getProvisioningObjectChangeAction() == ProvisioningObjectChangeAction.update 
+            && !GrouperUtil.isBlank(provisioningObjectChange.getOldValue()) 
+            && !StringUtils.equals(entityIdentifierValueNew, GrouperUtil.stringValue(provisioningObjectChange.getOldValue()))) {
+          entityIdentifierValueOld = GrouperUtil.stringValue(provisioningObjectChange.getOldValue());
+        }
+
         SqlGrouperProvisioningConfigurationAttribute configurationAttribute = (SqlGrouperProvisioningConfigurationAttribute) attributeNameToConfig.get(attributeName);
         GrouperUtil.assertion(configurationAttribute!=null, "Configuration attribute is null: '" + attributeName + "'");
         if (StringUtils.equals(configurationAttribute.getStorageType(), "separateAttributesTable")) {
@@ -511,7 +585,7 @@ public class SqlProvisioningDao extends GrouperProvisionerTargetDaoBase {
             
             Object[] updateData = new Object[attributeColumnsToUpdate.size()];
             attributeTableUpdates.add(updateData);
-            updateData[0] = entityIdentifierValue;
+            updateData[0] = entityIdentifierValueNew;
             updateData[1] = attributeName;
             updateData[2] = provisioningObjectChange.getNewValue();
             if (StringUtils.isNotBlank(entityAttributesLastModifiedColumn)) {
@@ -523,13 +597,13 @@ public class SqlProvisioningDao extends GrouperProvisionerTargetDaoBase {
                 throw new RuntimeException("Invalid entityAttributesLastModifiedColumnType: '"+entityAttributesLastModifiedColumnType+"'");
               }
             }
-            attributeTableUpdatesWhereClause.add(new Object[] {entityIdentifierValue, attributeName, provisioningObjectChange.getOldValue()});
+            attributeTableUpdatesWhereClause.add(new Object[] {entityIdentifierValueNew, attributeName, provisioningObjectChange.getOldValue()});
             
           } else if (provisioningObjectChange.getProvisioningObjectChangeAction() == ProvisioningObjectChangeAction.insert) {
             
             Object[] insertData = new Object[attributeColumnsToInsert.size()];
             attributeTableInserts.add(insertData);
-            insertData[0] = entityIdentifierValue;
+            insertData[0] = entityIdentifierValueNew;
             insertData[1] = attributeName;
             insertData[2] = provisioningObjectChange.getNewValue();
             if (StringUtils.isNotBlank(entityAttributesLastModifiedColumn)) {
@@ -545,10 +619,10 @@ public class SqlProvisioningDao extends GrouperProvisionerTargetDaoBase {
           } else if (provisioningObjectChange.getProvisioningObjectChangeAction() == ProvisioningObjectChangeAction.delete) {
             Object[] deleteData = new Object[attributeColumnsToDelete.size()];
             attributeTableDeletes.add(deleteData);
-            deleteData[0] = entityIdentifierValue;
+            deleteData[0] = entityIdentifierValueNew;
             deleteData[1] = attributeName;
             deleteData[2] = provisioningObjectChange.getOldValue();
-            attributeTableDeletesWhereClause.add(new Object[] {entityIdentifierValue});
+            attributeTableDeletesWhereClause.add(new Object[] {entityIdentifierValueNew});
           }
           
         } else {
@@ -561,8 +635,22 @@ public class SqlProvisioningDao extends GrouperProvisionerTargetDaoBase {
       }
       if (hasPrimaryUpdate) {
         primaryTableUpdates.add(mainData);
-        primaryTableWhereClause.add(new Object[] {entityIdentifierValue});
+        primaryTableWhereClause.add(new Object[] {entityIdentifierValueOld});
       }
+      // if the groupIdentiferNew and groupIdentifierOld do not match...
+      if (!StringUtils.equals(entityIdentifierValueNew, entityIdentifierValueOld) && sqlProvisioningConfiguration.isUseSeparateTableForGroupAttributes()) {
+
+        List<Object[]> entityAttributesEntityForeignKeyColumnOld = new ArrayList<Object[]>();
+        entityAttributesEntityForeignKeyColumnOld.add(new Object[] {entityIdentifierValueOld});
+        List<Object[]> entityAttributesEntityForeignKeyColumnNew = new ArrayList<Object[]>();
+        entityAttributesEntityForeignKeyColumnNew.add(new Object[] {entityIdentifierValueNew});
+        
+
+        SqlProvisionerCommands.updateObjects(dbExternalSystemConfigId, entityAttributesTableName, 
+           GrouperUtil.toList(entityAttributesEntityForeignKeyColumn), entityAttributesEntityForeignKeyColumnNew, 
+           GrouperUtil.toList(entityAttributesEntityForeignKeyColumn), entityAttributesEntityForeignKeyColumnOld);
+      }
+
     }
     
     if (primaryTableUpdates.size() > 0) {
@@ -701,19 +789,18 @@ public class SqlProvisioningDao extends GrouperProvisionerTargetDaoBase {
     
     GrouperUtil.assertion(!StringUtils.isBlank(objectTableName), "Need membership table name");
     
-    String entityIdForeignKeyColumn = sqlProvisioningConfiguration.getMembershipEntityForeignKeyColumn();
-    String groupIdForeignKeyColumn = sqlProvisioningConfiguration.getMembershipGroupForeignKeyColumn();
+    String groupIdColumn = sqlProvisioningConfiguration.getMembershipGroupMatchingIdAttribute();
+    String entityIdColumn = sqlProvisioningConfiguration.getMembershipEntityMatchingIdAttribute();
 
     List<Object[]> ownerIds = new ArrayList<Object[]>();
     
     for (ProvisioningMembership targetMembership: targetMemberships) {
-      String groupIdValue = targetMembership.retrieveAttributeValueString(groupIdForeignKeyColumn);
-      String entityIdValue = targetMembership.retrieveAttributeValueString(entityIdForeignKeyColumn);
-      ownerIds.add(new Object[] {groupIdValue, entityIdValue});
+      MultiKey membershipMatchingId = new MultiKey(targetMembership.retrieveAttributeValueString(groupIdColumn), targetMembership.retrieveAttributeValueString(entityIdColumn));
+      ownerIds.add(membershipMatchingId.getKeys());
     }
         
     SqlProvisionerCommands.deleteObjects(ownerIds, dbExternalSystemConfigId, objectTableName, 
-        GrouperUtil.toList(groupIdForeignKeyColumn, entityIdForeignKeyColumn), null, null);
+        GrouperUtil.toList(groupIdColumn, entityIdColumn), null, null);
     
     for (ProvisioningMembership targetMembership: targetMemberships) {
       
@@ -1049,10 +1136,15 @@ public class SqlProvisioningDao extends GrouperProvisionerTargetDaoBase {
         continue;
       }
 
+      boolean isMembershipAttribute = false;
+      if (isGroupAttributes && !StringUtils.isBlank(sqlProvisioningConfiguration.getGroupMembershipAttributeName()) && StringUtils.equals(sqlProvisioningConfiguration.getGroupMembershipAttributeName(), attributeName)) {
+        isMembershipAttribute = true;
+      }
+      
       // maybe we dont want memberships
       if (StringUtils.equals(configurationAttribute.getStorageType(), "separateAttributesTable")) {
         
-        if (!configurationAttribute.isMembershipAttribute() || (isGroupAttributes && includeMemberships)) {
+        if (!isMembershipAttribute || (isGroupAttributes && includeMemberships)) {
 
           attributeTableAttributesNamesList.add(attributeName);
 
@@ -1299,24 +1391,22 @@ public class SqlProvisioningDao extends GrouperProvisionerTargetDaoBase {
 
     Map<String, GrouperProvisioningConfigurationAttribute> groupAttributeNameToConfigAttribute = sqlProvisioningConfiguration.getTargetGroupAttributeNameToConfig();
 
-    List<GrouperProvisioningConfigurationAttribute> searchAttributes = sqlProvisioningConfiguration.getGroupSearchAttributes();
-    if (searchAttributes.size() != 1) {
-      throw new RuntimeException("Can currently only have one searchAttribute! " + GrouperUtil.toStringForLog(searchAttributes));
-    }
-
-    GrouperProvisioningConfigurationAttribute searchAttribute = searchAttributes.get(0);
-    
     for (String attributeName: groupAttributeNameToConfigAttribute.keySet()) {
       SqlGrouperProvisioningConfigurationAttribute configurationAttribute = (SqlGrouperProvisioningConfigurationAttribute) groupAttributeNameToConfigAttribute.get(attributeName);
       GrouperUtil.assertion(configurationAttribute!=null, "Configuration attribute is null: '" + attributeName + "'");
-      if (!configurationAttribute.isSelect() && !StringUtils.equals(searchAttribute.getName(), attributeName)) {
+      if (!configurationAttribute.isSelect() && !StringUtils.equals(targetDaoRetrieveGroupsRequest.getSearchAttribute(), attributeName)) {
         continue;
       }
       
+      boolean isMembershipAttribute = false;
+      if (isGroupAttributes && !StringUtils.isBlank(sqlProvisioningConfiguration.getGroupMembershipAttributeName()) && StringUtils.equals(sqlProvisioningConfiguration.getGroupMembershipAttributeName(), attributeName)) {
+        isMembershipAttribute = true;
+      }
+
       // maybe we dont want memberships
       if (StringUtils.equals(configurationAttribute.getStorageType(), "separateAttributesTable")) {
         
-        if (!configurationAttribute.isMembershipAttribute() || (isGroupAttributes && includeMemberships)) {
+        if (!isMembershipAttribute || (isGroupAttributes && includeMemberships)) {
 
           attributeTableAttributesNamesList.add(attributeName);
 
@@ -1330,37 +1420,34 @@ public class SqlProvisioningDao extends GrouperProvisionerTargetDaoBase {
       }
     }
 
-    boolean filterByColumn = groupTablePrimaryColNamesList.contains(searchAttribute.getName());
+    boolean filterByColumn = groupTablePrimaryColNamesList.contains(targetDaoRetrieveGroupsRequest.getSearchAttribute());
     
-    boolean filterByAttribute = searchAttribute != null && attributeTableAttributesNamesList.contains(searchAttribute.getName());
+    boolean filterByAttribute = attributeTableAttributesNamesList.contains(targetDaoRetrieveGroupsRequest.getSearchAttribute());
     
     GrouperUtil.assertion(filterByAttribute || filterByColumn, "Must filter by attribute or column");
 
     if (attributeTableAttributesNamesList.size() > 0 ) {
-      GrouperUtil.assertion(!StringUtils.isBlank(groupAttributesGroupForeignKeyColumn), "entity attributes foreign key column must be configured");
-      GrouperUtil.assertion(!StringUtils.isBlank(groupAttributesAttributeNameColumn), "entity attributes attribute name column must be configured");
-      GrouperUtil.assertion(!StringUtils.isBlank(groupAttributesAttributeValueColumn), "entity attributes attribute value column must be configured");
+      GrouperUtil.assertion(!StringUtils.isBlank(groupAttributesGroupForeignKeyColumn), "group attributes foreign key column must be configured");
+      GrouperUtil.assertion(!StringUtils.isBlank(groupAttributesAttributeNameColumn), "group attributes attribute name column must be configured");
+      GrouperUtil.assertion(!StringUtils.isBlank(groupAttributesAttributeValueColumn), "group attributes attribute value column must be configured");
       groupTableAttributesColNamesList = GrouperUtil.toList(groupAttributesGroupForeignKeyColumn, groupAttributesAttributeNameColumn, groupAttributesAttributeValueColumn);
     }
      
-    if (GrouperUtil.length(targetDaoRetrieveGroupsRequest.getTargetGroups()) > 0) {
+    if (GrouperUtil.length(targetDaoRetrieveGroupsRequest.getSearchAttributeValues()) > 0) {
       
-      List<Object> idsToRetrieve = new ArrayList<Object>();
-      for (ProvisioningGroup provisioningGroup : targetDaoRetrieveGroupsRequest.getTargetGroups()) {
-        idsToRetrieve.add(provisioningGroup.retrieveAttributeValue(searchAttribute.getName()));
-      }
+      List<Object> idsToRetrieve = new ArrayList<Object>(targetDaoRetrieveGroupsRequest.getSearchAttributeValues());
       
       List<Object[]> groupPrimaryAttributeValues = null;
   
 
       if (filterByColumn) {
         groupPrimaryAttributeValues = SqlProvisionerCommands.retrieveObjectsColumnFilter(
-            dbExternalSystemConfigId, groupTablePrimaryColNamesList, groupTableName, null, null, GrouperUtil.toList(searchAttribute.getName()), idsToRetrieve);
+            dbExternalSystemConfigId, groupTablePrimaryColNamesList, groupTableName, null, null, GrouperUtil.toList(targetDaoRetrieveGroupsRequest.getSearchAttribute()), idsToRetrieve);
         
       } else if (filterByAttribute) {
         groupPrimaryAttributeValues = SqlProvisionerCommands.retrieveObjectsAttributeFilter(dbExternalSystemConfigId, 
             groupTablePrimaryColNamesList, groupTableName, groupTableIdColumn, groupAttributesTableName, groupAttributesGroupForeignKeyColumn, 
-            groupAttributesAttributeNameColumn, groupAttributesAttributeValueColumn, searchAttribute.getName(), idsToRetrieve);
+            groupAttributesAttributeNameColumn, groupAttributesAttributeValueColumn, targetDaoRetrieveGroupsRequest.getSearchAttribute(), idsToRetrieve);
             
       }
       
@@ -1456,10 +1543,15 @@ public class SqlProvisioningDao extends GrouperProvisionerTargetDaoBase {
         continue;
       }
       
+      boolean isMembershipAttribute = false;
+      if (isEntityAttributes && !StringUtils.isBlank(sqlProvisioningConfiguration.getGroupMembershipAttributeName()) && StringUtils.equals(sqlProvisioningConfiguration.getGroupMembershipAttributeName(), attributeName)) {
+        isMembershipAttribute = true;
+      }
+
       // maybe we dont want memberships
       if (StringUtils.equals(configurationAttribute.getStorageType(), "separateAttributesTable")) {
         
-        if (!configurationAttribute.isMembershipAttribute() || (isEntityAttributes && includeMemberships)) {
+        if (!isMembershipAttribute || (isEntityAttributes && includeMemberships)) {
 
           attributeTableAttributesNamesList.add(attributeName);
 
@@ -1565,10 +1657,15 @@ public class SqlProvisioningDao extends GrouperProvisionerTargetDaoBase {
         continue;
       }
       
+      boolean isMembershipAttribute = false;
+      if (isEntityAttributes && !StringUtils.isBlank(sqlProvisioningConfiguration.getGroupMembershipAttributeName()) && StringUtils.equals(sqlProvisioningConfiguration.getGroupMembershipAttributeName(), attributeName)) {
+        isMembershipAttribute = true;
+      }
+
       // maybe we dont want memberships
       if (StringUtils.equals(configurationAttribute.getStorageType(), "separateAttributesTable")) {
         
-        if (!configurationAttribute.isMembershipAttribute() || (isEntityAttributes && includeMemberships)) {
+        if (!isMembershipAttribute || (isEntityAttributes && includeMemberships)) {
 
           attributeTableAttributesNamesList.add(attributeName);
 

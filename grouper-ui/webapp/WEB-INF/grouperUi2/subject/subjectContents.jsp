@@ -46,6 +46,7 @@
                                 || (guiMembershipContainer.membershipContainer.membershipAssignType.immediate 
                                       && guiMembershipSubjectContainer.guiGroup.canUpdate)
                                 || guiMembershipContainer.membershipContainer.membershipAssignType.nonImmediate
+                                || guiMembershipSubjectContainer.canReadProvisioningForMembership
                                 || guiMembershipSubjectContainer.guiSubject.group}">
                               <div class="btn-group">
                               	<a data-toggle="dropdown" aria-label="${textContainer.text['ariaLabelGuiMoreMembershipActions']}" href="#" class="btn btn-mini dropdown-toggle"
@@ -62,14 +63,15 @@
                                       && guiMembershipSubjectContainer.guiGroup.canUpdate }">
                                     <li><a href="#" onclick="ajax('../app/UiV2Subject.removeGroup?subjectId=${grouperRequestContainer.subjectContainer.guiSubject.subject.id}&sourceId=${grouperRequestContainer.subjectContainer.guiSubject.subject.sourceId}&groupId=${guiMembershipSubjectContainer.guiGroup.group.uuid}', {formIds: 'groupFilterFormId,groupPagingFormId'}); return false;" class="actions-revoke-membership">${textContainer.text['subjectViewRevokeMembershipButton'] }</a></li>
                                   </c:if>
-                                  <c:if test="${guiMembershipContainer.membershipContainer.membershipAssignType.nonImmediate}">
-                                    <li><a href="#"  onclick="return guiV2link('operation=UiV2Membership.traceMembership&groupId=${guiMembershipSubjectContainer.guiGroup.group.id}&memberId=${guiMembershipSubjectContainer.guiMember.member.uuid}&field=members&backTo=subject'); return false;" class="actions-revoke-membership">${textContainer.text['groupViewTraceMembershipButton'] }</a></li>
-                                  </c:if>
+                                  <li><a href="#"  onclick="return guiV2link('operation=UiV2Membership.traceMembership&groupId=${guiMembershipSubjectContainer.guiGroup.group.id}&memberId=${guiMembershipSubjectContainer.guiMember.member.uuid}&field=members&backTo=subject'); return false;" class="actions-revoke-membership">${textContainer.text['groupViewTraceMembershipButton'] }</a></li>
                                   <c:if test="${guiMembershipSubjectContainer.guiSubject.group}">
                                     <li><a href="#" onclick="return guiV2link('operation=UiV2Group.viewGroup&groupId=${guiMembershipSubjectContainer.guiSubject.subject.id}');">${textContainer.text['groupViewViewGroupButton'] }</a></li>
                                   </c:if>
                                   <li><a href="#"  onclick="return guiV2link('operation=UiV2MembershipAttributeAssignment.viewAttributeAssignments&groupId=${guiMembershipSubjectContainer.membershipSubjectContainer.groupOwner.id}&subjectId=${grouperRequestContainer.subjectContainer.guiSubject.subject.id}&sourceId=${grouperRequestContainer.subjectContainer.guiSubject.subject.sourceId}'); return false;" class="actions-attribute-assignments">${textContainer.text['membershipAttributeAssignmentsButton'] }</a></li>
-                                  <li><a href="#"  onclick="return guiV2link('operation=UiV2Provisioning.viewProvisioningOnSubjectMembership&groupId=${guiMembershipSubjectContainer.membershipSubjectContainer.groupOwner.id}&subjectId=${grouperRequestContainer.subjectContainer.guiSubject.subject.id}&sourceId=${grouperRequestContainer.subjectContainer.guiSubject.subject.sourceId}'); return false;" class="actions-attribute-assignments">${textContainer.text['subjectViewProvisioningButton'] }</a></li>
+                                  
+                                  <c:if test="${guiMembershipSubjectContainer.canReadProvisioningForMembership}">
+                                    <li><a href="#"  onclick="return guiV2link('operation=UiV2Provisioning.viewProvisioningOnSubjectMembership&groupId=${guiMembershipSubjectContainer.membershipSubjectContainer.groupOwner.id}&subjectId=${grouperRequestContainer.subjectContainer.guiSubject.subject.id}&sourceId=${grouperRequestContainer.subjectContainer.guiSubject.subject.sourceId}'); return false;" class="actions-attribute-assignments">${textContainer.text['subjectViewProvisioningButton'] }</a></li>
+                                  </c:if>
                                 </ul>
                               </div>
                             </c:if>
